@@ -1,6 +1,6 @@
 /* 전적 > 오프닝: 첫 수, 정석 이탈, 오프닝별 성적, 레퍼토리 트리, 엔진 점검 */
 {
-const F="abcdefgh",START="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",DEPTH=30;
+const F="abcdefgh",START="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",DEPTH=24;
 const O={color:"w",path:[],list:[],token:0,etok:0};
 const RL={win:"승",loss:"패",draw:"무"};
 const HOWS={checkmated:"메이트",timeout:"시간",resigned:"기권",abandoned:"탈주"};
@@ -43,7 +43,8 @@ window.renderOpenings=async function(list){
   const t=++O.token,el=$("#pOpen");
   el.innerHTML='<p class="empty" id="oSt">정리 중…</p>';
   await Openings.load();
-  for(let i=0;i<list.length;i++){prep(list[i]);if(i%150===149){const s=$("#oSt");if(s)s.textContent=`정리 중 ${i+1}/${list.length}`;await new Promise(r=>setTimeout(r));if(t!==O.token)return}}
+  let t0=performance.now();
+  for(let i=0;i<list.length;i++){prep(list[i]);if(performance.now()-t0>40){const s=$("#oSt");if(s)s.textContent=`정리 중 ${i+1}/${list.length}`;await new Promise(r=>{const c=new MessageChannel();c.port1.onmessage=()=>r();c.port2.postMessage(0)});t0=performance.now();if(t!==O.token)return}}
   if(t!==O.token)return;
   O.list=list.filter(g=>g._o&&g.res!=="abort");
   draw();
