@@ -30,7 +30,7 @@
 <section class="band main" id="main">
   <div class="wrap">
     <div class="bar">
-      <div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="games" aria-selected="true">게임</button><button class="tab" role="tab" data-tab="stats" aria-selected="false">통계</button></div>
+      <div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="games" aria-selected="true">게임</button><button class="tab" role="tab" data-tab="stats" aria-selected="false">통계</button><button class="tab" role="tab" data-tab="open" aria-selected="false">오프닝</button></div>
       <span class="range" id="range"></span>
     </div>
     <div class="filters">
@@ -40,6 +40,7 @@
     </div>
     <div id="pGames"><div class="glist" id="glist"></div><button class="more" id="more">더 보기</button></div>
     <div id="pStats" hidden><div class="sgrid" id="sgrid"></div></div>
+    <div id="pOpen" hidden></div>
   </div>
 </section>
 </main>
@@ -55,5 +56,6 @@
 <script src="js/stats.js"></script>
 <script src="js/openings.js"></script>
 <script src="js/analysis.js"></script>
+<script src="js/openings-tab.js"></script>
 </body>
 </html>
