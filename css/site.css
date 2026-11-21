@@ -239,3 +239,16 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 .bctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:6px}
 .bgo{min-height:42px;padding:0 18px;border-radius:10px;border:0;background:var(--acc);color:var(--accink);font-weight:700}
 .bprog{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+
+/* 보드 색 설정 */
+.setb{display:inline-grid;place-items:center;min-width:44px;min-height:40px;border-radius:8px;border:0;background:transparent;cursor:pointer}
+.setb:hover{background:#ffffff14}
+.sw{display:inline-grid;grid-template-columns:1fr 1fr;width:20px;height:20px;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px #ffffff55;vertical-align:middle}
+.sw i{display:block;background:var(--a,var(--lsq))}.sw i:nth-child(2),.sw i:nth-child(3){background:var(--b,var(--dsq))}
+.setp{position:absolute;right:max(5vw,16px);top:100%;margin-top:6px;background:#fff;color:#122027;border-radius:12px;padding:12px;box-shadow:0 16px 40px -12px #000a;z-index:60;width:min(320px,calc(100vw - 32px))}
+.setp p{margin:0 0 8px;font-weight:700;font-size:14px}
+.sws{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.sws button{display:flex;align-items:center;gap:8px;min-height:40px;border-radius:9px;border:1px solid #d9e2e5;background:#fff;color:#122027;font:inherit;font-size:14px;padding:0 8px}
+.sws button[aria-pressed=true]{border-color:#ff6a3d;box-shadow:0 0 0 2px #ff6a3d55}
+.sws .sw{width:22px;height:22px;box-shadow:none}
+header{position:sticky}

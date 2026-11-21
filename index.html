@@ -107,6 +107,19 @@ header{background:var(--band);color:#f3f7f8;position:sticky;top:0;z-index:20;bor
 .note{font-size:13px;color:#a9c0c7;margin:8px 0 0;text-align:center}
 /* list */
 [hidden]{display:none!important}
+/* 보드 색 설정 */
+.setb{display:inline-grid;place-items:center;min-width:44px;min-height:40px;border-radius:8px;border:0;background:transparent;cursor:pointer}
+.setb:hover{background:#ffffff14}
+.sw{display:inline-grid;grid-template-columns:1fr 1fr;width:20px;height:20px;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px #ffffff55;vertical-align:middle}
+.sw i{display:block;background:var(--a,var(--lsq))}.sw i:nth-child(2),.sw i:nth-child(3){background:var(--b,var(--dsq))}
+.setp{position:absolute;right:max(5vw,16px);top:100%;margin-top:6px;background:#fff;color:#122027;border-radius:12px;padding:12px;box-shadow:0 16px 40px -12px #000a;z-index:60;width:min(320px,calc(100vw - 32px))}
+.setp p{margin:0 0 8px;font-weight:700;font-size:14px}
+.sws{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.sws button{display:flex;align-items:center;gap:8px;min-height:40px;border-radius:9px;border:1px solid #d9e2e5;background:#fff;color:#122027;font:inherit;font-size:14px;padding:0 8px}
+.sws button[aria-pressed=true]{border-color:#ff6a3d;box-shadow:0 0 0 2px #ff6a3d55}
+.sws .sw{width:22px;height:22px;box-shadow:none}
+
+
 .modes{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
 .modes button{min-height:42px;padding:0 16px;border-radius:99px;border:1px solid #ffffff40;background:transparent;color:#e7eef0;font-weight:700}
 .modes button[aria-selected=true]{background:#fff;color:#122027;border-color:#fff}
@@ -158,6 +171,10 @@ footer p{margin:0}
 @media(max-width:600px){.nav nav{margin-left:0;width:100%}.nav nav a{padding:8px 10px}.card h3{font-size:26px}.plist{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pz{padding:8px}.pz b{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 </style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e3b4a">
+<link rel="apple-touch-icon" href="icons/app/apple-180.png">
+<script src="js/theme.js"></script>
 </head>
 <body>
 <header>
@@ -172,7 +189,7 @@ footer p{margin:0}
   <div class="wrap">
     <div class="head">
       <h1>퍼즐</h1>
-      <div class="modes" id="modes" role="tablist"><button data-m="basic">기본</button><button data-m="rated">추천</button><button data-m="theme">테마</button><button data-m="rush">러시</button><button data-m="mine">내 실수</button></div>
+      <div class="modes" id="modes" role="tablist"><button data-m="basic">기본</button><button data-m="daily">오늘</button><button data-m="rated">추천</button><button data-m="theme">테마</button><button data-m="rush">러시</button><button data-m="mine">내 실수</button></div>
       <select class="tsel" id="themeSel" aria-label="테마" hidden></select>
     </div>
     <div class="grid">
@@ -329,6 +346,20 @@ function rushEnd(){
   setStatus(nb?"win":"",`끝 · ${R.score}점${nb?" (최고 기록)":""}`);if(nb)play("end");
   $("#pnum").textContent="점수 "+R.score;stats();rushBar();render();
 }
+/* 오늘의 퍼즐 (리체스 데일리) */
+let dly={last:"",streak:0,days:0};try{dly=Object.assign(dly,JSON.parse(localStorage.getItem("hansu-daily")||"{}"))}catch(e){}
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()};
+async function loadDaily(){
+  setStatus("","불러오는 중…");
+  try{const r=await fetch("https://lichess.org/api/puzzle/daily");if(!r.ok)throw 0;const p=conv(await r.json());if(!p)throw 0;
+    if(mode!=="daily")return;start(p,{num:"오늘의 퍼즐",status:dly.last===today()?"오늘 퍼즐을 풀었어요":""})}
+  catch(e){setStatus("wrong","퍼즐을 불러오지 못했어요.")}
+}
+function dailySolved(){
+  const t=today();if(dly.last===t)return;
+  const y=new Date();y.setDate(y.getDate()-1);const ys=y.getFullYear()+"-"+(y.getMonth()+1)+"-"+y.getDate();
+  dly.streak=dly.last===ys?dly.streak+1:1;dly.last=t;dly.days++;try{localStorage.setItem("hansu-daily",JSON.stringify(dly))}catch(e){}
+}
 /* 내 실수 퍼즐 (분석에서 저장) */
 function myList(){try{return JSON.parse(localStorage.getItem("hansu-mypuz")||"[]")}catch(e){return []}}
 function saveMy(l){try{localStorage.setItem("hansu-mypuz",JSON.stringify(l))}catch(e){}}
@@ -340,12 +371,12 @@ function setMode(m,noLoad){
   if(R.on&&m!=="rush")rushEnd();
   mode=m;document.querySelectorAll("#modes button").forEach(b=>b.setAttribute("aria-selected",b.dataset.m===m));
   $("#themeSel").hidden=m!=="theme";$("#fchips").hidden=m!=="basic";rushBar();
-  $("#bPrev").disabled=!(m==="basic"||m==="mine");$("#bNext").disabled=m==="rush";$("#bReset").disabled=m==="rush";
-  const tl={basic:"목록",rated:"최근 기록",theme:"최근 기록",rush:"러시",mine:"내 실수"};$("#lTitle").textContent=tl[m];
+  $("#bPrev").disabled=!(m==="basic"||m==="mine");$("#bNext").disabled=m==="rush"||m==="daily";$("#bReset").disabled=m==="rush";
+  const tl={basic:"목록",daily:"최근 기록",rated:"최근 기록",theme:"최근 기록",rush:"러시",mine:"내 실수"};$("#lTitle").textContent=tl[m];
   try{if(m!=="basic")history.replaceState(null,"","#"+m)}catch(e){}
   stats();
   if(noLoad)return;
-  if(m==="basic")load(cur);else if(m==="mine")loadMine(mi);else if(m==="rush"){clearTimeout(timer);phase="done";setStatus("","시간 안에 최대한 많이 푸세요. 세 번 틀리면 끝.");renderList()}else nextRated();
+  if(m==="basic")load(cur);else if(m==="daily")loadDaily();else if(m==="mine")loadMine(mi);else if(m==="rush"){clearTimeout(timer);phase="done";setStatus("","시간 안에 최대한 많이 푸세요. 세 번 틀리면 끝.");renderList()}else nextRated();
 }
 $("#modes").onclick=e=>{const b=e.target.closest("button");if(b)setMode(b.dataset.m)};
 $("#themeSel").onchange=()=>{try{localStorage.setItem("hansu-theme",$("#themeSel").value)}catch(e){}if(mode==="theme")nextRated()};
@@ -474,6 +505,7 @@ function stats(){
   const set=(a,b,c,la,lb,lc)=>{$("#sSolved").textContent=a;$("#sStreak").textContent=b;$("#sBest").textContent=c;$("#l1").textContent=la;$("#l2").textContent=lb;$("#l3").textContent=lc};
   if(mode==="rated"||mode==="theme")set(rs.rating,rs.n,rs.streak,"레이팅","푼 퍼즐","연속");
   else if(mode==="rush")set(R.score,R.strikes,rushBest[R.len]||0,"점수","실수","최고");
+  else if(mode==="daily")set(dly.streak,dly.days,CP&&CP.rating||"–","연속 일수","푼 날","퍼즐 레이팅");
   else if(mode==="mine"){const L=myList();set(L.length,L.filter(x=>x.solved).length,L.length-L.filter(x=>x.solved).length,"전체","푼 퍼즐","남음")}
   else set(store.solved.length+" / "+N,store.streak,store.best,"푼 퍼즐","연속","최고");
 }
@@ -502,6 +534,7 @@ function finish(){
   if(g.in_checkmate())play("end",.15);
   let extra="";
   if(mode==="basic"){if(!shown){if(!store.solved.includes(cur))store.solved.push(cur);store.streak++;store.best=Math.max(store.best,store.streak);save()}}
+  else if(mode==="daily"){if(!shown&&!failed){dailySolved();stats()}}
   else if(mode==="mine"){if(!shown&&!failed){const L=myList();if(L[mi]){L[mi].solved=true;saveMy(L)}}}
   else if(mode==="rated"||mode==="theme"){if(!CP._rated){const d=rate(!shown&&!failed);extra=" "+sgn(d)}}
   else if(mode==="rush"){R.score++;$("#pnum").textContent="점수 "+R.score;stats();timer=setTimeout(rushNext,350)}
@@ -632,7 +665,7 @@ function mini(p){
 }
 const minis=PUZ.map(mini);
 function renderList(){
-  if(mode==="rated"||mode==="theme"){$("#plist").innerHTML=rs.hist.length?`<table class="htab">${rs.hist.map(h=>`<tr><td>${h.url?`<a href="${h.url}" target="_blank" rel="noopener">${h.t}</a>`:h.t}</td><td>${h.r}</td><td>${h.w?"성공":"실패"}</td><td class="${h.d>=0?"up":"dn"}">${sgn(h.d)}</td></tr>`).join("")}</table>`:"<p>아직 기록이 없어요.</p>";return}
+  if(mode==="rated"||mode==="theme"||mode==="daily"){$("#plist").innerHTML=rs.hist.length?`<table class="htab">${rs.hist.map(h=>`<tr><td>${h.url?`<a href="${h.url}" target="_blank" rel="noopener">${h.t}</a>`:h.t}</td><td>${h.r}</td><td>${h.w?"성공":"실패"}</td><td class="${h.d>=0?"up":"dn"}">${sgn(h.d)}</td></tr>`).join("")}</table>`:"<p>아직 기록이 없어요.</p>";return}
   if(mode==="rush"){$("#plist").innerHTML="<p>"+[["180","3분"],["300","5분"],["0","생존"]].map(([k,l])=>`${l} 최고 ${rushBest[k]||0}점`).join(" · ")+"</p>";return}
   if(mode==="mine"){const L=myList();$("#plist").innerHTML=L.map((p,i)=>`<a class="pz${i===mi?" cur":""}" href="#mine" data-mi="${i}"><div class="mini" aria-hidden="true">${mini(p)}</div><b>${p.title}<button class="del" data-del="${i}" aria-label="삭제">×</button></b><div class="meta"><span>${p.goal}</span>${p.solved?icon("correct","ok"):""}</div></a>`).join("")||"<p>아직 없어요.</p>";return}
   $("#plist").innerHTML=PUZ.map((p,i)=>{
@@ -648,7 +681,7 @@ $("#plist").addEventListener("click",e=>{
 });
 const fromHash=()=>{
   const h=location.hash.slice(1);
-  if(["rated","theme","rush","mine"].includes(h)){if(mode!==h||!g)setMode(h);return true}
+  if(["daily","rated","theme","rush","mine"].includes(h)){if(mode!==h||!g)setMode(h);return true}
   const m=/^p(\d+)$/.exec(h);if(m){const i=+m[1]-1;if(i>=0&&i<N){if(i!==cur||!g||mode!=="basic")load(i,true);document.getElementById("play").scrollIntoView();return true}}return false};
 window.addEventListener("hashchange",fromHash);
 stats();soundBtn();
