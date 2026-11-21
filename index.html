@@ -119,7 +119,11 @@ header{background:var(--band);color:#f3f7f8;position:sticky;top:0;z-index:20;bor
 .mini div{position:relative;background:var(--lsq)}.mini div.d{background:var(--dsq)}
 .pz b{display:block;font-size:17px}
 .pz .meta{margin-top:4px;font-size:13px}
-.ok{color:var(--good);font-weight:700}
+.ok{width:18px;height:18px;vertical-align:-4px;margin-left:6px}
+.badge.t0{top:0}.badge.r0{right:0}
+.badge{position:absolute;top:-10%;right:-10%;width:44%;height:44%;z-index:5;pointer-events:none;filter:drop-shadow(0 1px 2px #0006);animation:pop .22s ease-out}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.sti{width:24px;height:24px;flex:none}
 /* themes */
 .themes{background:var(--soft)}
 .tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;margin-top:22px}
@@ -224,7 +228,7 @@ const PUZ=[
 ];
 const F="abcdefgh",$=s=>document.querySelector(s),boardEl=$("#board"),marksEl=$("#marks"),N=PUZ.length;
 const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
-let g,cur=0,ply=0,orient="w",sel=null,last=null,hintSq=null,badSq=null,phase="idle",shown=false,timer=0,filter="all";
+let g,cur=0,ply=0,orient="w",sel=null,last=null,hintSq=null,badSq=null,bdg=null,endBdg=null,phase="idle",shown=false,timer=0,filter="all";
 let drag=null,rdrag=null,premove=null,floatEl=null,hov=null;
 const arrows=new Map(),circles=new Map();
 const COL={arrow:{n:"#ffaa00",s:"#9fcf3f",c:"#f8553f",a:"#48c1f9"},sq:{n:"#eb6150",s:"#9fcf3f",c:"#ffaa00",a:"#48c1f9"}};
@@ -233,10 +237,14 @@ let store={solved:[],streak:0,best:0};
 try{const s=JSON.parse(localStorage.getItem("hansu-chess")||"null");if(s)store=Object.assign(store,s)}catch(e){}
 const save=()=>{try{localStorage.setItem("hansu-chess",JSON.stringify(store))}catch(e){}};
 const P=()=>PUZ[cur];
-/* 효과음: Web Audio로 합성한 나무 기물 소리 (이동·잡기·체크·캐슬링·승진·프리무브·오답·정답) */
+/* 효과음: sounds/*.mp3 (파일을 못 불러오면 Web Audio 합성음으로 대신) */
+const SND={move:"move-self",opp:"move-opponent",capture:"capture",castle:"castle",check:"move-check",promote:"promote",premove:"premove",illegal:"illegal",wrong:"incorrect",win:"correct",start:"game-start"};
+const sndRaw={},sndBuf={};
+function decodeSnd(){if(!AC)return;for(const k in sndRaw){const b=sndRaw[k];delete sndRaw[k];AC.decodeAudioData(b).then(x=>{sndBuf[k]=x}).catch(()=>{})}}
+Object.entries(SND).forEach(([k,f])=>fetch("sounds/"+f+".mp3").then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){sndRaw[k]=b;decodeSnd()}}).catch(()=>{}));
 let AC=null,soundOn=true,noiseBuf=null;
 try{soundOn=localStorage.getItem("hansu-sound")!=="off"}catch(e){}
-function ac(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state==="suspended")AC.resume();return AC}
+function ac(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();decodeSnd()}if(AC.state==="suspended")AC.resume();return AC}
 function noise(a){if(!noiseBuf){noiseBuf=a.createBuffer(1,Math.floor(a.sampleRate*.3),a.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2)}return noiseBuf}
 function knock(t,o){
   const a=AC,{f=1700,q=1.3,dur=.07,vol=.55,low=165,lowVol=.4}=o||{};
@@ -262,10 +270,15 @@ const SFX={
   promote:t=>{knock(t);tone(t+.05,784,.14,.12,"triangle");tone(t+.14,1175,.3,.12,"triangle")},
   premove:t=>knock(t,{f:3200,vol:.22,dur:.035,lowVol:.08}),
   illegal:t=>tone(t,150,.14,.16,"triangle"),
-  wrong:t=>{tone(t,392,.16,.13,"triangle");tone(t+.14,294,.3,.13,"triangle")},
+  wrong:t=>tone(t,660,.2,.07,"square"),
   win:t=>[523,659,784,1046].forEach((f,i)=>tone(t+i*.085,f,.4,.1,"triangle"))
 };
-function play(name,delay){if(!soundOn)return;const a=ac();if(!a)return;try{SFX[name](a.currentTime+.01+(delay||0))}catch(e){}}
+/* opp: 상대 수 (일반 이동만 내 수/상대 수 소리가 다름) */
+function play(name,delay,opp){
+  if(!soundOn)return;const a=ac();if(!a)return;const t=a.currentTime+.01+(delay||0);
+  const k=name==="move"&&opp?"opp":name;
+  try{if(sndBuf[k]){const s=a.createBufferSource();s.buffer=sndBuf[k];s.connect(a.destination);s.start(t)}else if(SFX[name])SFX[name](t)}catch(e){}
+}
 const moveSound=m=>g.in_check()?"check":m.flags.indexOf("p")>=0?"promote":/[kq]/.test(m.flags)?"castle":m.captured?"capture":"move";
 function soundBtn(){const b=$("#bSound");b.setAttribute("aria-pressed",soundOn);b.textContent=soundOn?"소리 켬":"소리 끔"}
 $("#bSound").onclick=()=>{soundOn=!soundOn;try{localStorage.setItem("hansu-sound",soundOn?"on":"off")}catch(e){}soundBtn();if(soundOn)play("move")};
@@ -307,7 +320,8 @@ function render(){
     const mark=legal.includes(sq)?(p?'<b class="cap"></b>':'<b class="dot"></b>'):"";
     const mk=circles.has(sq)?`<span class="mk" style="background:${circles.get(sq)}"></span>`:"";
     const co=(c===0?`<span class="co r">${sq[1]}</span>`:"")+(r===7?`<span class="co f">${sq[0]}</span>`:"");
-    return `<div class="${cls}" data-sq="${sq}" role="gridcell" aria-label="${sq}${p?" "+p.color+p.type:""}">${mk}${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===sq?" ghost":""}"></i>`:""}${mark}</div>`;
+    const bc="badge"+(r===0?" t0":"")+(c===7?" r0":""),bd=endBdg&&endBdg.sq===sq?icon(endBdg.ic,bc):bdg&&bdg.sq===sq?icon(bdg.ic,bc):"";
+    return `<div class="${cls}" data-sq="${sq}" role="gridcell" aria-label="${sq}${p?" "+p.color+p.type:""}">${mk}${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===sq?" ghost":""}"></i>`:""}${bd}${mark}</div>`;
   }).join("");
   drawArrows();renderLog();
 }
@@ -340,12 +354,16 @@ function renderLog(){
   h.forEach((m,i)=>{const num=side==="w"?`${n}. `:(i===0?`${n}… `:"");out.push(`<span class="${side===orient?"u":""}">${num}${m}</span>`);if(side==="b")n++;side=side==="w"?"b":"w"});
   $("#log").innerHTML=out.join("");
 }
-function setStatus(kind,txt){const s=$("#status");s.className="status "+kind;s.textContent=txt}
+/* 아이콘 (icons/*.png) */
+const icon=(n,cls)=>`<img class="${cls}" src="icons/${n}.png" alt="" draggable="false">`;
+const ST_ICON={win:"correct",good:"correct"};
+function setStatus(kind,txt){const s=$("#status");s.className="status "+kind;s.innerHTML=txt&&ST_ICON[kind]?icon(ST_ICON[kind],"sti"):"";if(txt)s.append(txt)}
 function stats(){$("#sSolved").textContent=store.solved.length+" / "+N;$("#sStreak").textContent=store.streak;$("#sBest").textContent=store.best}
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const e=sqEl(hov);if(e)e.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
+let booted=false;
 function load(i,fromHash){
-  clearTimeout(timer);endFloat();drag=rdrag=null;
-  cur=(i+N)%N;const p=P();g=new Chess(p.fen);ply=0;orient=g.turn();sel=last=hintSq=badSq=premove=null;phase="idle";shown=false;
+  clearTimeout(timer);endFloat();drag=rdrag=null;if(booted)play("start");
+  cur=(i+N)%N;const p=P();g=new Chess(p.fen);ply=0;orient=g.turn();sel=last=hintSq=badSq=premove=bdg=endBdg=null;phase="idle";shown=false;
   arrows.clear();circles.clear();$("#promo").classList.remove("on");
   $("#pnum").textContent=`${cur+1} / ${N}`;$("#plevel").textContent=p.lv;$("#ptitle").textContent=p.title;
   $("#tdot").className=orient;$("#tgoal").textContent=`${orient==="w"?"백":"흑"} 차례 · ${p.goal}`;
@@ -358,12 +376,13 @@ function finish(){
   phase="done";premove=null;$("#bHint").disabled=$("#bShow").disabled=true;
   if(!shown){play("win",.15);if(!store.solved.includes(cur))store.solved.push(cur);store.streak++;store.best=Math.max(store.best,store.streak);save()}
   setStatus(shown?"":"win",shown?"정답: "+P().sol.join(" "):"정답!");
+  if(g.in_checkmate()){const c=g.turn();endBdg={sq:kingSq(c),ic:"checkmate_"+(c==="w"?"white":"black")};render()}
   stats();renderList();
 }
 function reply(){
   phase="opp";
   timer=setTimeout(()=>{
-    const r=g.move(P().sol[ply]);last={from:r.from,to:r.to};ply++;play(moveSound(r));
+    const r=g.move(P().sol[ply]);last={from:r.from,to:r.to};ply++;play(moveSound(r),0,true);bdg=null;
     const pm=premove;premove=null;phase="idle";
     sel=drag?drag.from:null;render();animate(r.from,r.to);
     if(pm){
@@ -382,9 +401,9 @@ function commit(from,to,pr,anim){
     play("wrong",.12);setStatus("wrong",`${m.san} 오답`);
     if(store.streak){store.streak=0;save();stats()}
     const bb=$("#boardbox");bb.classList.remove("shake");void bb.offsetWidth;bb.classList.add("shake");
-    timer=setTimeout(()=>{g.undo();last=prev;badSq=null;phase="idle";render()},700);return;
+    timer=setTimeout(()=>{g.undo();last=prev;badSq=bdg=null;phase="idle";render()},700);return;
   }
-  ply++;render();if(anim)animate(from,to);
+  ply++;bdg={sq:to,ic:"correct"};render();if(anim)animate(from,to);
   if(ply>=sol.length){finish();return}
   setStatus("good","정답, 계속");reply();
 }
@@ -462,11 +481,12 @@ $("#bShow").onclick=()=>{
   if(phase==="done"||phase==="show")return;
   clearTimeout(timer);
   if(phase==="wrong"){g.undo();last=null;badSq=null}
+  bdg=null;
   $("#promo").classList.remove("on");
   shown=true;phase="show";sel=hintSq=premove=null;
   if(store.streak){store.streak=0;save();stats()}
   setStatus("hint","정답: "+P().sol.join(" "));
-  const step=()=>{if(ply>=P().sol.length){finish();return}const r=g.move(P().sol[ply]);last={from:r.from,to:r.to};ply++;play(moveSound(r));render();animate(r.from,r.to);timer=setTimeout(step,750)};
+  const step=()=>{if(ply>=P().sol.length){finish();return}const r=g.move(P().sol[ply]);last={from:r.from,to:r.to};bdg=r.color===orient?{sq:r.to,ic:"best"}:null;ply++;play(moveSound(r),0,r.color!==orient);render();animate(r.from,r.to);timer=setTimeout(step,750)};
   render();timer=setTimeout(step,300);
 };
 $("#bReset").onclick=()=>load(cur);
@@ -481,7 +501,7 @@ function renderList(){
   $("#plist").innerHTML=PUZ.map((p,i)=>{
     const solved=store.solved.includes(i);
     if(filter==="mate"&&p.kind!=="mate"||filter==="win"&&p.kind!=="win"||filter==="todo"&&solved)return "";
-    return `<a class="pz${i===cur?" cur":""}" href="#p${i+1}"><div class="mini" aria-hidden="true">${minis[i]}</div><b>${i+1}. ${p.title}</b><div class="meta"><span>${p.fen.split(" ")[1]==="w"?"백":"흑"} · ${p.goal}</span>${solved?'<span class="ok">✓</span>':""}</div></a>`;
+    return `<a class="pz${i===cur?" cur":""}" href="#p${i+1}"><div class="mini" aria-hidden="true">${minis[i]}</div><b>${i+1}. ${p.title}</b><div class="meta"><span>${p.fen.split(" ")[1]==="w"?"백":"흑"} · ${p.goal}</span>${solved?icon("correct","ok"):""}</div></a>`;
   }).join("")||'<p>없음</p>';
 }
 document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filter=b.dataset.f;document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b));renderList()});
@@ -489,6 +509,7 @@ const fromHash=()=>{const m=/^#p(\d+)$/.exec(location.hash);if(m){const i=+m[1]-
 window.addEventListener("hashchange",fromHash);
 stats();soundBtn();
 if(!fromHash())load(0);
+booted=true;
 }
 </script>
 </body>

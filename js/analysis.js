@@ -2,11 +2,35 @@
 {
 const F="abcdefgh",ENG="engine/stockfish-19-lite-single.js";
 const CL={
-  brilliant:{l:"브릴리언트",s:"!!",c:"#1fa6a0"},great:{l:"그레이트",s:"!",c:"#5a86c8"},
-  best:{l:"최선",s:"★",c:"#5f9e3a"},excellent:{l:"훌륭함",s:"+",c:"#7fb24a"},good:{l:"좋음",s:"✓",c:"#8fae80"},
-  inaccuracy:{l:"부정확",s:"?!",c:"#e8b330"},mistake:{l:"실수",s:"?",c:"#e8862a"},blunder:{l:"블런더",s:"??",c:"#d1392f"}
+  brilliant:{l:"브릴리언트",i:"brilliant",c:"#1bada6"},great:{l:"그레이트",i:"great_find",c:"#1bada6"},
+  best:{l:"최선",i:"best",c:"#96bc4b"},excellent:{l:"훌륭함",i:"excellent",c:"#96bc4b"},good:{l:"좋음",i:"good",c:"#96af8b"},
+  book:{l:"오프닝",i:"book",c:"#a88865"},forced:{l:"외길",i:"forced",c:"#96af8b"},
+  inaccuracy:{l:"부정확",i:"inaccuracy",c:"#f7c045"},mistake:{l:"실수",i:"mistake",c:"#e58f2a"},
+  miss:{l:"놓침",i:"incorrect",c:"#ca3431"},blunder:{l:"블런더",i:"blunder",c:"#ca3431"}
 };
-const ORDER=["brilliant","great","best","excellent","good","inaccuracy","mistake","blunder"];
+const ORDER=["brilliant","great","best","excellent","good","book","forced","inaccuracy","mistake","miss","blunder"];
+const ico=(n,cls)=>`<img class="${cls}" src="icons/${n}.png" alt="" draggable="false">`;
+const clIco=(c,cls)=>`<img class="${cls}" src="icons/${CL[c].i}.png" alt="${CL[c].l}" title="${CL[c].l}" draggable="false">`;
+/* 오프닝 이론 길이: 체스닷컴 ECOUrl 끝의 수(예: ...-6.Be3, ...-3...Nf6-4.Bg5)까지 */
+function bookPly(game,moves){
+  const u=game.eco||(/\[ECOUrl "([^"]+)"/.exec(game.pgn||"")||[])[1];if(!u)return 0;
+  const slug=decodeURIComponent(u.split("/openings/")[1]||"");
+  const all=[...slug.matchAll(/(\d+)(\.\.\.|\.)([^-]+)/g)];if(!all.length)return 0;
+  const m=all[all.length-1],extra=slug.slice(m.index+m[0].length).split("-").filter(Boolean);
+  const ply=(+m[1]-1)*2+(m[2]==="..."?2:1)+extra.length,clean=x=>x.replace(/[+#!?]/g,"");
+  const lastSan=extra.length?extra[extra.length-1]:m[3];
+  return ply<=moves.length&&clean(moves[ply-1].san)===clean(lastSan)?ply:0;
+}
+/* 게임 끝 아이콘: 메이트·기권·시간패(탈주는 기권)는 진 쪽 킹, 무승부·중단은 양쪽 킹 */
+function endIcons(){
+  const gm=A.game,t=gm.term;if(!t)return {};
+  const g=new Chess(A.fens[A.fens.length-1]),ks=c=>{for(const f of F)for(let r=1;r<=8;r++){const p=g.get(f+r);if(p&&p.type==="k"&&p.color===c)return f+r}return null};
+  const col={w:"white",b:"black"},o={};
+  if(gm.res==="draw"||gm.res==="abort"){["w","b"].forEach(c=>{const s=ks(c);if(s)o[s]=(gm.res==="abort"?"take_back":"draw_"+col[c])});return o}
+  const lose=gm.res==="win"?(gm.me==="w"?"b":"w"):gm.me,s=ks(lose);
+  if(s)o[s]=(t==="checkmated"?"checkmate_":t==="timeout"?"clock_":"resign_")+col[lose];
+  return o;
+}
 const VAL={p:1,n:3,b:3,r:5,q:9,k:0};
 const turnOf=f=>f.split(" ")[1];
 const uciObj=u=>({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});
@@ -59,12 +83,12 @@ const curMove=()=>N.v?(N.i>0?V.moves[N.i-1]:null):(N.i>0?A.moves[N.i-1]:null);
 function parse(game){
   const c=new Chess();
   if(game.setup&&!/^rnbqkbnr\/pppppppp\/8\/8\/8\/8\/PPPPPPPP\/RNBQKBNR w KQkq - 0 1$/.test(game.setup))c.load(game.setup);
-  const start=c.fen(),body=game.pgn.replace(/^\[[^\]]*\]\s*$/gm,"");
+  const start=c.fen(),std=start===new Chess().fen(),body=game.pgn.replace(/^\[[^\]]*\]\s*$/gm,"");
   const clk=[...body.matchAll(/\[%clk ([\d:.]+)\]/g)].map(m=>m[1].split(":").reduce((a,x)=>a*60+ +x,0));
   const toks=body.replace(/\{[^}]*\}/g," ").replace(/\([^)]*\)/g," ").replace(/\$\d+/g," ").replace(/\d+\.(\.\.)?/g," ").replace(/1-0|0-1|1\/2-1\/2|\*/g," ").trim().split(/\s+/).filter(Boolean);
   const fens=[start],moves=[];
   for(const t of toks){const m=c.move(t,{sloppy:true});if(!m)break;moves.push(m);fens.push(c.fen())}
-  return {fens,moves,clk,base:+(String(game.tc||"").split("+")[0])||0};
+  return {fens,moves,clk,std,base:+(String(game.tc||"").split("+")[0])||0};
 }
 function disp(sq){const f=F.indexOf(sq[0]),r=+sq[1];return A.orient==="w"?[f,8-r]:[7-f,r-1]}
 function order(){const a=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)a.push(F[A.orient==="w"?c:7-c]+(A.orient==="w"?8-r:r+1));return a}
@@ -97,17 +121,18 @@ function drawEval(){
 function drawBoard(){
   const fen=curFen(),g=new Chess(fen),mv=curMove(),cl=!N.v&&N.i>0?A.cls[N.i-1]:null,turn=g.turn();
   const legal=sel?g.moves({square:sel,verbose:true}).map(m=>m.to):[],chk=g.in_check()?kingSq(g,turn):null;
+  const ends=!N.v&&N.i===A.fens.length-1?endIcons():{};
   $("#ab8").innerHTML=order().map((sq,n)=>{
     const p=g.get(sq),r=Math.floor(n/8),c=n%8,dark=(F.indexOf(sq[0])+ +sq[1])%2===1;
     const cls=["s8",dark?"d":"l",mv&&(mv.from===sq||mv.to===sq)?"lm":"",sel===sq?"sel":"",chk===sq?"chk":"",p&&p.color===turn?"own":""].join(" ");
     const co=(c===0?`<span class="co r">${sq[1]}</span>`:"")+(r===7?`<span class="co f">${sq[0]}</span>`:"");
-    const bd=cl&&mv.to===sq?`<span class="badge" style="background:${CL[cl].c}">${CL[cl].s}</span>`:"";
+    const bc="badge"+(r===0?" t0":"")+(c===7?" r0":""),bd=ends[sq]?ico(ends[sq],bc):cl&&mv.to===sq?clIco(cl,bc):"";
     const mk=circ.has(sq)?`<span class="mk" style="background:${circ.get(sq)}"></span>`:"";
     const dot=legal.includes(sq)?(p?'<b class="cp8"></b>':'<b class="dt8"></b>'):"";
     return `<div class="${cls}" data-sq="${sq}">${mk}${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===sq?" ghost":""}"></i>`:""}${bd}${dot}</div>`;
   }).join("");
   let ar="";
-  if(cl&&["inaccuracy","mistake","blunder","good","excellent"].includes(cl)&&A.best[N.i-1]){const b=A.best[N.i-1];ar+=arrow(b.slice(0,2),b.slice(2,4),"#5f9e3a")}
+  if(cl&&["inaccuracy","mistake","miss","blunder","good","excellent"].includes(cl)&&A.best[N.i-1]){const b=A.best[N.i-1];ar+=arrow(b.slice(0,2),b.slice(2,4),"#5f9e3a")}
   marks.forEach((col,k)=>{const [a,b]=k.split("-");ar+=arrow(a,b,col)});
   $("#amarks").innerHTML=ar;
   const top=A.orient==="w"?"b":"w",bot=A.orient,ply=N.v?V.base:N.i;
@@ -121,8 +146,8 @@ function drawInfo(){
     const fenB=N.v?V.fens[N.i-1]:A.fens[N.i-1],n=+fenB.split(" ")[5],dots=turnOf(fenB)==="w"?".":"...";
     h=`<b>${n}${dots} ${mv.san}</b>`;
     const cl=!N.v?A.cls[N.i-1]:null;
-    if(cl){h+=` <span class="dot" style="background:${CL[cl].c}">${CL[cl].s}</span>${CL[cl].l}`;
-      const b=A.best[N.i-1];if(b&&!["best","brilliant","great"].includes(cl)){const t=new Chess(A.fens[N.i-1]),bm=t.move(uciObj(b));if(bm)h+=`<p>최선 ${bm.san}</p>`}}
+    if(cl){h+=` ${clIco(cl,"dot")}${CL[cl].l}`;
+      const b=A.best[N.i-1];if(b&&!["best","brilliant","great","book","forced"].includes(cl)){const t=new Chess(A.fens[N.i-1]),bm=t.move(uciObj(b));if(bm)h+=`<p>최선 ${bm.san}</p>`}}
     else if(!N.v&&A.busy)h+=` <span style="color:var(--muted)">분석 중</span>`;
   }
   $("#cur").innerHTML=h;
@@ -138,7 +163,7 @@ function moveList(){
   const rows=Math.ceil(A.moves.length/2),vAt=V?Math.min(Math.floor(V.base/2),Math.max(rows-1,0)):-1;
   let h="";
   for(let r=0;r<rows;r++){
-    const b=k=>{if(k>=A.moves.length)return "<span></span>";const c=A.cls[k];const ic=c&&!["best","excellent","good"].includes(c)?`<i style="background:${CL[c].c}">${CL[c].s}</i>`:"";return `<button class="mv${!N.v&&N.i===k+1?" on":""}" data-p="${k+1}">${ic}${A.moves[k].san}</button>`};
+    const b=k=>{if(k>=A.moves.length)return "<span></span>";const c=A.cls[k];const ic=c&&!["best","excellent","good","book","forced"].includes(c)?clIco(c,"mi"):"";return `<button class="mv${!N.v&&N.i===k+1?" on":""}" data-p="${k+1}">${ic}${A.moves[k].san}</button>`};
     h+=`<div class="mrow"><span>${r+1}</span>${b(r*2)}${b(r*2+1)}</div>`;
     if(r===vAt)h+=vrow();
   }
@@ -256,14 +281,14 @@ function summary(){
     const cnt={};ORDER.forEach(o=>cnt[o]=0);idx.forEach(k=>cnt[A.cls[k]]++);return {acc:(mean+harm)/2,cnt}};
   const S2={w:side("w"),b:side("b")},gm=A.game,nm=c=>esc(gm.me===c?gm.my.name:gm.op.name),ca=c=>gm.acc?(gm.me===c?gm.acc.me:gm.acc.op):null;
   $("#acc2").innerHTML=["w","b"].map(c=>`<div><small>${c==="w"?"백":"흑"} · ${nm(c)}</small><b>${S2[c]?S2[c].acc.toFixed(1):"–"}</b><small>정확도${ca(c)!=null?` · 체스닷컴 ${ca(c).toFixed(1)}`:""}</small></div>`).join("");
-  $("#cls").innerHTML=`<tr><td></td><td>백</td><td>흑</td></tr>`+ORDER.map(o=>`<tr><td><span class="dot" style="background:${CL[o].c}">${CL[o].s}</span>${CL[o].l}</td><td>${S2.w?S2.w.cnt[o]:"–"}</td><td>${S2.b?S2.b.cnt[o]:"–"}</td></tr>`).join("");
+  $("#cls").innerHTML=`<tr><td></td><td>백</td><td>흑</td></tr>`+ORDER.map(o=>`<tr><td>${clIco(o,"dot")}${CL[o].l}</td><td>${S2.w?S2.w.cnt[o]:"–"}</td><td>${S2.b?S2.b.cnt[o]:"–"}</td></tr>`).join("");
 }
 function graph(){
   const svg=$("#gsvg");if(!A)return;const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;
   const n=A.fens.length-1||1,x=i=>i/n*W,y=v=>H-(v/100)*H;
   let d=`M0,${H}`,end=0;for(let i=0;i<=n;i++){if(A.ev[i]==null)break;d+=` L${x(i).toFixed(1)},${y(winPct(A.ev[i])).toFixed(1)}`;end=i}
   d+=` L${x(end).toFixed(1)},${H}Z`;
-  let dots="";A.cls.forEach((c,k)=>{if(["inaccuracy","mistake","blunder","brilliant","great"].includes(c))dots+=`<circle cx="${x(k+1)}" cy="${y(winPct(A.ev[k+1]))}" r="${c==="inaccuracy"?2.5:3.5}" fill="${CL[c].c}"/>`});
+  let dots="";A.cls.forEach((c,k)=>{if(["inaccuracy","mistake","miss","blunder","brilliant","great"].includes(c))dots+=`<circle cx="${x(k+1)}" cy="${y(winPct(A.ev[k+1]))}" r="${c==="inaccuracy"?2.5:3.5}" fill="${CL[c].c}"/>`});
   const px=x(N.v?V.base:N.i);
   svg.innerHTML=`<path d="${d}" fill="#f2f2f2"/><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="#888" stroke-opacity=".5"/>${dots}<line x1="${px}" x2="${px}" y1="0" y2="${H}" stroke="#ff6a3d" stroke-width="2"/>`;
 }
@@ -283,7 +308,12 @@ function classify(k){
   const m=A.moves[k],uci=m.from+m.to+(m.promotion||""),pos=new Chess(A.fens[k]),nLegal=pos.moves().length;
   const isBest=uci===A.best[k]||nLegal===1;
   let c=isBest?"best":loss<2?"excellent":loss<5?"good":loss<10?"inaccuracy":loss<20?"mistake":"blunder";
-  if(loss<2&&nLegal>1&&before<97&&after>=45&&sac(k))c="brilliant";
+  /* 놓침: 상대가 실수·블런더로 준 기회를 크게 날렸지만 아직 지는 판은 아님 */
+  const pc=k>0?A.cls[k-1]:null;
+  if(loss>=10&&(pc==="mistake"||pc==="blunder"||pc==="miss")&&before>=60&&after>=35)c="miss";
+  if(nLegal===1)c="forced";
+  else if(k<A.book)c="book";
+  else if(loss<2&&before<97&&after>=45&&sac(k))c="brilliant";
   else if(isBest&&nLegal>1&&A.sc2[k]&&!pos.in_check()){
     const w2=winPct(whiteCp(A.sc2[k],mover)),s2=mover==="w"?w2:100-w2,prev=k>0?A.moves[k-1]:null;
     const recap=prev&&prev.captured&&prev.to===m.to;
@@ -315,9 +345,9 @@ window.openAnalysis=function(game){
   run++;Main.stop();
   if(game.rules&&game.rules!=="chess"){const m=document.getElementById("msg");if(m)m.textContent="일반 체스만 분석할 수 있어요.";return}
   const p=parse(game);
-  A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,ev:[],sc:[],sc2:[],best:[],cls:[],acc:[],busy:true};
+  A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,book:p.std?bookPly(game,p.moves):0,ev:[],sc:[],sc2:[],best:[],cls:[],acc:[],busy:true};
   V=null;N={v:false,i:p.fens.length-1};sel=null;marks.clear();circ.clear();L.fen=null;
-  const RL={win:"승",loss:"패",draw:"무"};
+  const RL={win:"승",loss:"패",draw:"무",abort:"중단"};
   $("#aTitle").textContent=`${game.my.name} vs ${game.op.name} · ${RL[game.res]} · ${game.how}`;
   $("#aLink").href=game.url;$("#prog").style.width="0";$("#ast").textContent="";
   $("#engT").setAttribute("aria-pressed",engOn);

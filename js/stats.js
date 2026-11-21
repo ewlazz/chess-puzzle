@@ -36,10 +36,11 @@ function opening(g){
 }
 function norm(g,user){
   const me=g.white.username.toLowerCase()===user?"w":"b",my=me==="w"?g.white:g.black,op=me==="w"?g.black:g.white;
-  const res=my.result==="win"?"win":DRAW.has(my.result)?"draw":"loss";
-  const how=HOW[res==="win"?op.result:my.result]||(res==="win"?op.result:my.result);
+  const abort=/abort/.test(my.result+op.result);/* 중단: 레이팅 반영 없이 끝난 판 */
+  const res=abort?"abort":my.result==="win"?"win":DRAW.has(my.result)?"draw":"loss";
+  const how=abort?"중단":HOW[res==="win"?op.result:my.result]||(res==="win"?op.result:my.result);
   const o=opening(g);
-  return {id:g.uuid,url:g.url,pgn:g.pgn,tc:g.time_control,tclass:g.time_class,rated:g.rated,rules:g.rules,end:g.end_time,me,res,how,
+  return {id:g.uuid,url:g.url,pgn:g.pgn,eco:g.eco,term:abort?"aborted":res==="win"?op.result:my.result,tc:g.time_control,tclass:g.time_class,rated:g.rated,rules:g.rules,end:g.end_time,me,res,how,
     my:{name:my.username,rating:my.rating},op:{name:op.username,rating:op.rating},
     open:o.name,fam:o.fam,acc:g.accuracies?{me:g.accuracies[me==="w"?"white":"black"],op:g.accuracies[me==="w"?"black":"white"]}:null,setup:g.initial_setup};
 }
@@ -109,7 +110,7 @@ function filtered(){return byTc().filter(g=>(S.res==="all"||g.res===S.res)&&(S.c
 function renderAll(){if(S.tab==="games")renderGames();else renderStats()}
 /* 게임 목록 */
 function renderGames(){
-  const l=filtered(),RL={win:"승",loss:"패",draw:"무"};
+  const l=filtered(),RL={win:"승",loss:"패",draw:"무",abort:"중단"};
   $("#glist").innerHTML=l.slice(0,S.shown).map((g,i)=>{
     const d=new Date(g.end*1000),acc=g.acc?`${g.acc.me!=null?g.acc.me.toFixed(1):"–"} <em>/ ${g.acc.op!=null?g.acc.op.toFixed(1):"–"}</em>`:"<em>–</em>";
     const opc=g.me==="w"?"b":"w";
@@ -125,7 +126,7 @@ function renderGames(){
 }
 $("#more").onclick=()=>{S.shown+=50;renderGames()};
 /* 통계 */
-function rec(list){const w=list.filter(g=>g.res==="win").length,d=list.filter(g=>g.res==="draw").length;return {n:list.length,w,d,l:list.length-w-d}}
+function rec(list){const w=list.filter(g=>g.res==="win").length,d=list.filter(g=>g.res==="draw").length;return {n:list.length,w,d,l:list.filter(g=>g.res==="loss").length}}
 const pct=r=>r.n?Math.round(r.w/r.n*100)+"%":"–";
 const row=(name,sub,r)=>`<div class="row"><span class="n">${esc(name)}<em>${sub}</em></span>${wdl(r.w,r.d,r.l)}<span class="pct">${pct(r)}</span></div>`;
 function group(list,key){const m=new Map();list.forEach(g=>{const k=key(g);if(k==null||k==="")return;if(!m.has(k))m.set(k,[]);m.get(k).push(g)});return [...m.entries()].map(([k,v])=>[k,rec(v)])}
