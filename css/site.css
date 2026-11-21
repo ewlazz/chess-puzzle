@@ -224,3 +224,14 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 .mkp{border:0;background:var(--acc);color:var(--accink);font-weight:700;border-radius:8px;padding:4px 10px;font-size:13px;margin-left:4px}
 .ast a{color:var(--ink);font-weight:700}
 .per{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* 비교 탭 */
+.vsf{display:flex;gap:8px;max-width:480px;margin-bottom:10px}
+.vsf input{flex:1;min-height:46px;border-radius:10px;border:1px solid var(--line);padding:0 14px;font-size:16px;background:var(--card);color:var(--ink)}
+.vsf button{min-height:46px;padding:0 18px;border-radius:10px;border:0;background:var(--acc);color:var(--accink);font-weight:700}
+.vsug{margin-bottom:6px}.vsug em{font-style:normal;color:var(--muted);margin-left:4px}
+.vsmsg{color:var(--loss);min-height:1.4em;margin:4px 0 10px;font-size:14px}
+.vst{width:100%;border-collapse:collapse;font-size:14px}
+.vst th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap}
+.vst td{padding:8px;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+.vst td em{font-style:normal;color:var(--muted);font-size:12px}
+.vst td.hi{font-weight:800;color:var(--win)}

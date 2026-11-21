@@ -102,7 +102,7 @@ function renderProfile(){
   $("#rates").innerHTML=h;$("#rates").classList.add("on");
 }
 function wdl(w,d,l){const n=w+d+l||1;return `<div class="wdl"><i class="w" style="width:${w/n*100}%"></i><i class="d" style="width:${d/n*100}%"></i><i class="l" style="width:${l/n*100}%"></i></div>`}
-window.wdlBar=wdl;
+window.wdlBar=wdl;window.cget=get;window.CAPI=API;
 /* 필터 */
 function chips(el,list,key){$(el).innerHTML=list.map(([v,l])=>`<button class="chip" data-v="${v}" aria-pressed="${S[key]===v}">${l}</button>`).join("");
   $(el).onclick=e=>{const b=e.target.closest("button");if(!b)return;S[key]=b.dataset.v;S.shown=50;renderFilters();renderAll()}}
@@ -113,10 +113,10 @@ function renderFilters(){
   chips("#fCol",[["all","전체"],["w","백"],["b","흑"]],"col");
   $("#fRes").hidden=$("#fCol").hidden=S.tab!=="games";
 }
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));$("#pGames").hidden=S.tab!=="games";$("#pStats").hidden=S.tab!=="stats";$("#pOpen").hidden=S.tab!=="open";renderFilters();renderAll()});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));$("#pGames").hidden=S.tab!=="games";$("#pStats").hidden=S.tab!=="stats";$("#pOpen").hidden=S.tab!=="open";$("#pVs").hidden=S.tab!=="vs";renderFilters();renderAll()});
 const byTc=()=>S.games.filter(g=>S.tc==="all"||g.tclass===S.tc);
 function filtered(){return byTc().filter(g=>(S.res==="all"||g.res===S.res)&&(S.col==="all"||g.me===S.col))}
-function renderAll(){if(S.tab==="games")renderGames();else if(S.tab==="open"){if(window.renderOpenings)window.renderOpenings(byTc())}else renderStats()}
+function renderAll(){if(S.tab==="games")renderGames();else if(S.tab==="open"){if(window.renderOpenings)window.renderOpenings(byTc())}else if(S.tab==="vs"){if(window.renderCompare)window.renderCompare(byTc())}else renderStats()}
 /* 게임 목록 */
 function renderGames(){
   const l=filtered(),RL={win:"승",loss:"패",draw:"무",abort:"중단"};
