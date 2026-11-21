@@ -1,49 +1,61 @@
-/* 한 판 분석: 수순 재생 + 브라우저 안 Stockfish로 평가·분류·정확도 */
+/* 한 판 분석: 수순 재생, 엔진 라인, 변화수 두기, 수 분류·정확도 */
 {
-const F="abcdefgh";
+const F="abcdefgh",ENG="engine/stockfish-19-lite-single.js";
 const CL={
-  best:{l:"최선",s:"★",c:"#5f9e3a"},excellent:{l:"훌륭함",s:"!",c:"#7fb24a"},good:{l:"좋음",s:"✓",c:"#8fae80"},
+  brilliant:{l:"브릴리언트",s:"!!",c:"#1fa6a0"},great:{l:"그레이트",s:"!",c:"#5a86c8"},
+  best:{l:"최선",s:"★",c:"#5f9e3a"},excellent:{l:"훌륭함",s:"+",c:"#7fb24a"},good:{l:"좋음",s:"✓",c:"#8fae80"},
   inaccuracy:{l:"부정확",s:"?!",c:"#e8b330"},mistake:{l:"실수",s:"?",c:"#e8862a"},blunder:{l:"블런더",s:"??",c:"#d1392f"}
 };
-const ORDER=["best","excellent","good","inaccuracy","mistake","blunder"];
-/* 엔진 */
-const Engine={
-  w:null,ready:null,cur:null,
-  init(){
-    if(this.ready)return this.ready;
-    this.ready=new Promise((res,rej)=>{
-      try{this.w=new Worker("engine/stockfish-19-lite-single.js")}catch(e){rej(e);return}
-      this.w.onerror=e=>rej(e);
-      let ok=false;
-      this.w.onmessage=e=>{const l=typeof e.data==="string"?e.data:"";
-        if(l==="uciok"){this.w.postMessage("setoption name Hash value 32");this.w.postMessage("isready")}
-        else if(l==="readyok"&&!ok){ok=true;res()}
-        else this.line(l)};
-      this.w.postMessage("uci");
-    });
-    return this.ready;
-  },
-  line(l){
-    const c=this.cur;if(!c)return;
-    if(l.startsWith("info")&&l.includes(" pv ")&&!/bound/.test(l)){
-      const m=/score (cp|mate) (-?\d+)/.exec(l),pv=/ pv (.+)$/.exec(l);
-      if(m&&pv){c.score={t:m[1],v:+m[2]};c.pv=pv[1].trim().split(" ")}
-    }else if(l.startsWith("bestmove")){
-      const b=l.split(" ")[1];this.cur=null;c.res({best:b&&b!=="(none)"?b:null,score:c.score||{t:"cp",v:0},pv:c.pv||[]});
-    }
-  },
-  eval(fen){return new Promise(res=>{this.cur={res};this.w.postMessage("position fen "+fen);this.w.postMessage("go depth 14 movetime 450")})}
+const ORDER=["brilliant","great","best","excellent","good","inaccuracy","mistake","blunder"];
+const VAL={p:1,n:3,b:3,r:5,q:9,k:0};
+const turnOf=f=>f.split(" ")[1];
+const uciObj=u=>({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});
+/* 엔진 워커 (중단된 탐색의 출력은 버림) */
+function Eng(multi){this.multi=multi;this.w=null;this.ready=null;this.searching=false;this.pending=0;this.onInfo=null;this.onBest=null}
+Eng.prototype.init=function(){
+  if(this.ready)return this.ready;
+  this.ready=new Promise((res,rej)=>{
+    try{this.w=new Worker(ENG)}catch(e){rej(e);return}
+    this.w.onerror=e=>rej(e);let ok=false;
+    this.w.onmessage=e=>{
+      const l=typeof e.data==="string"?e.data:"";
+      if(l==="uciok"){this.send("setoption name Hash value 32");this.send("setoption name MultiPV value "+this.multi);this.send("isready")}
+      else if(l==="readyok"){if(!ok){ok=true;res()}}
+      else if(l.startsWith("bestmove")){if(this.pending>0){this.pending--;return}this.searching=false;if(this.onBest)this.onBest(l.split(" ")[1])}
+      else if(l.startsWith("info")&&this.pending===0&&l.includes(" pv ")&&!/bound/.test(l)){
+        const m=/score (cp|mate) (-?\d+)/.exec(l);if(!m)return;
+        const k=+((/ multipv (\d+)/.exec(l)||[0,1])[1]),d=+((/ depth (\d+)/.exec(l)||[0,0])[1]);
+        if(this.onInfo)this.onInfo({k,d,score:{t:m[1],v:+m[2]},pv:/ pv (.+)$/.exec(l)[1].trim().split(" ")});
+      }
+    };
+    this.send("uci");
+  });
+  return this.ready;
 };
-/* 점수 변환 */
+Eng.prototype.send=function(c){this.w.postMessage(c)};
+Eng.prototype.go=function(fen,cmd){if(this.searching){this.pending++;this.send("stop")}this.send("position fen "+fen);this.send(cmd);this.searching=true};
+Eng.prototype.stop=function(){if(this.searching){this.pending++;this.send("stop");this.searching=false}};
+const Main=new Eng(2),Live=new Eng(3);
+function evalPos(fen){return new Promise(res=>{
+  const lines=[];Main.onInfo=x=>{lines[x.k-1]=x};
+  Main.onBest=b=>res({best:b&&b!=="(none)"?b:null,score:lines[0]?lines[0].score:{t:"cp",v:0},pv:lines[0]?lines[0].pv:[],score2:lines[1]?lines[1].score:null});
+  Main.go(fen,"go depth 14 movetime 500");
+})}
+/* 점수 */
 function whiteCp(sc,turn){let v;if(sc.t==="mate"){const s=sc.v>0?1:-1;v=s*(10000-Math.abs(sc.v)*10)}else v=sc.v;return turn==="w"?v:-v}
 const winPct=cp=>50+50*(2/(1+Math.exp(-0.00368208*cp))-1);
 function evalText(sc,turn){
   if(!sc)return "";
   if(sc.t==="mate"){if(sc.v===0)return turn==="w"?"0-1":"1-0";const wm=(turn==="w")===(sc.v>0);return (wm?"":"-")+"M"+Math.abs(sc.v)}
-  const c=whiteCp(sc,turn)/100;return (c>0?"+":"")+c.toFixed(1);
+  const c=whiteCp(sc,turn)/100;return (c>0?"+":"")+c.toFixed(2);
 }
 /* 상태 */
-let A=null,run=0;
+let A=null,V=null,N={v:false,i:0},run=0,sel=null,drag=null,floatEl=null,hov=null,rd=null,engOn=true,liveT=0,raf=0;
+const L={fen:null,lines:[],depth:0};
+const marks=new Map(),circ=new Map();
+try{engOn=localStorage.getItem("hansu-engine")!=="off"}catch(e){}
+const curFen=()=>N.v?V.fens[N.i]:A.fens[N.i];
+const curMove=()=>N.v?(N.i>0?V.moves[N.i-1]:null):(N.i>0?A.moves[N.i-1]:null);
 function parse(game){
   const c=new Chess();
   if(game.setup&&!/^rnbqkbnr\/pppppppp\/8\/8\/8\/8\/PPPPPPPP\/RNBQKBNR w KQkq - 0 1$/.test(game.setup))c.load(game.setup);
@@ -52,8 +64,7 @@ function parse(game){
   const toks=body.replace(/\{[^}]*\}/g," ").replace(/\([^)]*\)/g," ").replace(/\$\d+/g," ").replace(/\d+\.(\.\.)?/g," ").replace(/1-0|0-1|1\/2-1\/2|\*/g," ").trim().split(/\s+/).filter(Boolean);
   const fens=[start],moves=[];
   for(const t of toks){const m=c.move(t,{sloppy:true});if(!m)break;moves.push(m);fens.push(c.fen())}
-  const base=+(String(game.tc||"").split("+")[0])||0;
-  return {fens,moves,clk,base};
+  return {fens,moves,clk,base:+(String(game.tc||"").split("+")[0])||0};
 }
 function disp(sq){const f=F.indexOf(sq[0]),r=+sq[1];return A.orient==="w"?[f,8-r]:[7-f,r-1]}
 function order(){const a=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)a.push(F[A.orient==="w"?c:7-c]+(A.orient==="w"?8-r:r+1));return a}
@@ -66,122 +77,272 @@ function arrow(from,to,color){
   return `<g opacity=".8"><polyline points="${pts.slice(0,-1).concat([[bx+ux*.02,by+uy*.02]]).map(j).join(" ")}" fill="none" stroke="${color}" stroke-width=".2"/><polygon points="${[[tx,ty],[bx-uy*W,by+ux*W],[bx+uy*W,by-ux*W]].map(j).join(" ")}" fill="${color}"/></g>`;
 }
 const fmtClk=s=>{if(s==null)return "";const m=Math.floor(s/60),x=s-m*60;return s<20?`${m}:${x.toFixed(1).padStart(4,"0")}`:`${m}:${String(Math.floor(x)).padStart(2,"0")}`};
-function clockAt(color){
-  // 해당 색이 마지막으로 둔 수의 남은 시간
-  let v=A.base||null;for(let k=0;k<A.ply;k++){const mover=A.fens[k].split(" ")[1];if(mover===color&&A.clk[k]!=null)v=A.clk[k]}return v;
+function clockAt(color,ply){let v=A.base||null;for(let k=0;k<ply;k++){if(turnOf(A.fens[k])===color&&A.clk[k]!=null)v=A.clk[k]}return v}
+function kingSq(g,c){for(const sq of order()){const p=g.get(sq);if(p&&p.type==="k"&&p.color===c)return sq}}
+/* 현재 위치 평가: 저장된 값 또는 엔진 라인 */
+function curScore(){
+  const fen=curFen(),t=turnOf(fen);
+  const live=engOn&&L.fen===fen&&L.lines[0]?L.lines[0]:null;
+  if(!N.v&&A.sc[N.i]&&!(live&&live.d>14))return {sc:A.sc[N.i],t};
+  if(live)return {sc:live.score,t};
+  return null;
 }
-function draw(){
-  const i=A.ply,g=new Chess(A.fens[i]),mv=i>0?A.moves[i-1]:null,cl=i>0?A.cls[i-1]:null;
+function drawEval(){
+  const s=curScore(),flip=A.orient==="b";
+  const wp=s?winPct(whiteCp(s.sc,s.t)):50;
+  $("#evb").classList.toggle("flip",flip);$("#evbW").style.height=wp+"%";
+  const atW=wp>=50;$("#evbT").textContent=s?evalText(s.sc,s.t).replace("+",""):"";
+  $("#evbT").style.cssText=(atW!==flip?"bottom:4px;":"top:4px;")+(atW?"color:#222":"color:#eee");
+}
+function drawBoard(){
+  const fen=curFen(),g=new Chess(fen),mv=curMove(),cl=!N.v&&N.i>0?A.cls[N.i-1]:null,turn=g.turn();
+  const legal=sel?g.moves({square:sel,verbose:true}).map(m=>m.to):[],chk=g.in_check()?kingSq(g,turn):null;
   $("#ab8").innerHTML=order().map((sq,n)=>{
     const p=g.get(sq),r=Math.floor(n/8),c=n%8,dark=(F.indexOf(sq[0])+ +sq[1])%2===1;
-    const lm=mv&&(mv.from===sq||mv.to===sq)?" lm":"";
+    const cls=["s8",dark?"d":"l",mv&&(mv.from===sq||mv.to===sq)?"lm":"",sel===sq?"sel":"",chk===sq?"chk":"",p&&p.color===turn?"own":""].join(" ");
     const co=(c===0?`<span class="co r">${sq[1]}</span>`:"")+(r===7?`<span class="co f">${sq[0]}</span>`:"");
     const bd=cl&&mv.to===sq?`<span class="badge" style="background:${CL[cl].c}">${CL[cl].s}</span>`:"";
-    return `<div class="s8 ${dark?"d":"l"}${lm}">${co}${p?`<i class="pc ${p.color}${p.type}"></i>`:""}${bd}</div>`;
+    const mk=circ.has(sq)?`<span class="mk" style="background:${circ.get(sq)}"></span>`:"";
+    const dot=legal.includes(sq)?(p?'<b class="cp8"></b>':'<b class="dt8"></b>'):"";
+    return `<div class="${cls}" data-sq="${sq}">${mk}${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===sq?" ghost":""}"></i>`:""}${bd}${dot}</div>`;
   }).join("");
   let ar="";
-  if(i>0&&cl&&cl!=="best"&&A.best[i-1]){const b=A.best[i-1];ar+=arrow(b.slice(0,2),b.slice(2,4),"#5f9e3a")}
+  if(cl&&["inaccuracy","mistake","blunder","good","excellent"].includes(cl)&&A.best[N.i-1]){const b=A.best[N.i-1];ar+=arrow(b.slice(0,2),b.slice(2,4),"#5f9e3a")}
+  marks.forEach((col,k)=>{const [a,b]=k.split("-");ar+=arrow(a,b,col)});
   $("#amarks").innerHTML=ar;
-  const ev=A.ev[i];
-  const wp=ev!=null?winPct(ev):50;$("#evbW").style.height=wp+"%";const flip=A.orient==="b";$("#evb").classList.toggle("flip",flip);
-  const t=A.sc[i]?evalText(A.sc[i],g.turn()):"";
-  $("#evbT").textContent=t.replace("+","");const atW=wp>=50;$("#evbT").style.cssText=(atW!==flip?"bottom:4px;":"top:4px;")+(atW?"color:#222":"color:#eee");
-  const top=A.orient==="w"?"b":"w",bot=A.orient;
-  const pl=c=>{const gm=A.game,isMe=gm.me===c,p=isMe?gm.my:gm.op;return `<span>${esc(p.name)} <em>${p.rating}</em></span><span class="clk">${fmtClk(clockAt(c))}</span>`};
+  const top=A.orient==="w"?"b":"w",bot=A.orient,ply=N.v?V.base:N.i;
+  const pl=c=>{const gm=A.game,p=gm.me===c?gm.my:gm.op;return `<span>${esc(p.name)} <em>${p.rating}</em></span><span class="clk">${N.v?"":fmtClk(clockAt(c,ply))}</span>`};
   $("#wTop").innerHTML=pl(top);$("#wBot").innerHTML=pl(bot);
-  // 현재 수 설명
-  let h="";
-  if(i===0)h=`<b>시작 위치</b>`;
-  else{const n=Math.ceil(i/2),dots=i%2?".":"...";h=`<b>${n}${dots} ${mv.san}</b>`;
+}
+function drawInfo(){
+  const mv=curMove();let h="";
+  if(!mv)h="<b>시작 위치</b>";
+  else{
+    const fenB=N.v?V.fens[N.i-1]:A.fens[N.i-1],n=+fenB.split(" ")[5],dots=turnOf(fenB)==="w"?".":"...";
+    h=`<b>${n}${dots} ${mv.san}</b>`;
+    const cl=!N.v?A.cls[N.i-1]:null;
     if(cl){h+=` <span class="dot" style="background:${CL[cl].c}">${CL[cl].s}</span>${CL[cl].l}`;
-      if(cl!=="best"&&A.best[i-1]){const tmp=new Chess(A.fens[i-1]);const bm=tmp.move({from:A.best[i-1].slice(0,2),to:A.best[i-1].slice(2,4),promotion:A.best[i-1][4]||"q"});if(bm)h+=`<p>최선: ${bm.san}</p>`}}
-    else if(A.busy)h+=` <span style="color:var(--muted)">분석 중</span>`;}
-  if(A.sc[i]){h+=`<p>평가 ${t}${A.pv[i]&&A.pv[i].length?" · "+pvSan(i):""}</p>`}
-  $("#cur").innerHTML=h;
-  document.querySelectorAll(".mv").forEach(b=>b.classList.toggle("on",+b.dataset.p===i));
-  const on=document.querySelector(".mv.on");if(on){const L=$("#mlist"),r=on.offsetTop-L.offsetTop;if(r<L.scrollTop||r>L.scrollTop+L.clientHeight-40)L.scrollTop=r-L.clientHeight/2}
-}
-function pvSan(i){const c=new Chess(A.fens[i]),out=[];for(const u of A.pv[i].slice(0,6)){const m=c.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});if(!m)break;out.push(m.san)}return out.join(" ")}
-function moveList(){
-  let h="";for(let k=0;k<A.moves.length;k+=2){
-    const b=k=>{if(k>=A.moves.length)return "<span></span>";const c=A.cls[k];return `<button class="mv" data-p="${k+1}">${c&&c!=="best"&&c!=="excellent"&&c!=="good"?`<i style="background:${CL[c].c}">${CL[c].s}</i>`:""}${A.moves[k].san}</button>`};
-    h+=`<div class="mrow"><span>${(k/2|0)+1}</span>${b(k)}${b(k+1)}</div>`;
+      const b=A.best[N.i-1];if(b&&!["best","brilliant","great"].includes(cl)){const t=new Chess(A.fens[N.i-1]),bm=t.move(uciObj(b));if(bm)h+=`<p>최선 ${bm.san}</p>`}}
+    else if(!N.v&&A.busy)h+=` <span style="color:var(--muted)">분석 중</span>`;
   }
-  $("#mlist").innerHTML=h;
+  $("#cur").innerHTML=h;
 }
+function drawAll(){drawBoard();drawEval();drawInfo();moveList();graph()}
+/* 수순 목록 (변화 포함) */
+function vrow(){
+  let n=+V.fens[0].split(" ")[5],side=turnOf(V.fens[0]),h="";
+  V.moves.forEach((m,j)=>{const num=side==="w"?`<em>${n}.</em> `:(j===0?`<em>${n}...</em> `:"");h+=`${num}<button class="vm${N.v&&N.i===j+1?" on":""}" data-v="${j+1}">${m.san}</button> `;if(side==="b")n++;side=side==="w"?"b":"w"});
+  return `<div class="vrow">${h}<button class="vx" aria-label="지우기">×</button></div>`;
+}
+function moveList(){
+  const rows=Math.ceil(A.moves.length/2),vAt=V?Math.min(Math.floor(V.base/2),Math.max(rows-1,0)):-1;
+  let h="";
+  for(let r=0;r<rows;r++){
+    const b=k=>{if(k>=A.moves.length)return "<span></span>";const c=A.cls[k];const ic=c&&!["best","excellent","good"].includes(c)?`<i style="background:${CL[c].c}">${CL[c].s}</i>`:"";return `<button class="mv${!N.v&&N.i===k+1?" on":""}" data-p="${k+1}">${ic}${A.moves[k].san}</button>`};
+    h+=`<div class="mrow"><span>${r+1}</span>${b(r*2)}${b(r*2+1)}</div>`;
+    if(r===vAt)h+=vrow();
+  }
+  if(V&&!rows)h+=vrow();
+  const el=$("#mlist"),st=el.scrollTop;el.innerHTML=h;el.scrollTop=st;
+  const on=el.querySelector(".on");if(on){const r=on.offsetTop-el.offsetTop;if(r<el.scrollTop||r>el.scrollTop+el.clientHeight-40)el.scrollTop=r-el.clientHeight/2}
+}
+/* 엔진 라인 */
+function renderLines(){
+  const dep=$("#ldep"),body=$("#lbody");
+  if(!engOn){body.innerHTML="";dep.textContent="";return}
+  const fen=curFen(),g=new Chess(fen);
+  if(g.game_over()){body.innerHTML=`<p class="lempty">${g.in_checkmate()?"체크메이트":"무승부"}</p>`;dep.textContent="";return}
+  if(L.fen!==fen||!L.lines.length){body.innerHTML='<p class="lempty">계산 중…</p>';dep.textContent="";return}
+  const t=turnOf(fen);
+  body.innerHTML=L.lines.map((ln,li)=>{
+    if(!ln)return "";
+    const c=new Chess(fen),parts=[];let n=+fen.split(" ")[5],side=t;
+    for(let j=0;j<Math.min(ln.pv.length,14);j++){const m=c.move(uciObj(ln.pv[j]));if(!m)break;
+      const num=side==="w"?`<em>${n}.</em>`:(j===0?`<em>${n}...</em>`:"");parts.push(`${num}<button data-l="${li}" data-k="${j}">${m.san}</button>`);if(side==="b")n++;side=side==="w"?"b":"w"}
+    return `<div class="ln"><span class="pill ${whiteCp(ln.score,t)>=0?"pw":"pb"}">${evalText(ln.score,t)}</span><span class="lm">${parts.join(" ")}</span></div>`;
+  }).join("");
+  dep.textContent="깊이 "+L.depth;
+}
+Live.onInfo=x=>{L.lines[x.k-1]=x;if(x.k===1)L.depth=x.d;if(!raf)raf=requestAnimationFrame(()=>{raf=0;if(!A)return;renderLines();drawEval()})};
+function live(){
+  clearTimeout(liveT);
+  if(!engOn||!A){if(Live.ready)Live.stop();renderLines();return}
+  const fen=curFen();
+  if(L.fen!==fen){L.fen=fen;L.lines=[];L.depth=0}
+  renderLines();
+  if(new Chess(fen).game_over()){if(Live.ready)Live.stop();return}
+  liveT=setTimeout(()=>{Live.init().then(()=>{if(A&&curFen()===fen)Live.go(fen,"go depth 22")}).catch(()=>{$("#lbody").innerHTML='<p class="lempty">엔진을 불러오지 못했어요.</p>'})},120);
+}
+$("#lbody").onclick=e=>{const b=e.target.closest("button");if(!b)return;const ln=L.lines[+b.dataset.l];if(!ln)return;const pv=ln.pv.slice(0,+b.dataset.k+1);pv.forEach(u=>userMove(u.slice(0,2),u.slice(2,4),u[4],true));nav(N.v,N.i)};
+$("#engT").onclick=()=>{engOn=!engOn;$("#engT").setAttribute("aria-pressed",engOn);try{localStorage.setItem("hansu-engine",engOn?"on":"off")}catch(e){}live();if(A)drawEval()};
+/* 이동 */
+function nav(v,i){
+  if(v&&V){if(i<=0)N={v:false,i:V.base};else N={v:true,i:Math.min(i,V.moves.length)}}
+  else N={v:false,i:Math.max(0,Math.min(A.fens.length-1,i))};
+  sel=null;drawAll();live();
+}
+const same=(a,m)=>a&&a.from===m.from&&a.to===m.to&&(a.promotion||"")===(m.promotion||"");
+function userMove(from,to,pr,quiet){
+  sel=null;const fen0=curFen(),g=new Chess(fen0),m=g.move({from,to,promotion:pr||"q"});if(!m)return;
+  if(!N.v){
+    if(same(A.moves[N.i],m)){N={v:false,i:N.i+1}}
+    else{V={base:N.i,fens:[fen0,g.fen()],moves:[m]};N={v:true,i:1}}
+  }else{
+    if(same(V.moves[N.i],m)){N={v:true,i:N.i+1}}
+    else{V.fens=V.fens.slice(0,N.i+1);V.moves=V.moves.slice(0,N.i);V.fens.push(g.fen());V.moves.push(m);N={v:true,i:N.i+1}}
+  }
+  if(!quiet)nav(N.v,N.i);
+}
+function tryUser(from,to){
+  const g=new Chess(curFen()),ms=g.moves({square:from,verbose:true}).filter(m=>m.to===to);
+  if(!ms.length)return false;
+  if(ms.some(m=>m.promotion)){
+    const c=g.turn(),box=$("#apromo");
+    $("#apromoRow").innerHTML=["q","r","b","n"].map(t=>`<button data-t="${t}" aria-label="${t}"><i class="pc ${c}${t}"></i></button>`).join("");
+    box.classList.add("on");
+    $("#apromoRow").onclick=e=>{const b=e.target.closest("button");if(!b)return;box.classList.remove("on");userMove(from,to,b.dataset.t)};
+    return true;
+  }
+  userMove(from,to);return true;
+}
+/* 보드 조작: 클릭·드래그, 우클릭 화살표 */
+const bEl=$("#ab8");
+function sqAt(x,y){const b=bEl.getBoundingClientRect(),c=Math.floor((x-b.left)/b.width*8),r=Math.floor((y-b.top)/b.height*8);if(c<0||c>7||r<0||r>7)return null;return F[A.orient==="w"?c:7-c]+(A.orient==="w"?8-r:r+1)}
+const sqEl=sq=>bEl.querySelector(`[data-sq="${sq}"]`);
+const COLS={n:["#ffaa00","#eb6150"],s:["#9fcf3f","#9fcf3f"],c:["#f8553f","#ffaa00"],a:["#48c1f9","#48c1f9"]};
+const modK=e=>e.shiftKey?"s":(e.ctrlKey||e.metaKey)?"c":e.altKey?"a":"n";
+function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
+bEl.addEventListener("contextmenu",e=>e.preventDefault());
+bEl.addEventListener("pointerdown",e=>{
+  if(!A)return;const sq=sqAt(e.clientX,e.clientY);if(!sq)return;e.preventDefault();
+  try{bEl.setPointerCapture(e.pointerId)}catch(_){}
+  const mac=e.button===0&&e.ctrlKey&&/Mac/i.test(navigator.platform);
+  if(e.button===2||mac){sel=null;rd={from:sq,k:mac?"n":modK(e)};return}
+  if(e.button!==0)return;
+  if(marks.size||circ.size){marks.clear();circ.clear()}
+  const g=new Chess(curFen()),p=g.get(sq);
+  if(sel&&sel!==sq&&!(p&&p.color===g.turn())&&g.moves({square:sel,verbose:true}).some(m=>m.to===sq)){tryUser(sel,sq);return}
+  if(p&&p.color===g.turn()){
+    const was=sel===sq;sel=sq;drawBoard();
+    const s=bEl.getBoundingClientRect().width/8;
+    floatEl=document.createElement("i");floatEl.className=`pc ${p.color}${p.type} float`;floatEl.style.width=floatEl.style.height=s+"px";document.body.appendChild(floatEl);
+    drag={from:sq,was,x0:e.clientX,y0:e.clientY,moved:false,s};
+    floatEl.style.transform=`translate(${e.clientX-s/2}px,${e.clientY-s/2}px)`;document.body.classList.add("grabbing");
+    const pe=sqEl(sq).querySelector(".pc");if(pe)pe.classList.add("ghost");
+  }else{sel=null;drawBoard()}
+});
+window.addEventListener("pointermove",e=>{
+  if(!drag)return;floatEl.style.transform=`translate(${e.clientX-drag.s/2}px,${e.clientY-drag.s/2}px)`;
+  if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)>3)drag.moved=true;
+  const t=sqAt(e.clientX,e.clientY);if(t!==hov){if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov")}hov=t;if(t&&t!==drag.from){const n=sqEl(t);if(n)n.classList.add("hov")}}
+});
+window.addEventListener("pointerup",e=>{
+  if(!A)return;
+  if(rd){const r=rd;rd=null;const to=sqAt(e.clientX,e.clientY);
+    if(to&&to!==r.from){const k=r.from+"-"+to,c=COLS[r.k][0];if(marks.get(k)===c)marks.delete(k);else marks.set(k,c)}
+    else if(to===r.from){const c=COLS[r.k][1];if(circ.get(to)===c)circ.delete(to);else circ.set(to,c)}
+    drawBoard();return}
+  if(!drag)return;const d=drag;drag=null;endFloat();
+  const to=sqAt(e.clientX,e.clientY);
+  if(to&&to!==d.from){if(!tryUser(d.from,to))drawBoard();return}
+  if(to===d.from&&d.was&&!d.moved)sel=null;
+  drawBoard();
+});
+/* 요약·그래프 */
 function summary(){
-  const side=c=>{const idx=A.moves.map((m,k)=>k).filter(k=>m(k)===c&&A.cls[k]);function m(k){return A.fens[k].split(" ")[1]}
-    const accs=idx.map(k=>A.acc[k]);if(!accs.length)return null;
+  const side=c=>{const idx=[];A.moves.forEach((m,k)=>{if(turnOf(A.fens[k])===c&&A.cls[k])idx.push(k)});
+    if(!idx.length)return null;const accs=idx.map(k=>A.acc[k]);
     const mean=accs.reduce((a,b)=>a+b,0)/accs.length,harm=accs.length/accs.reduce((a,b)=>a+1/Math.max(b,5),0);
     const cnt={};ORDER.forEach(o=>cnt[o]=0);idx.forEach(k=>cnt[A.cls[k]]++);return {acc:(mean+harm)/2,cnt}};
-  A.sum={w:side("w"),b:side("b")};
-  const gm=A.game,nm=c=>esc(gm.me===c?gm.my.name:gm.op.name),ca=c=>gm.acc?(gm.me===c?gm.acc.me:gm.acc.op):null;
-  $("#acc2").innerHTML=["w","b"].map(c=>`<div><small>${c==="w"?"백":"흑"} · ${nm(c)}</small><b>${A.sum[c]?A.sum[c].acc.toFixed(1):"–"}</b><small>정확도${ca(c)!=null?` · 체스닷컴 ${ca(c).toFixed(1)}`:""}</small></div>`).join("");
-  $("#cls").innerHTML=`<tr><td></td><td>백</td><td>흑</td></tr>`+ORDER.map(o=>`<tr><td><span class="dot" style="background:${CL[o].c}">${CL[o].s}</span>${CL[o].l}</td><td>${A.sum.w?A.sum.w.cnt[o]:"–"}</td><td>${A.sum.b?A.sum.b.cnt[o]:"–"}</td></tr>`).join("");
+  const S2={w:side("w"),b:side("b")},gm=A.game,nm=c=>esc(gm.me===c?gm.my.name:gm.op.name),ca=c=>gm.acc?(gm.me===c?gm.acc.me:gm.acc.op):null;
+  $("#acc2").innerHTML=["w","b"].map(c=>`<div><small>${c==="w"?"백":"흑"} · ${nm(c)}</small><b>${S2[c]?S2[c].acc.toFixed(1):"–"}</b><small>정확도${ca(c)!=null?` · 체스닷컴 ${ca(c).toFixed(1)}`:""}</small></div>`).join("");
+  $("#cls").innerHTML=`<tr><td></td><td>백</td><td>흑</td></tr>`+ORDER.map(o=>`<tr><td><span class="dot" style="background:${CL[o].c}">${CL[o].s}</span>${CL[o].l}</td><td>${S2.w?S2.w.cnt[o]:"–"}</td><td>${S2.b?S2.b.cnt[o]:"–"}</td></tr>`).join("");
 }
 function graph(){
-  const svg=$("#gsvg"),W=svg.clientWidth,H=svg.clientHeight;if(!W||!A)return;
+  const svg=$("#gsvg");if(!A)return;const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;
   const n=A.fens.length-1||1,x=i=>i/n*W,y=v=>H-(v/100)*H;
-  let d=`M0,${H}`;for(let i=0;i<=n;i++){if(A.ev[i]==null)break;d+=` L${x(i).toFixed(1)},${y(winPct(A.ev[i])).toFixed(1)}`}
-  const last=A.ev.findIndex(v=>v==null);const end=last<0?n:last-1;
-  d+=` L${x(Math.max(end,0)).toFixed(1)},${H}Z`;
-  let dots="";A.cls.forEach((c,k)=>{if(c==="mistake"||c==="blunder"||c==="inaccuracy"){dots+=`<circle cx="${x(k+1)}" cy="${y(winPct(A.ev[k+1]))}" r="${c==="inaccuracy"?2.5:3.5}" fill="${CL[c].c}"/>`}});
-  svg.innerHTML=`<path d="${d}" fill="#f2f2f2"/><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="#888" stroke-opacity=".5"/>${dots}<line x1="${x(A.ply)}" x2="${x(A.ply)}" y1="0" y2="${H}" stroke="#ff6a3d" stroke-width="2"/>`;
+  let d=`M0,${H}`,end=0;for(let i=0;i<=n;i++){if(A.ev[i]==null)break;d+=` L${x(i).toFixed(1)},${y(winPct(A.ev[i])).toFixed(1)}`;end=i}
+  d+=` L${x(end).toFixed(1)},${H}Z`;
+  let dots="";A.cls.forEach((c,k)=>{if(["inaccuracy","mistake","blunder","brilliant","great"].includes(c))dots+=`<circle cx="${x(k+1)}" cy="${y(winPct(A.ev[k+1]))}" r="${c==="inaccuracy"?2.5:3.5}" fill="${CL[c].c}"/>`});
+  const px=x(N.v?V.base:N.i);
+  svg.innerHTML=`<path d="${d}" fill="#f2f2f2"/><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="#888" stroke-opacity=".5"/>${dots}<line x1="${px}" x2="${px}" y1="0" y2="${H}" stroke="#ff6a3d" stroke-width="2"/>`;
 }
-function go(i){if(!A)return;A.ply=Math.max(0,Math.min(A.fens.length-1,i));draw();graph()}
+/* 분류 */
+function sac(k){
+  const m=A.moves[k];if(m.piece==="p"||m.piece==="k")return false;
+  const pv=VAL[m.piece],cv=m.captured?VAL[m.captured]:0;if(pv-cv<2)return false;
+  const g=new Chess(A.fens[k+1]),caps=g.moves({verbose:true}).filter(x=>x.to===m.to);
+  if(!caps.length)return false;
+  const low=caps.reduce((a,b)=>VAL[a.piece]<=VAL[b.piece]?a:b);g.move(low);
+  const defended=g.moves({verbose:true}).some(x=>x.to===m.to);
+  return !defended||pv-VAL[low.piece]>=2;
+}
 function classify(k){
-  const mover=A.fens[k].split(" ")[1],wb=winPct(A.ev[k]),wa=winPct(A.ev[k+1]);
+  const mover=turnOf(A.fens[k]),wb=winPct(A.ev[k]),wa=winPct(A.ev[k+1]);
   const before=mover==="w"?wb:100-wb,after=mover==="w"?wa:100-wa,loss=Math.max(0,before-after);
-  const m=A.moves[k],uci=m.from+m.to+(m.promotion||"");
-  const only=new Chess(A.fens[k]).moves().length===1;
-  let c=uci===A.best[k]||only?"best":loss<2?"excellent":loss<5?"good":loss<10?"inaccuracy":loss<20?"mistake":"blunder";
+  const m=A.moves[k],uci=m.from+m.to+(m.promotion||""),pos=new Chess(A.fens[k]),nLegal=pos.moves().length;
+  const isBest=uci===A.best[k]||nLegal===1;
+  let c=isBest?"best":loss<2?"excellent":loss<5?"good":loss<10?"inaccuracy":loss<20?"mistake":"blunder";
+  if(loss<2&&nLegal>1&&before<97&&after>=45&&sac(k))c="brilliant";
+  else if(isBest&&nLegal>1&&A.sc2[k]&&!pos.in_check()){
+    const w2=winPct(whiteCp(A.sc2[k],mover)),s2=mover==="w"?w2:100-w2,prev=k>0?A.moves[k-1]:null;
+    const recap=prev&&prev.captured&&prev.to===m.to;
+    if(before-s2>=18&&!recap&&before<92&&after>=35)c="great";
+  }
   A.cls[k]=c;A.acc[k]=Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669));
 }
 async function analyse(id){
-  const ast=$("#ast"),prog=$("#prog");
-  ast.textContent="엔진 불러오는 중…";
-  try{await Engine.init()}catch(e){ast.textContent="엔진을 불러오지 못했어요.";A.busy=false;return}
+  const ast=$("#ast"),prog=$("#prog");ast.textContent="엔진 불러오는 중…";
+  try{await Main.init()}catch(e){ast.textContent="엔진을 불러오지 못했어요.";A.busy=false;return}
   if(id!==run)return;
-  Engine.w.postMessage("ucinewgame");
+  Main.send("ucinewgame");
   const n=A.fens.length;
   for(let i=0;i<n;i++){
     if(id!==run)return;
     const c=new Chess(A.fens[i]);let r;
-    if(c.in_checkmate())r={best:null,score:{t:"mate",v:0},pv:[]};
-    else if(c.in_stalemate()||c.insufficient_material())r={best:null,score:{t:"cp",v:0},pv:[]};
-    else r=await Engine.eval(A.fens[i]);
+    if(c.in_checkmate())r={best:null,score:{t:"mate",v:0},pv:[],score2:null};
+    else if(c.in_stalemate()||c.insufficient_material())r={best:null,score:{t:"cp",v:0},pv:[],score2:null};
+    else r=await evalPos(A.fens[i]);
     if(id!==run)return;
-    A.sc[i]=r.score;A.best[i]=r.best;A.pv[i]=r.pv;A.ev[i]=whiteCp(r.score,c.turn());
+    A.sc[i]=r.score;A.sc2[i]=r.score2;A.best[i]=r.best;A.ev[i]=whiteCp(r.score,c.turn());
     if(i>0)classify(i-1);
     prog.style.width=((i+1)/n*100)+"%";ast.textContent=`분석 중 ${i+1}/${n}`;
-    if(i%4===0||i===n-1){moveList();summary();draw();graph()}
+    if(i%4===0||i===n-1){summary();drawAll()}
   }
-  A.busy=false;ast.textContent="분석 완료";moveList();summary();draw();graph();
+  A.busy=false;ast.textContent="분석 완료";summary();drawAll();
 }
 window.openAnalysis=function(game){
-  run++;
-  if(game.rules&&game.rules!=="chess"){alertMsg("일반 체스만 분석할 수 있어요.");return}
+  run++;Main.stop();
+  if(game.rules&&game.rules!=="chess"){const m=document.getElementById("msg");if(m)m.textContent="일반 체스만 분석할 수 있어요.";return}
   const p=parse(game);
-  A={game,orient:game.me,ply:0,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,ev:[],sc:[],best:[],pv:[],cls:[],acc:[],busy:true};
+  A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,ev:[],sc:[],sc2:[],best:[],cls:[],acc:[],busy:true};
+  V=null;N={v:false,i:p.fens.length-1};sel=null;marks.clear();circ.clear();L.fen=null;
   const RL={win:"승",loss:"패",draw:"무"};
   $("#aTitle").textContent=`${game.my.name} vs ${game.op.name} · ${RL[game.res]} · ${game.how}`;
-  $("#aLink").href=game.url;
-  $("#prog").style.width="0";$("#ast").textContent="";
+  $("#aLink").href=game.url;$("#prog").style.width="0";$("#ast").textContent="";
+  $("#engT").setAttribute("aria-pressed",engOn);
   $("#ana").classList.add("on");document.body.style.overflow="hidden";
   try{const u=new URL(location.href);u.searchParams.set("game",game.id);history.replaceState(null,"",u)}catch(e){}
-  moveList();summary();go(p.fens.length-1);
-  analyse(run);
-  $("#aClose").focus();
+  summary();nav(false,N.i);analyse(run);$("#aClose").focus();
 };
-function alertMsg(t){const m=document.getElementById("msg");if(m){m.textContent=t;m.scrollIntoView({block:"center"})}}
-function close(){run++;if(Engine.w&&Engine.cur)Engine.w.postMessage("stop");A=null;$("#ana").classList.remove("on");document.body.style.overflow="";
+function close(){run++;Main.stop();if(Live.ready)Live.stop();clearTimeout(liveT);A=null;V=null;$("#ana").classList.remove("on");$("#apromo").classList.remove("on");document.body.style.overflow="";
   try{const u=new URL(location.href);u.searchParams.delete("game");history.replaceState(null,"",u)}catch(e){}}
 $("#aClose").onclick=close;
-$("#cFirst").onclick=()=>go(0);$("#cPrev").onclick=()=>go(A.ply-1);$("#cNext").onclick=()=>go(A.ply+1);$("#cLast").onclick=()=>go(A.fens.length-1);
-$("#mlist").onclick=e=>{const b=e.target.closest(".mv");if(b)go(+b.dataset.p)};
-$("#gfig").onclick=e=>{if(!A)return;const r=$("#gfig").getBoundingClientRect();go(Math.round((e.clientX-r.left)/r.width*(A.fens.length-1)))};
-document.addEventListener("keydown",e=>{if(!A||!$("#ana").classList.contains("on"))return;
-  if(e.key==="ArrowLeft"){go(A.ply-1);e.preventDefault()}else if(e.key==="ArrowRight"){go(A.ply+1);e.preventDefault()}
-  else if(e.key==="Home"){go(0);e.preventDefault()}else if(e.key==="End"){go(A.fens.length-1);e.preventDefault()}else if(e.key==="Escape")close()});
-const gro=new ResizeObserver(()=>graph());gro.observe($("#gfig"));
+const step=d=>{if(!A)return;nav(N.v,N.i+d)};
+$("#cFirst").onclick=()=>A&&nav(false,0);$("#cPrev").onclick=()=>step(-1);$("#cNext").onclick=()=>step(1);
+$("#cLast").onclick=()=>{if(!A)return;N.v?nav(true,V.moves.length):nav(false,A.fens.length-1)};
+$("#mlist").onclick=e=>{
+  const b=e.target.closest("button");if(!b||!A)return;
+  if(b.classList.contains("mv"))nav(false,+b.dataset.p);
+  else if(b.classList.contains("vm"))nav(true,+b.dataset.v);
+  else if(b.classList.contains("vx")){const base=V.base;V=null;nav(false,base)}
+};
+$("#gfig").onclick=e=>{if(!A)return;const r=$("#gfig").getBoundingClientRect();nav(false,Math.round((e.clientX-r.left)/r.width*(A.fens.length-1)))};
+document.addEventListener("keydown",e=>{
+  if(!A||!$("#ana").classList.contains("on")||/INPUT|TEXTAREA/.test(e.target.tagName))return;
+  if(e.key==="ArrowLeft"){step(-1);e.preventDefault()}else if(e.key==="ArrowRight"){step(1);e.preventDefault()}
+  else if(e.key==="ArrowUp"||e.key==="Home"){nav(false,0);e.preventDefault()}else if(e.key==="ArrowDown"||e.key==="End"){$("#cLast").onclick();e.preventDefault()}
+  else if(e.key==="Escape")close();
+});
+new ResizeObserver(()=>graph()).observe($("#gfig"));
 }
