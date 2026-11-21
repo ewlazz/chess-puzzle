@@ -252,3 +252,5 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 .sws button[aria-pressed=true]{border-color:#ff6a3d;box-shadow:0 0 0 2px #ff6a3d55}
 .sws .sw{width:22px;height:22px;box-shadow:none}
 header{position:sticky}
+.mline span:last-child{white-space:normal;overflow-wrap:anywhere}.gr{overflow:hidden}
+.ahead b{flex:1;min-width:0}.ahead a,.ahead .x{flex:none}.ahead .x{margin-left:0}@media(max-width:520px){.ahead a{font-size:12px}.ahead b{font-size:15px}}
