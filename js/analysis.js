@@ -151,7 +151,14 @@ function drawInfo(){
       const b=A.best[N.i-1];if(b&&!["best","brilliant","great","book","forced"].includes(cl)){const t=new Chess(A.fens[N.i-1]),bm=t.move(uciObj(b));if(bm)h+=`<p>최선 ${bm.san}</p>`}}
     else if(!N.v&&A.busy)h+=` <span style="color:var(--muted)">분석 중</span>`;
   }
+  const on=openName();if(on)h+=`<p class="opn">${esc(on.eco?on.eco+" · ":"")}${esc(on.name)}</p>`;
   $("#cur").innerHTML=h;
+}
+function openName(){
+  if(!window.Openings||!Openings.ready())return null;
+  if(!N.v)return A.ol&&A.ol.names[N.i]||null;
+  for(let j=N.i;j>=1;j--){const a=Openings.at(V.fens[j]);if(a&&a.name)return a}
+  return A.ol&&A.ol.names[V.base]||null;
 }
 function drawAll(){drawBoard();drawEval();drawInfo();moveList();graph()}
 /* 수순 목록 (변화 포함) */
@@ -325,6 +332,7 @@ function classify(k){
 async function analyse(id){
   const ast=$("#ast"),prog=$("#prog");ast.textContent="엔진 불러오는 중…";
   try{await Main.init()}catch(e){ast.textContent="엔진을 불러오지 못했어요.";A.busy=false;return}
+  if(window.Openings){await Openings.load();if(id!==run)return;A.ol=Openings.line(A.fens);if(A.std)A.book=Math.max(A.book,A.ol.book);drawInfo()}
   if(id!==run)return;
   Main.send("ucinewgame");
   const n=A.fens.length;
@@ -346,7 +354,7 @@ window.openAnalysis=function(game){
   run++;Main.stop();
   if(game.rules&&game.rules!=="chess"){const m=document.getElementById("msg");if(m)m.textContent="일반 체스만 분석할 수 있어요.";return}
   const p=parse(game);
-  A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,book:p.std?bookPly(game,p.moves):0,ev:[],sc:[],sc2:[],best:[],cls:[],acc:[],busy:true};
+  A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,book:p.std?bookPly(game,p.moves):0,std:p.std,ol:null,ev:[],sc:[],sc2:[],best:[],cls:[],acc:[],busy:true};
   V=null;N={v:false,i:p.fens.length-1};sel=null;marks.clear();circ.clear();L.fen=null;
   const RL={win:"승",loss:"패",draw:"무",abort:"중단"};
   $("#aTitle").textContent=game.title||`${game.my.name} vs ${game.op.name} · ${RL[game.res]} · ${game.how}`;
