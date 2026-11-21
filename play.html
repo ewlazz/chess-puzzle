@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>대국 - 한 수</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="pieces.css">
+<link rel="stylesheet" href="css/site.css">
+<style>
+.pband{background:var(--band);color:#f3f7f8}
+.pgrid{display:grid;grid-template-columns:minmax(0,600px) minmax(0,360px);gap:clamp(18px,3vw,36px);justify-content:center;align-items:start}
+@media(max-width:960px){.pgrid{grid-template-columns:minmax(0,560px)}}
+.pband .who{color:#f3f7f8}.pband .who em{color:#b9ced4}.pband .clk{background:#ffffff1a;color:#fff;min-width:64px;text-align:center}
+.pband .clk.run{background:#fff;color:#122027}.pband .clk.low{background:var(--loss);color:#fff}
+.wood{padding:clamp(6px,1.2vw,12px);background:linear-gradient(160deg,#6b4428,#4a2c18);border-radius:14px;box-shadow:0 24px 50px -20px #000a}
+.s8.pre::after{content:"";position:absolute;inset:0;background:#d2343e8c}
+.pside{background:var(--card);color:var(--ink);border-radius:14px;padding:18px;display:grid;gap:14px}
+.pside h3{margin:0;font-size:15px;color:var(--muted);font-weight:500}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{min-height:40px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:500}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.lv{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
+.lv button{min-height:40px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;padding:0}
+.lv button[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:var(--accink)}
+.go{min-height:50px;border-radius:12px;border:0;background:var(--acc);color:var(--accink);font-weight:700;font-size:17px}
+.acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.acts button{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:700}
+.acts button:hover{background:var(--soft)}
+.rbox{border-radius:12px;padding:14px;background:var(--soft);text-align:center}
+.rbox b{display:block;font-size:24px}
+.rbox .acts{margin-top:10px;grid-template-columns:1fr 1fr}
+.rbox .acts .pri{background:var(--acc);border-color:var(--acc);color:var(--accink)}
+.pmv{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:12px;font-size:14px}
+.pmv .mrow{grid-template-columns:40px 1fr 1fr}
+.pmv .mrow b{font-weight:500;padding:6px 8px}
+.pmv .mrow b.on{background:var(--acc);color:var(--accink)}
+.st2{font-size:14px;color:var(--muted);min-height:1.4em;margin:0}
+</style>
+</head>
+<body>
+<header>
+  <div class="nav">
+    <a class="logo" href="index.html"><span>♞</span>한 수</a>
+    <nav aria-label="메뉴"><a href="index.html">퍼즐</a><a href="stats.html">전적</a><a href="analysis.html">분석</a><a href="play.html" aria-current="page">대국</a></nav>
+  </div>
+</header>
+<main>
+<section class="band pband">
+  <div class="pgrid">
+    <div>
+      <div class="who" id="pTop"></div>
+      <div class="wood"><div class="aboard"><div class="ab8" id="pb8" aria-label="대국 보드"></div><svg class="amarks" id="pmarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="ppromo"><div id="ppromoRow"></div></div></div></div>
+      <div class="who" id="pBot"></div>
+    </div>
+    <div class="pside" id="pside">
+      <div id="setup">
+        <div style="display:grid;gap:14px">
+          <div><h3>내 색</h3><div class="seg" id="sCol"><button data-v="w" aria-pressed="true">백</button><button data-v="b" aria-pressed="false">흑</button><button data-v="r" aria-pressed="false">랜덤</button></div></div>
+          <div><h3>엔진 레벨</h3><div class="lv" id="sLv"></div></div>
+          <div><h3>시간</h3><div class="seg" id="sTc"><button data-v="0" aria-pressed="true">없음</button><button data-v="180+2">3+2</button><button data-v="300">5분</button><button data-v="600">10분</button><button data-v="900+10">15+10</button></div></div>
+          <button class="go" id="start">시작</button>
+        </div>
+      </div>
+      <div id="game" hidden>
+        <div style="display:grid;gap:12px">
+          <div class="rbox" id="result" hidden></div>
+          <p class="st2" id="pst"></p>
+          <div class="pmv" id="pmv"></div>
+          <div class="acts"><button id="aBack">무르기</button><button id="aFlip">뒤집기</button><button id="aResign">기권</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="band">
+  <div class="wrap">
+    <p><b>한 수</b></p>
+    <p>엔진 Stockfish (GPLv3) · 기물 cburnett (CC BY-SA 3.0)</p>
+  </div>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/openings.js"></script>
+<script src="js/analysis.js"></script>
+<script src="js/play.js"></script>
+</body>
+</html>
