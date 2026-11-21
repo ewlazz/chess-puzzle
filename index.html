@@ -353,7 +353,6 @@ function arrowSvg(from,to,color){
 }
 function drawArrows(){
   let s="";arrows.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrowSvg(a,b,c)});
-  if(rdrag&&rdrag.to&&rdrag.to!==rdrag.from)s+=arrowSvg(rdrag.from,rdrag.to,rdrag.color);
   marksEl.innerHTML=s;
 }
 const toggle=(map,k,c)=>{if(map.get(k)===c)map.delete(k);else map.set(k,c)};
@@ -447,7 +446,7 @@ boardEl.addEventListener("pointerdown",e=>{
   const macCtrl=e.button===0&&e.ctrlKey&&/Mac/i.test(navigator.platform);
   if(e.button===2||macCtrl){
     if(premove||sel){premove=null;sel=null;render()}
-    const k=macCtrl?(e.shiftKey?"s":e.altKey?"a":"n"):modKey(e);rdrag={from:sq,to:sq,color:COL.arrow[k],sqColor:COL.sq[k]};drawArrows();return;
+    const k=macCtrl?(e.shiftKey?"s":e.altKey?"a":"n"):modKey(e);rdrag={from:sq,to:sq,color:COL.arrow[k],sqColor:COL.sq[k]};return;
   }
   if(e.button!==0)return;
   const cleared=clearMarks();
@@ -461,7 +460,7 @@ boardEl.addEventListener("pointerdown",e=>{
   if(p&&p.color===myColor()){const wasSel=sel===sq;sel=sq;render();startDrag(sq,p,e,wasSel)}
   else{sel=null;render()}
 });
-function rMove(e){if(!rdrag)return false;const t=sqAt(e.clientX,e.clientY);if(t!==rdrag.to){rdrag.to=t;drawArrows()}return true}
+function rMove(){return !!rdrag}
 function rEnd(e){if(!rdrag)return false;const r=rdrag,to=sqAt(e.clientX,e.clientY);rdrag=null;if(to&&to!==r.from)toggle(arrows,r.from+"-"+to,r.color);else if(to===r.from)toggle(circles,to,r.sqColor);render();return true}
 window.addEventListener("mousemove",rMove);
 window.addEventListener("mouseup",e=>{if(e.button===2||rdrag)rEnd(e)});
