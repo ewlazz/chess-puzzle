@@ -238,7 +238,7 @@ try{const s=JSON.parse(localStorage.getItem("hansu-chess")||"null");if(s)store=O
 const save=()=>{try{localStorage.setItem("hansu-chess",JSON.stringify(store))}catch(e){}};
 const P=()=>PUZ[cur];
 /* 효과음: sounds/*.mp3 (파일을 못 불러오면 Web Audio 합성음으로 대신) */
-const SND={move:"move-self",opp:"move-opponent",capture:"capture",castle:"castle",check:"move-check",promote:"promote",premove:"premove",illegal:"illegal",wrong:"incorrect",win:"correct",start:"game-start"};
+const SND={move:"move-self",opp:"move-opponent",capture:"capture",castle:"castle",check:"move-check",promote:"promote",premove:"premove",illegal:"illegal",wrong:"incorrect",end:"game-end",start:"game-start"};
 const sndRaw={},sndBuf={};
 function decodeSnd(){if(!AC)return;for(const k in sndRaw){const b=sndRaw[k];delete sndRaw[k];AC.decodeAudioData(b).then(x=>{sndBuf[k]=x}).catch(()=>{})}}
 Object.entries(SND).forEach(([k,f])=>fetch("sounds/"+f+".mp3").then(r=>r.ok?r.arrayBuffer():null).then(b=>{if(b){sndRaw[k]=b;decodeSnd()}}).catch(()=>{}));
@@ -271,7 +271,7 @@ const SFX={
   premove:t=>knock(t,{f:3200,vol:.22,dur:.035,lowVol:.08}),
   illegal:t=>tone(t,150,.14,.16,"triangle"),
   wrong:t=>tone(t,660,.2,.07,"square"),
-  win:t=>[523,659,784,1046].forEach((f,i)=>tone(t+i*.085,f,.4,.1,"triangle"))
+  end:t=>[523,659,784,1046].forEach((f,i)=>tone(t+i*.085,f,.4,.1,"triangle"))
 };
 /* opp: 상대 수 (일반 이동만 내 수/상대 수 소리가 다름) */
 function play(name,delay,opp){
@@ -374,7 +374,8 @@ function load(i,fromHash){
 }
 function finish(){
   phase="done";premove=null;$("#bHint").disabled=$("#bShow").disabled=true;
-  if(!shown){play("win",.15);if(!store.solved.includes(cur))store.solved.push(cur);store.streak++;store.best=Math.max(store.best,store.streak);save()}
+  if(g.in_checkmate())play("end",.15);
+  if(!shown){if(!store.solved.includes(cur))store.solved.push(cur);store.streak++;store.best=Math.max(store.best,store.streak);save()}
   setStatus(shown?"":"win",shown?"정답: "+P().sol.join(" "):"정답!");
   if(g.in_checkmate()){const c=g.turn();endBdg={sq:kingSq(c),ic:"checkmate_"+(c==="w"?"white":"black")};render()}
   stats();renderList();
