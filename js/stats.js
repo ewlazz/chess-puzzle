@@ -113,10 +113,10 @@ function renderFilters(){
   chips("#fCol",[["all","전체"],["w","백"],["b","흑"]],"col");
   $("#fRes").hidden=$("#fCol").hidden=S.tab!=="games";
 }
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));$("#pGames").hidden=S.tab!=="games";$("#pStats").hidden=S.tab!=="stats";$("#pOpen").hidden=S.tab!=="open";$("#pVs").hidden=S.tab!=="vs";renderFilters();renderAll()});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));$("#pGames").hidden=S.tab!=="games";$("#pStats").hidden=S.tab!=="stats";$("#pOpen").hidden=S.tab!=="open";$("#pVs").hidden=S.tab!=="vs";$("#pAcc").hidden=S.tab!=="acc";renderFilters();renderAll()});
 const byTc=()=>S.games.filter(g=>S.tc==="all"||g.tclass===S.tc);
 function filtered(){return byTc().filter(g=>(S.res==="all"||g.res===S.res)&&(S.col==="all"||g.me===S.col))}
-function renderAll(){if(S.tab==="games")renderGames();else if(S.tab==="open"){if(window.renderOpenings)window.renderOpenings(byTc())}else if(S.tab==="vs"){if(window.renderCompare)window.renderCompare(byTc())}else renderStats()}
+function renderAll(){if(S.tab==="games")renderGames();else if(S.tab==="open"){if(window.renderOpenings)window.renderOpenings(byTc())}else if(S.tab==="vs"){if(window.renderCompare)window.renderCompare(byTc())}else if(S.tab==="acc"){if(window.renderBatch)window.renderBatch(byTc())}else renderStats()}
 /* 게임 목록 */
 function renderGames(){
   const l=filtered(),RL={win:"승",loss:"패",draw:"무",abort:"중단"};

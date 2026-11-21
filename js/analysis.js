@@ -155,17 +155,17 @@ function drawInfo(){
   $("#cur").innerHTML=h;
 }
 /* 내 실수를 퍼즐로: 내가 둔 실수·놓침·블런더 장면에서 엔진 최선수(메이트면 메이트 수순)를 정답으로 */
-function mistakePuzzles(){
-  const out=[],me=A.game.me;
-  A.cls.forEach((c,k)=>{
-    const mover=turnOf(A.fens[k]),any=A.game.id==="paste"||A.game.id==="fen";
-    if(!["mistake","blunder","miss"].includes(c)||(!any&&mover!==me)||!A.best[k])return;
-    const pos=new Chess(A.fens[k]),sc=A.sc[k],pv=(A.pv[k]&&A.pv[k].length?A.pv[k]:[A.best[k]]);
+function mistakePuzzles(X){X=X||A;
+  const out=[],me=X.game.me;
+  X.cls.forEach((c,k)=>{
+    const mover=turnOf(X.fens[k]),any=X.game.id==="paste"||X.game.id==="fen";
+    if(!["mistake","blunder","miss"].includes(c)||(!any&&mover!==me)||!X.best[k])return;
+    const pos=new Chess(X.fens[k]),sc=X.sc[k],pv=(X.pv[k]&&X.pv[k].length?X.pv[k]:[X.best[k]]);
     let n=1;if(sc&&sc.t==="mate"&&sc.v>0)n=Math.min(2*sc.v-1,9);
     const sol=[];for(const u of pv.slice(0,n)){const m=pos.move(uciObj(u));if(!m)break;sol.push(m.san)}
     if(!sol.length)return;
-    const num=+A.fens[k].split(" ")[5],dots=mover==="w"?".":"...",prev=k>0?A.moves[k-1]:null;
-    out.push({id:(A.game.id||"g")+"-"+k,fen:A.fens[k],last:prev?prev.from+prev.to:"",sol,title:`${num}${dots} ${A.moves[k].san} 대신`,goal:n>1?Math.ceil(n/2)+"수 메이트":CL[c].l+"한 장면",lv:"",kind:"mine",url:A.game.url||"",src:A.game.url?"게임":"",vs:A.game.op.name,orient:mover});
+    const num=+X.fens[k].split(" ")[5],dots=mover==="w"?".":"...",prev=k>0?X.moves[k-1]:null;
+    out.push({id:(X.game.id||"g")+"-"+k,fen:X.fens[k],last:prev?prev.from+prev.to:"",sol,title:`${num}${dots} ${X.moves[k].san} 대신`,goal:n>1?Math.ceil(n/2)+"수 메이트":CL[c].l+"한 장면",lv:"",kind:"mine",url:X.game.url||"",src:X.game.url?"게임":"",vs:X.game.op.name,orient:mover});
   });
   return out;
 }
@@ -326,33 +326,33 @@ function graph(){
   svg.innerHTML=`<path d="${d}" fill="#f2f2f2"/><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="#888" stroke-opacity=".5"/>${dots}<line x1="${px}" x2="${px}" y1="0" y2="${H}" stroke="#ff6a3d" stroke-width="2"/>`;
 }
 /* 분류 */
-function sac(k){
-  const m=A.moves[k];if(m.piece==="p"||m.piece==="k")return false;
+function sac(k,X){X=X||A;
+  const m=X.moves[k];if(m.piece==="p"||m.piece==="k")return false;
   const pv=VAL[m.piece],cv=m.captured?VAL[m.captured]:0;if(pv-cv<2)return false;
-  const g=new Chess(A.fens[k+1]),caps=g.moves({verbose:true}).filter(x=>x.to===m.to);
+  const g=new Chess(X.fens[k+1]),caps=g.moves({verbose:true}).filter(x=>x.to===m.to);
   if(!caps.length)return false;
   const low=caps.reduce((a,b)=>VAL[a.piece]<=VAL[b.piece]?a:b);g.move(low);
   const defended=g.moves({verbose:true}).some(x=>x.to===m.to);
   return !defended||pv-VAL[low.piece]>=2;
 }
-function classify(k){
-  const mover=turnOf(A.fens[k]),wb=winPct(A.ev[k]),wa=winPct(A.ev[k+1]);
+function classify(k,X){X=X||A;
+  const mover=turnOf(X.fens[k]),wb=winPct(X.ev[k]),wa=winPct(X.ev[k+1]);
   const before=mover==="w"?wb:100-wb,after=mover==="w"?wa:100-wa,loss=Math.max(0,before-after);
-  const m=A.moves[k],uci=m.from+m.to+(m.promotion||""),pos=new Chess(A.fens[k]),nLegal=pos.moves().length;
-  const isBest=uci===A.best[k]||nLegal===1;
+  const m=X.moves[k],uci=m.from+m.to+(m.promotion||""),pos=new Chess(X.fens[k]),nLegal=pos.moves().length;
+  const isBest=uci===X.best[k]||nLegal===1;
   let c=isBest?"best":loss<2?"excellent":loss<5?"good":loss<10?"inaccuracy":loss<20?"mistake":"blunder";
   /* 놓침: 상대가 실수·블런더로 준 기회를 크게 날렸지만 아직 지는 판은 아님 */
-  const pc=k>0?A.cls[k-1]:null;
+  const pc=k>0?X.cls[k-1]:null;
   if(loss>=10&&(pc==="mistake"||pc==="blunder"||pc==="miss")&&before>=60&&after>=35)c="miss";
   if(nLegal===1)c="forced";
-  else if(k<A.book)c="book";
-  else if(loss<2&&before<97&&after>=45&&sac(k))c="brilliant";
-  else if(isBest&&nLegal>1&&A.sc2[k]&&!pos.in_check()){
-    const w2=winPct(whiteCp(A.sc2[k],mover)),s2=mover==="w"?w2:100-w2,prev=k>0?A.moves[k-1]:null;
+  else if(k<X.book)c="book";
+  else if(loss<2&&before<97&&after>=45&&sac(k,X))c="brilliant";
+  else if(isBest&&nLegal>1&&X.sc2[k]&&!pos.in_check()){
+    const w2=winPct(whiteCp(X.sc2[k],mover)),s2=mover==="w"?w2:100-w2,prev=k>0?X.moves[k-1]:null;
     const recap=prev&&prev.captured&&prev.to===m.to;
     if(before-s2>=18&&!recap&&before<92&&after>=35)c="great";
   }
-  A.cls[k]=c;A.acc[k]=Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669));
+  X.cls[k]=c;X.acc[k]=Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669));
 }
 async function analyse(id){
   const ast=$("#ast"),prog=$("#prog");ast.textContent="엔진 불러오는 중…";
@@ -375,12 +375,35 @@ async function analyse(id){
   }
   A.busy=false;ast.textContent="분석 완료";mkPuzBtn();summary();drawAll();
 }
-window.openAnalysis=function(game){
+/* 여러 판 분석용: 화면과 별개의 엔진으로 한 판을 평가·분류 */
+const Batch=new Eng(2);
+function evalWith(E,fen,cmd){return new Promise(res=>{const lines=[];E.onInfo=x=>{lines[x.k-1]=x};
+  E.onBest=b=>res({best:b&&b!=="(none)"?b:null,score:lines[0]?lines[0].score:{t:"cp",v:0},pv:lines[0]?lines[0].pv:[],score2:lines[1]?lines[1].score:null});E.go(fen,cmd)})}
+window.batchAnalyse=async function(game,cmd,onStep,alive){
+  if(game.rules&&game.rules!=="chess")return null;
+  const p=parse(game);if(p.moves.length<2)return null;
+  const X={game,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,book:p.std?bookPly(game,p.moves):0,std:p.std,ev:[],sc:[],sc2:[],best:[],pv:[],cls:[],acc:[]};
+  if(window.Openings){await Openings.load();if(X.std)X.book=Math.max(X.book,Openings.line(X.fens).book)}
+  await Batch.init();Batch.send("ucinewgame");
+  for(let i=0;i<X.fens.length;i++){
+    if(alive&&!alive()){Batch.stop();return null}
+    const c=new Chess(X.fens[i]);let r;
+    if(c.in_checkmate())r={best:null,score:{t:"mate",v:0},pv:[],score2:null};
+    else if(c.in_stalemate()||c.insufficient_material())r={best:null,score:{t:"cp",v:0},pv:[],score2:null};
+    else r=await evalWith(Batch,X.fens[i],cmd||"go depth 11 movetime 250");
+    X.sc[i]=r.score;X.sc2[i]=r.score2;X.best[i]=r.best;X.pv[i]=r.pv;X.ev[i]=whiteCp(r.score,c.turn());
+    if(i>0)classify(i-1,X);
+    if(onStep)onStep(i+1,X.fens.length);
+  }
+  X.puzzles=mistakePuzzles(X);X.winPct=winPct;
+  return X;
+};
+window.openAnalysis=function(game,ply){
   run++;Main.stop();
   if(game.rules&&game.rules!=="chess"){const m=document.getElementById("msg");if(m)m.textContent="일반 체스만 분석할 수 있어요.";return}
   const p=parse(game);
   A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,book:p.std?bookPly(game,p.moves):0,std:p.std,ol:null,ev:[],sc:[],sc2:[],best:[],pv:[],cls:[],acc:[],busy:true};
-  V=null;N={v:false,i:p.fens.length-1};sel=null;marks.clear();circ.clear();L.fen=null;
+  V=null;N={v:false,i:ply!=null?Math.min(ply,p.fens.length-1):p.fens.length-1};sel=null;marks.clear();circ.clear();L.fen=null;
   const RL={win:"승",loss:"패",draw:"무",abort:"중단"};
   $("#aTitle").textContent=game.title||`${game.my.name} vs ${game.op.name} · ${RL[game.res]} · ${game.how}`;
   $("#aLink").hidden=!game.url;if(game.url)$("#aLink").href=game.url;$("#aLink").textContent=game.linkText||"체스닷컴에서 보기";$("#prog").style.width="0";$("#ast").textContent="";

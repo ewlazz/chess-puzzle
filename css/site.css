@@ -235,3 +235,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 .vst td{padding:8px;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
 .vst td em{font-style:normal;color:var(--muted);font-size:12px}
 .vst td.hi{font-weight:800;color:var(--win)}
+/* 정확도 탭 */
+.bctl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:6px}
+.bgo{min-height:42px;padding:0 18px;border-radius:10px;border:0;background:var(--acc);color:var(--accink);font-weight:700}
+.bprog{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
