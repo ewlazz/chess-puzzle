@@ -35,7 +35,7 @@ header{background:var(--band);color:#f3f7f8;position:sticky;top:0;z-index:20;bor
 .nav nav a:hover{background:#ffffff14;color:#fff}
 /* hero / play */
 .play{background:var(--band);color:#f3f7f8;padding-top:clamp(20px,3vw,40px)}
-.play .head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px;margin-bottom:20px}
+.play .head{max-width:1000px;margin:0 auto 20px}
 .play h1{font-size:clamp(32px,4.6vw,52px)}
 .play .head p{margin:0;color:#b9ced4;max-width:46ch}
 .grid{display:grid;grid-template-columns:minmax(0,580px) minmax(0,380px);gap:clamp(20px,3vw,40px);justify-content:center;align-items:start}
@@ -85,6 +85,7 @@ header{background:var(--band);color:#f3f7f8;position:sticky;top:0;z-index:20;bor
 .turn i{width:22px;height:22px;border-radius:50%;border:2px solid #556;flex:none}
 .turn i.w{background:#fff}.turn i.b{background:#111}
 .status{border-radius:10px;padding:12px 14px;background:var(--soft);font-weight:500;min-height:50px;display:flex;align-items:center;gap:10px;border-left:5px solid var(--muted)}
+.status:empty,.log:empty{display:none}
 .status.good,.status.win{border-color:var(--good)}.status.win{color:var(--good);font-weight:700}
 .status.wrong{border-color:var(--bad);color:var(--bad)}
 .status.hint{border-color:var(--acc)}
@@ -142,7 +143,7 @@ footer p{margin:0}
 <header>
   <div class="nav">
     <a class="logo" href="#play"><span>♞</span>한 수</a>
-    <nav aria-label="주요 메뉴"><a href="#play">퍼즐 풀기</a><a href="#list">전체 퍼즐</a><a href="#themes">전술 사전</a><a href="#how">사용법</a></nav>
+    <nav aria-label="메뉴"><a href="#play">퍼즐</a><a href="#list">목록</a></nav>
   </div>
 </header>
 
@@ -150,88 +151,57 @@ footer p{margin:0}
 <section class="band play" id="play">
   <div class="wrap">
     <div class="head">
-      <h1>이길 수 있는 한 수를 찾아라</h1>
-      <p>메이트부터 포크, 핀, 스큐어까지. 보드에서 직접 수를 두며 전술 감각을 키우세요.</p>
+      <h1>퍼즐</h1>
     </div>
     <div class="grid">
       <div class="boardbox" id="boardbox">
         <div class="bwrap"><div class="board" id="board" role="grid" aria-label="체스 보드"></div><svg class="marks" id="marks" viewBox="0 0 8 8" aria-hidden="true"></svg></div>
-        <div class="promo" id="promo" role="dialog" aria-label="승진할 기물 선택"><div><p>어떤 기물로 승진할까요?</p><div class="row" id="promoRow"></div></div></div>
+        <div class="promo" id="promo" role="dialog" aria-label="승진"><div><p>승진</p><div class="row" id="promoRow"></div></div></div>
       </div>
       <aside class="card" aria-live="polite">
-        <div class="meta"><span id="pnum">퍼즐 1 / 12</span><span class="tag" id="ptheme">메이트</span><span class="tag" id="plevel">쉬움</span><button class="snd" id="bSound" aria-pressed="true">소리 켬</button></div>
+        <div class="meta"><span id="pnum">1 / 12</span><span class="tag" id="plevel">쉬움</span><button class="snd" id="bSound" aria-pressed="true">소리 켬</button></div>
         <h3 id="ptitle">백랭크 메이트</h3>
         <div class="turn"><i id="tdot" class="w"></i><span id="tgoal">백 차례 · 1수 메이트</span></div>
-        <div class="status" id="status">기물을 클릭하거나 끌어서 수를 두세요.</div>
+        <div class="status" id="status"></div>
         <div class="btns">
           <button class="btn" id="bHint">힌트</button>
-          <button class="btn" id="bShow">정답 보기</button>
-          <button class="btn" id="bReset">처음부터</button>
-          <button class="btn" id="bPrev">이전 퍼즐</button>
-          <button class="btn main" id="bNext">다음 퍼즐 →</button>
+          <button class="btn" id="bShow">정답</button>
+          <button class="btn" id="bReset">다시</button>
+          <button class="btn" id="bPrev">이전</button>
+          <button class="btn main" id="bNext">다음</button>
         </div>
-        <div class="log" id="log"><em>아직 둔 수가 없어요</em></div>
+        <div class="log" id="log"></div>
         <div class="stats">
-          <div><b id="sSolved">0</b><small>해결한 퍼즐</small></div>
-          <div><b id="sStreak">0</b><small>연속 정답</small></div>
-          <div><b id="sBest">0</b><small>최고 연속</small></div>
+          <div><b id="sSolved">0</b><small>푼 퍼즐</small></div>
+          <div><b id="sStreak">0</b><small>연속</small></div>
+          <div><b id="sBest">0</b><small>최고</small></div>
         </div>
       </aside>
     </div>
-    <p class="keys">끌어 놓기·클릭 이동 · 우클릭 드래그로 화살표 · 우클릭으로 칸 표시 (Shift·Ctrl·Alt로 색 변경) · 상대가 생각하는 동안 미리 두면 프리무브 · 좌클릭으로 표시 지우기</p>
-    <p class="note">퍼즐 포지션은 학습용으로 구성한 예시이며, 모든 정답 수순은 엔진 규칙으로 검증했습니다.</p>
   </div>
 </section>
 
 <section class="band" id="list">
   <div class="wrap">
     <div class="lhead">
-      <div><h2>전체 퍼즐</h2><p>카드를 누르면 바로 그 퍼즐로 이동해요. 해결 기록은 이 브라우저에 저장됩니다.</p></div>
+      <h2>목록</h2>
       <div class="chips" role="group" aria-label="퍼즐 필터">
         <button class="chip" data-f="all" aria-pressed="true">전체</button>
         <button class="chip" data-f="mate" aria-pressed="false">메이트</button>
-        <button class="chip" data-f="win" aria-pressed="false">기물 이득</button>
-        <button class="chip" data-f="todo" aria-pressed="false">안 푼 퍼즐</button>
+        <button class="chip" data-f="win" aria-pressed="false">전술</button>
+        <button class="chip" data-f="todo" aria-pressed="false">안 푼 것</button>
       </div>
     </div>
     <div class="plist" id="plist"></div>
   </div>
 </section>
 
-<section class="band themes" id="themes">
-  <div class="wrap">
-    <h2>전술 사전</h2>
-    <div class="tgrid">
-      <article><h3>백랭크 메이트</h3><p>자기 폰에 갇힌 킹을 마지막 랭크에서 룩이나 퀸으로 잡는 메이트. 킹 앞 폰 하나를 미리 올려 두면 막을 수 있어요.</p></article>
-      <article><h3>포크</h3><p>한 기물이 동시에 두 개 이상을 공격하는 수. 나이트 포크가 가장 유명하고, 킹과 퀸을 함께 노리면 '로열 포크'라고 불러요.</p></article>
-      <article><h3>핀</h3><p>뒤에 더 귀한 기물이 있어 앞 기물이 움직일 수 없게 묶는 전술. 킹 앞에 묶이면 아예 움직이는 것 자체가 불법이에요.</p></article>
-      <article><h3>스큐어</h3><p>핀의 반대. 귀한 기물을 먼저 공격해 비키게 만든 뒤, 그 뒤에 있던 기물을 가져갑니다.</p></article>
-      <article><h3>발견 공격</h3><p>앞 기물이 비키면서 뒤 기물의 공격선이 열리는 수. 비키는 기물이 체크까지 걸면 상대는 두 위협을 다 막을 수 없어요.</p></article>
-      <article><h3>스머더드 메이트</h3><p>킹이 자기 기물에 둘러싸여 나이트 한 마리에게 메이트당하는 모양. 퀸을 희생해 칸을 막게 하는 수순이 유명해요.</p></article>
-      <article><h3>아라비안 메이트</h3><p>룩과 나이트의 협력 메이트. 나이트가 룩을 지키고 킹의 도주로까지 막아 코너의 킹을 잡습니다.</p></article>
-      <article><h3>언더프로모션</h3><p>폰을 퀸이 아닌 기물로 승진시키는 것. 나이트로 승진하면 체크와 포크를 동시에 거는 경우가 있어요.</p></article>
-    </div>
-  </div>
-</section>
-
-<section class="band" id="how">
-  <div class="wrap">
-    <h2>사용법</h2>
-    <ol class="how">
-      <li><b>차례 확인</b><p>보드는 항상 둘 차례인 쪽이 아래에 오도록 돌아갑니다.</p></li>
-      <li><b>수 두기</b><p>기물을 클릭한 뒤 점 표시 칸을 누르거나, 끌어다 놓으세요.</p></li>
-      <li><b>상대의 응수</b><p>여러 수짜리 퍼즐은 정답을 두면 상대가 자동으로 응수합니다.</p></li>
-      <li><b>화살표와 프리무브</b><p>우클릭 드래그로 화살표, 우클릭으로 칸 표시를 그려요. 상대 응수를 기다리는 동안 미리 둔 수는 상대가 두자마자 실행돼요.</p></li>
-      <li><b>막히면</b><p>힌트는 움직일 기물을, 정답 보기는 전체 수순을 보여 줘요.</p></li>
-    </ol>
-  </div>
-</section>
 </main>
 
 <footer class="band">
   <div class="wrap">
-    <p><b>한 수</b> — 체스 퍼즐 연습장</p>
-    <p>기물 그림: Colin M.L. Burnett (CC BY-SA 3.0) · 규칙 엔진: chess.js (BSD)</p>
+    <p><b>한 수</b></p>
+    <p>기물 cburnett (CC BY-SA 3.0) · chess.js</p>
   </div>
 </footer>
 
@@ -240,16 +210,16 @@ footer p{margin:0}
 {
 const PUZ=[
  {fen:"6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1",sol:["Rd8#"],title:"백랭크 메이트",theme:"메이트",kind:"mate",goal:"1수 메이트",lv:"쉬움"},
- {fen:"6k1/R7/8/8/8/8/8/1R4K1 w - - 0 1",sol:["Rb8#"],title:"두 룩의 사다리",theme:"메이트",kind:"mate",goal:"1수 메이트",lv:"쉬움"},
+ {fen:"6k1/R7/8/8/8/8/8/1R4K1 w - - 0 1",sol:["Rb8#"],title:"룩 두 개 메이트",theme:"메이트",kind:"mate",goal:"1수 메이트",lv:"쉬움"},
  {fen:"r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4",sol:["Qxf7#"],title:"스콜라 메이트",theme:"메이트",kind:"mate",goal:"1수 메이트",lv:"쉬움"},
  {fen:"7k/R7/5N2/8/8/8/8/6K1 w - - 0 1",sol:["Rh7#"],title:"아라비안 메이트",theme:"메이트",kind:"mate",goal:"1수 메이트",lv:"쉬움"},
- {fen:"3r2k1/5ppp/8/8/8/8/5PPP/6K1 b - - 0 1",sol:["Rd1#"],title:"흑의 백랭크 공격",theme:"메이트",kind:"mate",goal:"1수 메이트",lv:"쉬움"},
- {fen:"2q3k1/5ppp/8/3N4/8/8/5PPP/6K1 w - - 0 1",sol:["Ne7+","Kf8","Nxc8"],title:"로열 포크",theme:"포크",kind:"win",goal:"퀸 잡기",lv:"보통"},
- {fen:"1q6/8/8/4k3/8/8/5B2/6K1 w - - 0 1",sol:["Bg3+","Kd5","Bxb8"],title:"대각선 스큐어",theme:"스큐어",kind:"win",goal:"퀸 잡기",lv:"보통"},
- {fen:"3q4/6k1/8/8/3N4/8/8/3Q2K1 w - - 0 1",sol:["Nf5+","Kg6","Qxd8"],title:"발견 공격",theme:"발견 공격",kind:"win",goal:"퀸 잡기",lv:"보통"},
- {fen:"4k3/3q4/8/8/P7/3B4/8/6K1 w - - 0 1",sol:["Bb5","Qxb5","axb5"],title:"킹 앞에 묶인 퀸",theme:"핀",kind:"win",goal:"기물 이득",lv:"보통"},
- {fen:"6k1/8/8/8/3n4/8/8/2Q3K1 b - - 0 1",sol:["Ne2+","Kh1","Nxc1"],title:"흑 나이트의 포크",theme:"포크",kind:"win",goal:"퀸 잡기",lv:"보통"},
- {fen:"8/3q1P1k/8/8/8/8/8/7K w - - 0 1",sol:["f8=N+","Kg7","Nxd7"],title:"나이트 승진",theme:"언더프로모션",kind:"win",goal:"퀸 잡기",lv:"어려움"},
+ {fen:"3r2k1/5ppp/8/8/8/8/5PPP/6K1 b - - 0 1",sol:["Rd1#"],title:"백랭크 메이트",theme:"메이트",kind:"mate",goal:"1수 메이트",lv:"쉬움"},
+ {fen:"2q3k1/5ppp/8/3N4/8/8/5PPP/6K1 w - - 0 1",sol:["Ne7+","Kf8","Nxc8"],title:"나이트 포크",theme:"포크",kind:"win",goal:"퀸 잡기",lv:"보통"},
+ {fen:"1q6/8/8/4k3/8/8/5B2/6K1 w - - 0 1",sol:["Bg3+","Kd5","Bxb8"],title:"스큐어",theme:"스큐어",kind:"win",goal:"퀸 잡기",lv:"보통"},
+ {fen:"3q4/6k1/8/8/3N4/8/8/3Q2K1 w - - 0 1",sol:["Nf5+","Kg6","Qxd8"],title:"디스커버드 어택",theme:"디스커버드 어택",kind:"win",goal:"퀸 잡기",lv:"보통"},
+ {fen:"4k3/3q4/8/8/P7/3B4/8/6K1 w - - 0 1",sol:["Bb5","Qxb5","axb5"],title:"핀",theme:"핀",kind:"win",goal:"기물 이득",lv:"보통"},
+ {fen:"6k1/8/8/8/3n4/8/8/2Q3K1 b - - 0 1",sol:["Ne2+","Kh1","Nxc1"],title:"나이트 포크",theme:"포크",kind:"win",goal:"퀸 잡기",lv:"보통"},
+ {fen:"8/3q1P1k/8/8/8/8/8/7K w - - 0 1",sol:["f8=N+","Kg7","Nxd7"],title:"언더프로모션",theme:"언더프로모션",kind:"win",goal:"퀸 잡기",lv:"어려움"},
  {fen:"5r1k/6pp/7N/3Q4/8/8/6PP/6K1 w - - 0 1",sol:["Qg8+","Rxg8","Nf7#"],title:"스머더드 메이트",theme:"메이트",kind:"mate",goal:"2수 메이트",lv:"어려움"}
 ];
 const F="abcdefgh",$=s=>document.querySelector(s),boardEl=$("#board"),marksEl=$("#marks"),N=PUZ.length;
@@ -368,7 +338,7 @@ function renderLog(){
   const h=g.history(),start=new Chess(P().fen);
   let n=+P().fen.split(" ")[5],side=start.turn(),out=[];
   h.forEach((m,i)=>{const num=side==="w"?`${n}. `:(i===0?`${n}… `:"");out.push(`<span class="${side===orient?"u":""}">${num}${m}</span>`);if(side==="b")n++;side=side==="w"?"b":"w"});
-  $("#log").innerHTML=out.length?out.join(""):"<em>아직 둔 수가 없어요</em>";
+  $("#log").innerHTML=out.join("");
 }
 function setStatus(kind,txt){const s=$("#status");s.className="status "+kind;s.textContent=txt}
 function stats(){$("#sSolved").textContent=store.solved.length+" / "+N;$("#sStreak").textContent=store.streak;$("#sBest").textContent=store.best}
@@ -377,9 +347,9 @@ function load(i,fromHash){
   clearTimeout(timer);endFloat();drag=rdrag=null;
   cur=(i+N)%N;const p=P();g=new Chess(p.fen);ply=0;orient=g.turn();sel=last=hintSq=badSq=premove=null;phase="idle";shown=false;
   arrows.clear();circles.clear();$("#promo").classList.remove("on");
-  $("#pnum").textContent=`퍼즐 ${cur+1} / ${N}`;$("#ptheme").textContent=p.theme;$("#plevel").textContent=p.lv;$("#ptitle").textContent=p.title;
+  $("#pnum").textContent=`${cur+1} / ${N}`;$("#plevel").textContent=p.lv;$("#ptitle").textContent=p.title;
   $("#tdot").className=orient;$("#tgoal").textContent=`${orient==="w"?"백":"흑"} 차례 · ${p.goal}`;
-  setStatus("",store.solved.includes(cur)?"이미 푼 퍼즐이에요. 다시 풀어 보세요.":"기물을 클릭하거나 끌어서 수를 두세요.");
+  setStatus("",store.solved.includes(cur)?"푼 퍼즐":"");
   $("#bHint").disabled=$("#bShow").disabled=false;
   if(!fromHash&&location.hash!=="#p"+(cur+1)){try{history.replaceState(null,"","#p"+(cur+1))}catch(e){}}
   render();renderList();
@@ -387,7 +357,7 @@ function load(i,fromHash){
 function finish(){
   phase="done";premove=null;$("#bHint").disabled=$("#bShow").disabled=true;
   if(!shown){play("win",.15);if(!store.solved.includes(cur))store.solved.push(cur);store.streak++;store.best=Math.max(store.best,store.streak);save()}
-  setStatus(shown?"":"win",shown?"정답 수순을 확인했어요. 다음 퍼즐에 도전해 보세요.":(g.in_checkmate()?"체크메이트! 정답이에요.":"정답이에요! 기물을 얻었어요."));
+  setStatus(shown?"":"win",shown?"정답: "+P().sol.join(" "):"정답!");
   stats();renderList();
 }
 function reply(){
@@ -397,8 +367,8 @@ function reply(){
     const pm=premove;premove=null;phase="idle";
     sel=drag?drag.from:null;render();animate(r.from,r.to);
     if(pm){
-      if(!tryMove(pm.from,pm.to,true,"q")){render();setStatus("turn","프리무브가 둘 수 없는 수가 되어 취소됐어요. 다음 수를 찾으세요.")}
-    }else setStatus("turn","상대가 응수했어요. 이어서 다음 수를 찾으세요.");
+      if(!tryMove(pm.from,pm.to,true,"q")){render();setStatus("turn","프리무브 취소")}
+    }else setStatus("turn","계속");
   },550);
 }
 function commit(from,to,pr,anim){
@@ -409,14 +379,14 @@ function commit(from,to,pr,anim){
   last={from,to};
   if(!ok){
     badSq=to;phase="wrong";render();if(anim)animate(from,to);
-    play("wrong",.12);setStatus("wrong",`${m.san} — 그 수가 아니에요. 다시 생각해 보세요.`);
+    play("wrong",.12);setStatus("wrong",`${m.san} 오답`);
     if(store.streak){store.streak=0;save();stats()}
     const bb=$("#boardbox");bb.classList.remove("shake");void bb.offsetWidth;bb.classList.add("shake");
     timer=setTimeout(()=>{g.undo();last=prev;badSq=null;phase="idle";render()},700);return;
   }
   ply++;render();if(anim)animate(from,to);
   if(ply>=sol.length){finish();return}
-  setStatus("good","좋은 수예요! 상대가 생각 중… 지금 프리무브를 걸 수 있어요.");reply();
+  setStatus("good","정답, 계속");reply();
 }
 function tryMove(from,to,anim,autoPromo){
   const ms=g.moves({square:from,verbose:true}).filter(m=>m.to===to);
@@ -487,7 +457,7 @@ window.addEventListener("pointerup",e=>{
   render();
 });
 boardEl.addEventListener("pointercancel",()=>{drag=rdrag=null;endFloat();render()});
-$("#bHint").onclick=()=>{if(phase!=="idle")return;const t=new Chess(g.fen()),m=t.move(P().sol[ply]);hintSq=m.from;sel=null;render();setStatus("hint","표시된 기물을 움직여 보세요.")};
+$("#bHint").onclick=()=>{if(phase!=="idle")return;const t=new Chess(g.fen()),m=t.move(P().sol[ply]);hintSq=m.from;sel=null;render();setStatus("hint","힌트")};
 $("#bShow").onclick=()=>{
   if(phase==="done"||phase==="show")return;
   clearTimeout(timer);
@@ -495,7 +465,7 @@ $("#bShow").onclick=()=>{
   $("#promo").classList.remove("on");
   shown=true;phase="show";sel=hintSq=premove=null;
   if(store.streak){store.streak=0;save();stats()}
-  setStatus("hint","정답 수순: "+P().sol.slice(ply).join("  "));
+  setStatus("hint","정답: "+P().sol.join(" "));
   const step=()=>{if(ply>=P().sol.length){finish();return}const r=g.move(P().sol[ply]);last={from:r.from,to:r.to};ply++;play(moveSound(r));render();animate(r.from,r.to);timer=setTimeout(step,750)};
   render();timer=setTimeout(step,300);
 };
@@ -511,8 +481,8 @@ function renderList(){
   $("#plist").innerHTML=PUZ.map((p,i)=>{
     const solved=store.solved.includes(i);
     if(filter==="mate"&&p.kind!=="mate"||filter==="win"&&p.kind!=="win"||filter==="todo"&&solved)return "";
-    return `<a class="pz${i===cur?" cur":""}" href="#p${i+1}"><div class="mini" aria-hidden="true">${minis[i]}</div><b>${i+1}. ${p.title}</b><div class="meta"><span>${p.fen.split(" ")[1]==="w"?"백":"흑"} 차례 · ${p.goal}</span>${solved?'<span class="ok">✓ 해결</span>':""}</div></a>`;
-  }).join("")||'<p>조건에 맞는 퍼즐이 없어요. 모두 풀었네요!</p>';
+    return `<a class="pz${i===cur?" cur":""}" href="#p${i+1}"><div class="mini" aria-hidden="true">${minis[i]}</div><b>${i+1}. ${p.title}</b><div class="meta"><span>${p.fen.split(" ")[1]==="w"?"백":"흑"} · ${p.goal}</span>${solved?'<span class="ok">✓</span>':""}</div></a>`;
+  }).join("")||'<p>없음</p>';
 }
 document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{filter=b.dataset.f;document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===b));renderList()});
 const fromHash=()=>{const m=/^#p(\d+)$/.exec(location.hash);if(m){const i=+m[1]-1;if(i>=0&&i<N){if(i!==cur||!g)load(i,true);document.getElementById("play").scrollIntoView();return true}}return false};
