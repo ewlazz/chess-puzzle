@@ -1,7 +1,7 @@
 /* 전적: 체스닷컴 공개 API에서 프로필·레이팅·최근 3개월 게임을 받아 목록과 통계를 그림 */
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
-var S={user:null,profile:null,stats:null,games:[],tc:"all",res:"all",col:"all",tab:"games",shown:50};
+var S={user:null,profile:null,stats:null,games:[],tc:"all",res:"all",col:"all",tab:"games",shown:50,per:3,arch:null,cache:{},gid:null};
 {
 const API="https://api.chess.com/pub/";
 const TC={bullet:"불릿",blitz:"블리츠",rapid:"래피드",daily:"데일리"};
@@ -44,6 +44,25 @@ function norm(g,user){
     my:{name:my.username,rating:my.rating},op:{name:op.username,rating:op.rating},
     open:o.name,fam:o.fam,acc:g.accuracies?{me:g.accuracies[me==="w"?"white":"black"],op:g.accuracies[me==="w"?"black":"white"]}:null,setup:g.initial_setup};
 }
+/* 기간: 최근 N개월(0이면 전체) 월별 기록을 차례로 받고, 받은 달은 다시 받지 않음 */
+const PER={3:"최근 3개월",12:"최근 1년",0:"전체"};
+async function loadGames(t){
+  const now=new Date(),n=S.per||1e4;
+  const keys=S.per?[...Array(S.per).keys()].map(i=>{const d=new Date(now.getFullYear(),now.getMonth()-i,1);return d.getFullYear()+"/"+pad(d.getMonth()+1)}):null;
+  const urls=S.arch.filter(u=>!keys||keys.some(k=>u.endsWith(k)));
+  const need=urls.filter(u=>!S.cache[u]);
+  for(let i=0;i<need.length;i++){
+    msg(`게임 불러오는 중 ${i+1}/${need.length}`);
+    const m=await get(need[i]).catch(()=>null);if(t!==token)return false;
+    if(m)S.cache[need[i]]=(m.games||[]).filter(g=>g.white&&g.black).map(g=>norm(g,S.user));
+  }
+  S.games=urls.flatMap(u=>S.cache[u]||[]).sort((a,b)=>b.end-a.end);S.shown=50;
+  msg(S.games.length?"":`${PER[S.per]} 동안 둔 게임이 없어요.`);
+  $("#range").textContent=`${S.games.length}판`;
+  $("#main").classList.add("on");renderFilters();renderAll();
+  return true;
+}
+$("#fPer").onclick=async e=>{const b=e.target.closest("button");if(!b||!S.arch)return;S.per=+b.dataset.v;document.querySelectorAll("#fPer button").forEach(x=>x.setAttribute("aria-pressed",x===b));await loadGames(token)};
 /* 최근 검색 */
 function recentList(){try{return JSON.parse(localStorage.getItem("hansu-recent")||"[]")}catch(e){return []}}
 function pushRecent(u){const l=[u].concat(recentList().filter(x=>x.toLowerCase()!==u.toLowerCase())).slice(0,6);try{localStorage.setItem("hansu-recent",JSON.stringify(l))}catch(e){}renderRecent()}
@@ -57,22 +76,12 @@ async function search(name,gid){
   try{
     const prof=await get(API+"player/"+encodeURIComponent(user));if(t!==token)return;
     const st=await get(API+"player/"+encodeURIComponent(user)+"/stats").catch(()=>({}));if(t!==token)return;
-    S.user=user;S.profile=prof;S.stats=st;S.games=[];S.shown=50;
+    S.user=user;S.profile=prof;S.stats=st;S.games=[];S.shown=50;S.arch=null;S.cache={};
     renderProfile();pushRecent(prof.username||name);
     try{const p=new URL(location.href);p.searchParams.set("user",prof.username||name);p.searchParams.delete("game");history.replaceState(null,"",p)}catch(e){}
     const ar=await get(API+"player/"+encodeURIComponent(user)+"/games/archives");if(t!==token)return;
-    const now=new Date(),keys=[0,1,2].map(i=>{const d=new Date(now.getFullYear(),now.getMonth()-i,1);return d.getFullYear()+"/"+pad(d.getMonth()+1)});
-    const urls=(ar.archives||[]).filter(u=>keys.some(k=>u.endsWith(k)));
-    let all=[];
-    for(let i=0;i<urls.length;i++){
-      msg(`게임 불러오는 중 ${i+1}/${urls.length}`);
-      const m=await get(urls[i]).catch(()=>({games:[]}));if(t!==token)return;
-      all=all.concat((m.games||[]).filter(g=>g.white&&g.black));
-    }
-    S.games=all.map(g=>norm(g,user)).sort((a,b)=>b.end-a.end);
-    msg(S.games.length?"":"최근 3개월 동안 둔 게임이 없어요.");
-    $("#range").textContent=`최근 3개월 · ${S.games.length}판`;
-    $("#main").classList.add("on");renderFilters();renderAll();
+    S.arch=ar.archives||[];
+    if(!await loadGames(t))return;
     if(gid){const g=S.games.find(x=>x.id===gid);if(g){try{const u=new URL(location.href);u.searchParams.set("game",gid);history.replaceState(null,"",u)}catch(e){}window.openAnalysis(g)}}
   }catch(e){if(t!==token)return;msg(e.code===404?"없는 닉네임이에요.":"불러오지 못했어요. 잠시 후 다시 해 보세요.")}
 }
