@@ -1,5 +1,6 @@
 /* 한 판 분석: 수순 재생, 엔진 라인, 변화수 두기, 수 분류·정확도 */
 {
+if(!document.getElementById("ana"))document.body.insertAdjacentHTML("beforeend",'<div class="ana" id="ana" role="dialog" aria-label="게임 분석"> <div class="ahead"><b id="aTitle"></b><a id="aLink" href="#" target="_blank" rel="noopener">체스닷컴에서 보기</a><button class="x" id="aClose" aria-label="닫기">×</button></div> <div class="alay"> <div> <div class="who" id="wTop"></div> <div class="bwrap2"> <div class="evb" id="evb"><i id="evbW"></i><span id="evbT"></span></div> <div class="aboard"><div class="ab8" id="ab8" role="grid" aria-label="분석 보드"></div><svg class="amarks" id="amarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="apromo"><div id="apromoRow"></div></div></div> </div> <div class="who" id="wBot"></div> <div class="ctl"><button id="cFirst" aria-label="처음">⏮</button><button id="cPrev" aria-label="이전">◀</button><button id="cNext" aria-label="다음">▶</button><button id="cLast" aria-label="마지막">⏭</button><button id="cFlip" aria-label="보드 뒤집기">⇅</button></div> <div class="gfig" id="gfig"><svg id="gsvg"></svg></div> </div> <div class="side"> <div><div class="prog"><i id="prog"></i></div><p class="ast" id="ast"></p></div> <div class="acc2" id="acc2"></div> <div class="lines"><div class="lh"><button class="engt" id="engT" aria-pressed="true">엔진</button><span id="ldep"></span></div><div id="lbody"></div></div> <div class="cur" id="cur"></div> <div class="mlist" id="mlist"></div> <table class="cls" id="cls"></table> </div> </div> </div>');
 const F="abcdefgh",ENG="engine/stockfish-19-lite-single.js";
 const CL={
   brilliant:{l:"브릴리언트",i:"brilliant",c:"#1bada6"},great:{l:"그레이트",i:"great_find",c:"#1bada6"},
@@ -83,9 +84,9 @@ const curMove=()=>N.v?(N.i>0?V.moves[N.i-1]:null):(N.i>0?A.moves[N.i-1]:null);
 function parse(game){
   const c=new Chess();
   if(game.setup&&!/^rnbqkbnr\/pppppppp\/8\/8\/8\/8\/PPPPPPPP\/RNBQKBNR w KQkq - 0 1$/.test(game.setup))c.load(game.setup);
-  const start=c.fen(),std=start===new Chess().fen(),body=game.pgn.replace(/^\[[^\]]*\]\s*$/gm,"");
+  const start=c.fen(),std=start===new Chess().fen();let body=(game.pgn||"").replace(/^\[[^\]]*\]\s*$/gm,"");while(/\([^()]*\)/.test(body))body=body.replace(/\([^()]*\)/g," ");
   const clk=[...body.matchAll(/\[%clk ([\d:.]+)\]/g)].map(m=>m[1].split(":").reduce((a,x)=>a*60+ +x,0));
-  const toks=body.replace(/\{[^}]*\}/g," ").replace(/\([^)]*\)/g," ").replace(/\$\d+/g," ").replace(/\d+\.(\.\.)?/g," ").replace(/1-0|0-1|1\/2-1\/2|\*/g," ").trim().split(/\s+/).filter(Boolean);
+  const toks=body.replace(/\{[^}]*\}/g," ").replace(/;[^\n]*/g," ").replace(/\$\d+/g," ").replace(/\d+\.(\.\.)?/g," ").replace(/1-0|0-1|1\/2-1\/2|\*/g," ").trim().split(/\s+/).filter(Boolean);
   const fens=[start],moves=[];
   for(const t of toks){const m=c.move(t,{sloppy:true});if(!m)break;moves.push(m);fens.push(c.fen())}
   return {fens,moves,clk,std,base:+(String(game.tc||"").split("+")[0])||0};
@@ -348,8 +349,8 @@ window.openAnalysis=function(game){
   A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,book:p.std?bookPly(game,p.moves):0,ev:[],sc:[],sc2:[],best:[],cls:[],acc:[],busy:true};
   V=null;N={v:false,i:p.fens.length-1};sel=null;marks.clear();circ.clear();L.fen=null;
   const RL={win:"승",loss:"패",draw:"무",abort:"중단"};
-  $("#aTitle").textContent=`${game.my.name} vs ${game.op.name} · ${RL[game.res]} · ${game.how}`;
-  $("#aLink").href=game.url;$("#prog").style.width="0";$("#ast").textContent="";
+  $("#aTitle").textContent=game.title||`${game.my.name} vs ${game.op.name} · ${RL[game.res]} · ${game.how}`;
+  $("#aLink").hidden=!game.url;if(game.url)$("#aLink").href=game.url;$("#aLink").textContent=game.linkText||"체스닷컴에서 보기";$("#prog").style.width="0";$("#ast").textContent="";
   $("#engT").setAttribute("aria-pressed",engOn);
   $("#ana").classList.add("on");document.body.style.overflow="hidden";
   try{const u=new URL(location.href);u.searchParams.set("game",game.id);history.replaceState(null,"",u)}catch(e){}
@@ -361,6 +362,7 @@ $("#aClose").onclick=close;
 const step=d=>{if(!A)return;nav(N.v,N.i+d)};
 $("#cFirst").onclick=()=>A&&nav(false,0);$("#cPrev").onclick=()=>step(-1);$("#cNext").onclick=()=>step(1);
 $("#cLast").onclick=()=>{if(!A)return;N.v?nav(true,V.moves.length):nav(false,A.fens.length-1)};
+$("#cFlip").onclick=()=>{if(!A)return;A.orient=A.orient==="w"?"b":"w";drawAll()};
 $("#mlist").onclick=e=>{
   const b=e.target.closest("button");if(!b||!A)return;
   if(b.classList.contains("mv"))nav(false,+b.dataset.p);
