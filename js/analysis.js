@@ -409,7 +409,7 @@ window.openAnalysis=function(game,ply){
   $("#aLink").hidden=!game.url;if(game.url)$("#aLink").href=game.url;$("#aLink").textContent=game.linkText||"체스닷컴에서 보기";$("#prog").style.width="0";$("#ast").textContent="";
   $("#engT").setAttribute("aria-pressed",engOn);
   $("#ana").classList.add("on");document.body.style.overflow="hidden";
-  try{const u=new URL(location.href);u.searchParams.set("game",game.id);history.replaceState(null,"",u)}catch(e){}
+  if(!["paste","fen","play"].includes(game.id)){try{const u=new URL(location.href);u.searchParams.set("game",game.id);history.replaceState(null,"",u)}catch(e){}}
   summary();nav(false,N.i);analyse(run);$("#aClose").focus();
 };
 function close(){run++;Main.stop();if(Live.ready)Live.stop();clearTimeout(liveT);A=null;V=null;$("#ana").classList.remove("on");$("#apromo").classList.remove("on");document.body.style.overflow="";
