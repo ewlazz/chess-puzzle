@@ -221,3 +221,5 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 .oscan{padding:0 16px;margin:4px 0 8px}
 .scroll{overflow-x:auto}
 [hidden]{display:none!important}
+.mkp{border:0;background:var(--acc);color:var(--accink);font-weight:700;border-radius:8px;padding:4px 10px;font-size:13px;margin-left:4px}
+.ast a{color:var(--ink);font-weight:700}

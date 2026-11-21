@@ -154,6 +154,31 @@ function drawInfo(){
   const on=openName();if(on)h+=`<p class="opn">${esc(on.eco?on.eco+" · ":"")}${esc(on.name)}</p>`;
   $("#cur").innerHTML=h;
 }
+/* 내 실수를 퍼즐로: 내가 둔 실수·놓침·블런더 장면에서 엔진 최선수(메이트면 메이트 수순)를 정답으로 */
+function mistakePuzzles(){
+  const out=[],me=A.game.me;
+  A.cls.forEach((c,k)=>{
+    const mover=turnOf(A.fens[k]),any=A.game.id==="paste"||A.game.id==="fen";
+    if(!["mistake","blunder","miss"].includes(c)||(!any&&mover!==me)||!A.best[k])return;
+    const pos=new Chess(A.fens[k]),sc=A.sc[k],pv=(A.pv[k]&&A.pv[k].length?A.pv[k]:[A.best[k]]);
+    let n=1;if(sc&&sc.t==="mate"&&sc.v>0)n=Math.min(2*sc.v-1,9);
+    const sol=[];for(const u of pv.slice(0,n)){const m=pos.move(uciObj(u));if(!m)break;sol.push(m.san)}
+    if(!sol.length)return;
+    const num=+A.fens[k].split(" ")[5],dots=mover==="w"?".":"...",prev=k>0?A.moves[k-1]:null;
+    out.push({id:(A.game.id||"g")+"-"+k,fen:A.fens[k],last:prev?prev.from+prev.to:"",sol,title:`${num}${dots} ${A.moves[k].san} 대신`,goal:n>1?Math.ceil(n/2)+"수 메이트":CL[c].l+"한 장면",lv:"",kind:"mine",url:A.game.url||"",src:A.game.url?"게임":"",vs:A.game.op.name,orient:mover});
+  });
+  return out;
+}
+function mkPuzBtn(){
+  const list=mistakePuzzles();if(!list.length)return;
+  const ast=$("#ast");ast.innerHTML=`분석 완료 · <button class="mkp" id="mkp">실수 ${list.length}개 퍼즐로 저장</button>`;
+  $("#mkp").onclick=()=>{
+    let L=[];try{L=JSON.parse(localStorage.getItem("hansu-mypuz")||"[]")}catch(e){}
+    const ids=new Set(L.map(x=>x.id));let added=0;list.forEach(p=>{if(!ids.has(p.id)){L.push(p);added++}});
+    try{localStorage.setItem("hansu-mypuz",JSON.stringify(L))}catch(e){}
+    ast.innerHTML=`분석 완료 · ${added?added+"개 저장함":"이미 저장됨"} · <a href="index.html#mine">퍼즐에서 풀기</a>`;
+  };
+}
 function openName(){
   if(!window.Openings||!Openings.ready())return null;
   if(!N.v)return A.ol&&A.ol.names[N.i]||null;
@@ -343,18 +368,18 @@ async function analyse(id){
     else if(c.in_stalemate()||c.insufficient_material())r={best:null,score:{t:"cp",v:0},pv:[],score2:null};
     else r=await evalPos(A.fens[i]);
     if(id!==run)return;
-    A.sc[i]=r.score;A.sc2[i]=r.score2;A.best[i]=r.best;A.ev[i]=whiteCp(r.score,c.turn());
+    A.sc[i]=r.score;A.sc2[i]=r.score2;A.best[i]=r.best;A.pv[i]=r.pv;A.ev[i]=whiteCp(r.score,c.turn());
     if(i>0)classify(i-1);
     prog.style.width=((i+1)/n*100)+"%";ast.textContent=`분석 중 ${i+1}/${n}`;
     if(i%4===0||i===n-1){summary();drawAll()}
   }
-  A.busy=false;ast.textContent="분석 완료";summary();drawAll();
+  A.busy=false;ast.textContent="분석 완료";mkPuzBtn();summary();drawAll();
 }
 window.openAnalysis=function(game){
   run++;Main.stop();
   if(game.rules&&game.rules!=="chess"){const m=document.getElementById("msg");if(m)m.textContent="일반 체스만 분석할 수 있어요.";return}
   const p=parse(game);
-  A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,book:p.std?bookPly(game,p.moves):0,std:p.std,ol:null,ev:[],sc:[],sc2:[],best:[],cls:[],acc:[],busy:true};
+  A={game,orient:game.me,fens:p.fens,moves:p.moves,clk:p.clk,base:p.base,book:p.std?bookPly(game,p.moves):0,std:p.std,ol:null,ev:[],sc:[],sc2:[],best:[],pv:[],cls:[],acc:[],busy:true};
   V=null;N={v:false,i:p.fens.length-1};sel=null;marks.clear();circ.clear();L.fen=null;
   const RL={win:"승",loss:"패",draw:"무",abort:"중단"};
   $("#aTitle").textContent=game.title||`${game.my.name} vs ${game.op.name} · ${RL[game.res]} · ${game.how}`;
