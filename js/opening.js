@@ -180,6 +180,23 @@ function stPos(mv,n){const g=new Chess();let last=null;for(let i=0;i<n;i++)last=
 const stBadge=o=>(o.tags.includes("bee")?BEE("낮은 레이팅에서 승률 좋음"):"")+(o.tags.includes("chad")?CHAD("상남자 라인"):"");
 const stObj=()=>(window.STUDY||[]).find(x=>x.id===ST.open);
 const mvNo=(i,san)=>`${Math.floor(i/2)+1}${i%2?"...":"."}${san}`;
+/* 내 오프닝 성적: 등록한 체스닷컴 계정의 최근 3달 게임을 오프닝 갈래별로 묶어 강한지 공부가 필요한지 */
+const MY={user:"",games:null,ready:null};
+function myIdb(k){return new Promise(res=>{try{const r=indexedDB.open("hansu",1);r.onupgradeneeded=()=>r.result.createObjectStore("months");r.onsuccess=()=>{try{const q=r.result.transaction("months").objectStore("months").get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)}catch(e){res(null)}};r.onerror=()=>res(null)}catch(e){res(null)}})}
+const pgnSans=p=>{const b=String(p||"").replace(/\[[^\]]*\]/g," ").replace(/\{[^}]*\}/g," ").replace(/\([^)]*\)/g," ").replace(/\$\d+/g," ").replace(/\d+\.(\.\.)?/g," ");return b.trim().split(/\s+/).filter(t=>t&&!/^(1-0|0-1|1\/2-1\/2|\*)$/.test(t))};
+function myLoad(){if(MY.ready)return MY.ready;const u=window.ME&&ME.get();if(!u)return MY.ready=Promise.resolve(null);MY.user=u;const lu=u.toLowerCase(),A="https://api.chess.com/pub/player/"+encodeURIComponent(lu);
+  MY.ready=(async()=>{try{const ar=await (await fetch(A+"/games/archives")).json(),L=(ar.archives||[]).slice(-3),now=new Date(),live=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,"0")}`,out=[];
+    for(const url of L){let G=null;if(!url.endsWith(live)){const c=await myIdb(lu+"|"+url);if(c)G=c.map(g=>({pgn:g.pgn,me:g.me,res:g.res,end:g.end,id:g.id,url:g.url,rules:g.rules,op:g.op}))}
+      if(!G){try{const j=await (await fetch(url)).json();G=(j.games||[]).filter(g=>g.white&&g.black).map(g=>{const me=g.white.username.toLowerCase()===lu?"w":"b",my=me==="w"?g.white:g.black,op=me==="w"?g.black:g.white;
+        const res=/abort/.test(my.result+op.result)?"abort":my.result==="win"?"win":/agreed|repetition|stalemate|insufficient|50move|timevsinsufficient/.test(my.result)?"draw":"loss";return {pgn:g.pgn,me,res,end:g.end_time,id:g.uuid,url:g.url,rules:g.rules,op:{name:op.username,rating:op.rating}}})}catch(e){G=[]}}
+      out.push(...G)}
+    MY.games=out.filter(g=>g.rules==="chess"&&g.res!=="abort").map(g=>Object.assign(g,{sans:pgnSans(g.pgn)}));return MY.games}catch(e){MY.games=[];return MY.games}})();return MY.ready}
+/* path로 시작하는 내 게임 성적: 내가 백일 때·흑일 때 따로 */
+function myRec(path){if(!MY.games)return null;const G=MY.games.filter(g=>g.sans.length>=path.length&&path.every((x,i)=>g.sans[i]===x)),mk=()=>({n:0,w:0,d:0,l:0,sc:0}),R={w:mk(),b:mk(),n:G.length};
+  for(const g of G){const r=R[g.me];r.n++;if(g.res==="win")r.w++;else if(g.res==="draw")r.d++;else r.l++}for(const c of ["w","b"])R[c].sc=R[c].n?(R[c].w+R[c].d/2)/R[c].n:0;return R}
+const myVerdict=r=>!r||r.n<5?"":r.sc>=.6?"강함":r.sc<=.4?"공부 필요":"보통";
+const CK={w:"백",b:"흑"};
+const myTag=(R,side)=>{if(!R||!R.n)return "";const o=side==="b"?["b","w"]:["w","b"];return o.filter(c=>R[c].n).map(c=>{const r=R[c],v=myVerdict(r);return `<i class="gme${v==="강함"?" st":v==="공부 필요"?" wk":""}">${CK[c]} ${r.n}판 ${Math.round(r.sc*100)}%${v?" · "+v:""}</i>`}).join("")};
 /* 목록 화면 */
 function gal(){
   const el=$("#gal"),S=window.STUDY||[];
@@ -188,10 +205,12 @@ function gal(){
   const L=S.filter(o=>(ST.cat==="all"||stCat(o)===ST.cat)&&(ST.side==="all"||o.side===ST.side)&&(!ST.f||o.tags.includes(ST.f)));
   const RT=(window.OROOTS||[]).filter(r=>(ST.cat==="all"||catOf(r.moves)===ST.cat)&&(ST.side==="all"||r.side===ST.side)&&!ST.f);
   /* 카드: 작은 보드(백 기준, 차분한 색) + 이름 + 기보 */
-  const card=(href,t,ply,name,side,badge)=>{const ps=stPos(t,ply);return `<a class="gcard" href="${href}" data-pf="${esc(ps.fen)}">${miniBoard(ps.fen,"w",null)}<span><b>${esc(name)}${badge||""}</b><small>${esc(mvSeq(0,t.slice(0,ply)))}</small><em>${side==="w"?"백":"흑"}</em></span></a>`};
+  const card=(href,t,ply,name,side,badge)=>{const ps=stPos(t,ply),mr=myRec(t.slice(0,ply));return `<a class="gcard" href="${href}" data-pf="${esc(ps.fen)}">${miniBoard(ps.fen,"w",null)}<span><b>${esc(name)}${badge||""}</b><small>${esc(mvSeq(0,t.slice(0,ply)))}</small><em>${side==="w"?"백":"흑"}</em>${mr&&mr.n?`<span class="gmy">${myTag(mr,side)}</span>`:""}</span></a>`};
   const sec=(title,list)=>list.length?`<h2 class="gsec">${title}</h2><div class="gcards">${list.join("")}</div>`:"";
   const rc=c=>RT.filter(r=>catOf(r.moves)===c).map(r=>{const t=r.moves.split(" ");return card(`opening.html?tree=${r.id}`,t,t.length,r.ko,r.side)});
   el.innerHTML=`<div class="gfil">${chips("stc","cat",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}<i></i>${chips("sts","side",[["all","백·흑"],["w","백"],["b","흑"]])}<i></i>${chips("stf","f",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
+    (MY.games&&MY.games.length?(()=>{const M=(window.OROOTS||[]).map(r=>({r,x:myRec(r.moves.split(" "))})).filter(o=>o.x.n>=3).sort((a,b)=>b.x.n-a.x.n);
+      return M.length?`<h2 class="gsec">내 오프닝 <span class="cnt">${esc(MY.user)} · 최근 3달 ${MY.games.length}판</span></h2><div class="gcards">${M.map(({r})=>{const t=r.moves.split(" ");return card(`opening.html?tree=${r.id}`,t,t.length,r.ko,r.side)}).join("")}</div>`:""})():"")+
     sec("1.e4",rc("e4"))+sec("1.d4",rc("d4"))+sec("1.c4 · 1.Nf3",rc("fl"))+sec("기타",rc("etc"))+
     sec("공부 자료",L.map(o=>{const t=o.trunk.split(" ");return card(`opening.html?study=${o.id}`,t,(o.gam!=null?o.gam:t.length-1)+1,o.ko,o.side,stBadge(o))}))+
     (!RT.length&&!L.length?'<p class="cnt">없어요</p>':"");
@@ -317,8 +336,10 @@ function treePanel(){if(!TR.trie)return;const path=line.slice(0,idx),r=TR.root,R
   const draw=j=>{const tot=j?j.white+j.draws+j.black:0,K=trKidsAll(path,fen,j);
     const top=K.filter(x=>x.c>=Math.max(5,tot*.01)).slice(0,10),rest=K.filter(x=>!top.includes(x));
     const item=k=>{const sp=trPasses(path.concat(k.chain)),m=k.m,c=k.c;
-      return `<div class="ritem" data-tc="${esc(k.chain.join(" "))}">${miniBoard(k.fen,r.side,k.last?[k.last.from,k.last.to]:null)}<div class="rt1">${esc(mvSeq(idx,k.chain.slice(0,3)))}${k.chain.length>3?` … <em>${k.chain.length}수</em>`:""}${sp&&sp.tags.includes("chad")?CHAD("상남자 라인"):""}${sp?'<span class="bkt">공부</span>':""}</div><div class="rt2">${k.nm&&k.nm!==(here&&here.name)?esc(shortName(k.nm)):`<span class="cnt">${esc(shortName(here?here.name:r.en))} 안</span>`}</div><div class="rt3">${j?(c?`마스터 ${c.toLocaleString()}판 · 백 ${Math.round(m.white/c*100)}% 무 ${Math.round(m.draws/c*100)}% 흑 ${Math.round(m.black/c*100)}%`:"마스터 게임 없음"):"…"}</div><span class="rgo tsh">${j&&tot?Math.round(c/tot*100)+"%":""}</span></div>`};
+      return `<div class="ritem" data-tc="${esc(k.chain.join(" "))}">${miniBoard(k.fen,r.side,k.last?[k.last.from,k.last.to]:null)}<div class="rt1">${esc(mvSeq(idx,k.chain.slice(0,3)))}${k.chain.length>3?` … <em>${k.chain.length}수</em>`:""}${sp&&sp.tags.includes("chad")?CHAD("상남자 라인"):""}${sp?'<span class="bkt">공부</span>':""}</div><div class="rt2">${k.nm&&k.nm!==(here&&here.name)?esc(shortName(k.nm)):`<span class="cnt">${esc(shortName(here?here.name:r.en))} 안</span>`}</div><div class="rt3">${myTag(myRec(path.concat(k.chain)),r.side)}${j?(c?`마스터 ${c.toLocaleString()}판 · 백 ${Math.round(m.white/c*100)}% 무 ${Math.round(m.draws/c*100)}% 흑 ${Math.round(m.black/c*100)}%`:"마스터 게임 없음"):"…"}</div><span class="rgo tsh">${j&&tot?Math.round(c/tot*100)+"%":""}</span></div>`};
+    const mr=myRec(path);
     el.innerHTML=(here?`<div class="trh"><b>${esc(Openings.ko(here.name)||here.name)}</b><small>${esc(here.name)}${here.eco?" · "+esc(here.eco):""}</small></div>`:"")+
+      (mr&&mr.n?`<div class="mybox"><small>${esc(MY.user)} · 최근 3달 이 자리까지 온 판</small>${(r.side==="b"?["b","w"]:["w","b"]).filter(c=>mr[c].n).map(c=>{const x=mr[c],v=myVerdict(x);return `<div class="myl${v==="강함"?" st":v==="공부 필요"?" wk":""}"><b>${CK[c]}으로 ${x.n}판</b><span>${x.w}승 ${x.d}무 ${x.l}패 · 점수 ${Math.round(x.sc*100)}%</span><em>${v||(x.n<5?"판수 적음":"")}</em></div>`}).join("")}</div>`:"")+
       (st?`<a class="stgo" href="opening.html?study=${st.id}">${st.tags.includes("chad")?CHAD("상남자 라인"):""}<b>${esc(st.ko)} 공부하기</b><span>변화 ${st.lines.length}개 · 수마다 설명 · 연습</span></a>`:"")+
       (K.length?`<p class="cnt trq">다음 갈림길 · 오른쪽 숫자는 마스터 게임에서 이 수를 둔 비율</p><div class="stlist">${top.map(item).join("")}${TR.more?rest.map(item).join(""):""}</div>${rest.length?`<button class="chip" data-tmore="1">${TR.more?"접기":`드물게 두는 수 ${rest.length}개 더 보기`}</button>`:""}`:(j?'<p class="cnt">여기서 더 갈라지는 수가 없어요.</p>':'<p class="cnt">불러오는 중…</p>'))};
   if(TR.lastKey!==key){TR.lastKey=key;draw(trStats&&trStats.fen===fen?trStats.j:null)}
@@ -544,10 +565,11 @@ document.addEventListener("keydown",e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target
   if(e.key==="ArrowLeft"){step(idx-1);e.preventDefault()}else if(e.key==="ArrowRight"){step(idx+1);e.preventDefault()}else if(e.key==="Home"){step(0);e.preventDefault()}else if(e.key==="End"){step(line.length);e.preventDefault()}});
 /* 시작: 목록 화면 / ?study=id 공부 화면 / ?line=e4,c5 자유 탐색 */
 stTop();
-if(MODE==="gal"){$("#galSec").hidden=false;gal()}
+if(MODE==="gal"){$("#galSec").hidden=false;gal();myLoad().then(g=>{if(g&&g.length)gal()})}
 else{render();
 if(MODE==="tree"){const r=(window.OROOTS||[]).find(x=>x.id===SP0.get("tree"));TR.root=r;
   if(r){$("#oH1").textContent=r.ko;document.title=r.ko+" - 한 수";orient=r.side;showTab("study")}
+  myLoad().then(g=>{if(g&&g.length&&TR.trie){TR.lastKey="";treePanel()}});
   Openings.load().then(()=>{if(!r){$("#tStudy").innerHTML='<p class="cnt">없는 오프닝이에요.</p>';return}TR.trie=trBuild(r);
     const at=(SP0.get("at")||"").split(",").filter(Boolean),base=r.moves.split(" "),g=new Chess(),ok=[];for(const x of at.length?at:base){const m=g.move(x);if(!m)break;ok.push(m.san)}
     line=ok.length>=base.length?ok:base;idx=line.length;refresh()})}
