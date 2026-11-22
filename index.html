@@ -49,11 +49,25 @@
 .how2 li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;background:var(--acc);color:var(--accink);display:grid;place-items:center;font-weight:700}
 .how2 b{display:block}.how2 span{color:var(--muted);font-size:15px}
 .sec h2{max-width:1240px;margin:0 auto}
-.hero{padding-top:clamp(56px,10vw,120px)!important;padding-bottom:clamp(48px,8vw,96px)!important}
+.hero{padding-top:clamp(40px,6vw,80px)!important;padding-bottom:clamp(40px,6vw,80px)!important}
 .hero h1{margin:0 0 28px!important;font-size:clamp(36px,5.4vw,64px)!important;line-height:1.12!important}
-.hero .hs{max-width:560px}
-.hero .hrec{margin-top:12px}
+.hg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,400px);gap:clamp(32px,6vw,88px);align-items:center}
+@media(max-width:820px){.hg{grid-template-columns:minmax(0,1fr)}.dp{max-width:420px}}
+.hrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.hrow>span{font-size:14px;color:#505A82}
+.hero .hrec{margin-top:0!important;display:flex;gap:6px;flex-wrap:wrap}
+.hrec a{font-size:14px;padding:6px 10px;border:1px solid #C4C9DC;border-radius:3px;color:#242942;text-decoration:none}
+.hrec a:hover{border-color:#242942}
+.dp{display:block;color:#242942;text-decoration:none}
+.dph,.dpf{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0}
+.dph b{font-size:18px;font-weight:900}
+.dph span,.dpf span{font-size:14px;color:#505A82}
+.dph span{font-family:"Inter","Pretendard",sans-serif;font-weight:700}
+.dpf b{font-size:15px;color:#5C54D6}
+.dp:hover .dpf b{text-decoration:underline}
+.dp .ab8{border:1px solid #C4C9DC;border-radius:2px}
 </style>
+<link rel="stylesheet" href="pieces.css">
 <link rel="stylesheet" href="css/paper.css">
 </head>
 <body>
@@ -65,9 +79,18 @@
 </header>
 <main>
 <section class="band hero">
-  <h1>닉네임을 검색해서<br>약점을 찾아보세요</h1>
-  <form class="hs" id="hf"><input id="hq" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button>검색</button></form>
-  <div class="hrec" id="hrec"></div>
+  <div class="hg">
+    <div>
+      <h1>닉네임을 검색해서<br>약점을 찾아보세요</h1>
+      <form class="hs" id="hf"><input id="hq" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button>검색</button></form>
+      <div class="hrow"><span id="hrl">많이 찾는 닉네임</span><div class="hrec" id="hrec"></div></div>
+    </div>
+    <a class="dp" href="puzzle.html#daily" aria-label="오늘의 퍼즐 풀기">
+      <div class="dph"><b>오늘의 퍼즐</b><span id="dpr"></span></div>
+      <div class="ab8" id="dpb"></div>
+      <div class="dpf"><span id="dpt">불러오는 중</span><b>풀기</b></div>
+    </a>
+  </div>
 </section>
 <section class="band sec">
   <div class="feat">
@@ -89,8 +112,26 @@
   const go=u=>{u=u.trim();if(u)location.href="stats.html?user="+encodeURIComponent(u)+"&tab=report"};
   document.getElementById("hf").onsubmit=e=>{e.preventDefault();go(document.getElementById("hq").value)};
   let r=[];try{r=JSON.parse(localStorage.getItem("hansu-recent")||"[]")}catch(e){}
+
+  const pop=["hikaru","magnuscarlsen","gothamchess","fabianocaruana"];
+  if(!r.length){r=pop}else{document.getElementById("hrl").textContent="최근 검색"}
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   document.getElementById("hrec").innerHTML=r.map(u=>`<a href="stats.html?user=${encodeURIComponent(u)}&tab=report">${esc(u)}</a>`).join("");
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+{
+  const B=document.getElementById("dpb"),F="abcdefgh";
+  const draw=(fen,last,flip)=>{const c=new Chess(fen);let h="";for(let i=0;i<64;i++){const r=flip?i>>3:7-(i>>3),f=flip?7-(i&7):i&7,sq=F[f]+(r+1),q=c.get(sq),d=(r+f)%2===0;h+=`<div class="s8 ${d?"d":"l"}${last&&last.includes(sq)?" lm":""}">${q?`<i class="pc ${q.color}${q.type}"></i>`:""}</div>`}B.innerHTML=h};
+  draw("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  fetch("https://lichess.org/api/puzzle/daily").then(r=>r.ok?r.json():Promise.reject()).then(x=>{
+    const c=new Chess();for(const t of x.game.pgn.split(" ")){if(!c.move(t,{sloppy:true}))break}
+    const h=c.history({verbose:true}),l=h[h.length-1],w=c.turn()==="w";
+    draw(c.fen(),l?[l.from,l.to]:null,!w);
+    document.getElementById("dpt").textContent=(w?"백":"흑")+" 차례";
+    document.getElementById("dpr").textContent=x.puzzle.rating;
+  }).catch(()=>{document.getElementById("dpt").textContent="매일 새 퍼즐"});
 }
 </script>
 </body>
