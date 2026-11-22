@@ -10,6 +10,9 @@ function calR(r){const cp=a=>[a[0]==null?null:C(a[0]),a[1]];return Object.assign
 const turnOf=f=>f.split(" ")[1];
 const mat=f=>{let v=0;for(const ch of f.split(" ")[0]){const t=ch.toLowerCase();if(t==="n"||t==="b")v+=3;else if(t==="r")v+=5;else if(t==="q")v+=9}return v};
 const gacc=a=>{if(!a.length)return null;const mean=a.reduce((x,y)=>x+y,0)/a.length,harm=a.length/a.reduce((x,y)=>x+1/Math.max(y,5),0);return +((mean+harm)/2).toFixed(1)};
+/* 등록한 내 계정이면 분석하면서 나온 실수 장면을 실전 퍼즐에 바로 넣음 */
+function autoPz(pz){try{const me=window.ME&&ME.get();if(!me||!pz||!pz.length||me.toLowerCase()!==S.user)return;
+  const M=JSON.parse(localStorage.getItem("hansu-mypuz")||"[]"),ids=new Set(M.map(x=>x.id));pz.forEach(p=>{if(!ids.has(p.id))M.push(p)});localStorage.setItem("hansu-mypuz",JSON.stringify(M))}catch(e){}}
 function summarize(X,g){
   const me=g.me,ph={o:[],m:[],e:[]},pr={p:[],n:[],pb:0,nb:0},cnt={},worst=[],accMe=[],accOp=[];
   X.moves.forEach((m,k)=>{
@@ -50,7 +53,7 @@ async function run(L){
     const g=todo[i],pr=$("#bProg");
     const X=await window.batchAnalyse(g,"go depth 11 movetime 250",(a,b)=>{const p=$("#bProg");if(p)p.textContent=`${i+1}/${todo.length}판 · ${a}/${b}수`},()=>B.running);
     if(!B.running)break;
-    if(X){B.res[g.id]=summarize(X,g);saveRes()}
+    if(X){B.res[g.id]=summarize(X,g);saveRes();autoPz(X.puzzles)}
     if($("#bOut"))out(L);
   }
   B.running=false;const b=$("#bGo");if(b)b.textContent="분석 시작";const p=$("#bProg");if(p)p.textContent="";
@@ -102,7 +105,7 @@ window.BatchAPI={
     loadRes();const todo=games.filter(g=>(!B.res[g.id]||(B.res[g.id].v||0)<3)&&(!g.rules||g.rules==="chess"));B.running=true;
     for(let i=0;i<todo.length&&B.running;i++){
       const g=todo[i];const X=await window.batchAnalyse(g,"go depth 11 movetime 250",(a,b)=>{if(onProg)onProg(i,todo.length,a,b)},()=>B.running);
-      if(!B.running)break;if(X){B.res[g.id]=summarize(X,g);saveRes()}
+      if(!B.running)break;if(X){B.res[g.id]=summarize(X,g);saveRes();autoPz(X.puzzles)}
     }
     B.running=false;
   }
