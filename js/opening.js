@@ -297,6 +297,7 @@ function tryMove(from,to){
   userMove(from,to);return true;
 }
 const COLS={n:["#5C54D6","#6A80B4"],s:["#505A82","#505A82"],c:["#242942","#5C54D6"],a:["#6A80B4","#6A80B4"]};
+const pinned=(g,f,t)=>{try{return g.moves({square:f,verbose:true,legal:false}).some(m=>m.to===t)&&!g.moves({square:f,verbose:true}).some(m=>m.to===t)}catch(e){return false}};
 const modK=e=>e.shiftKey?"s":(e.ctrlKey||e.metaKey)?"c":e.altKey?"a":"n";
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 bEl.addEventListener("contextmenu",e=>e.preventDefault());
@@ -309,6 +310,7 @@ bEl.addEventListener("pointerdown",e=>{
   const g=game();if(!canMove(g)){render();return}
   const p=g.get(sq);
   if(sel&&sel!==sq&&!(p&&p.color===g.turn())&&g.moves({square:sel,verbose:true}).some(m=>m.to===sq)){tryMove(sel,sq);return}
+  if(sel&&sel!==sq&&!(p&&p.color===g.turn())&&pinned(g,sel,sq))play("illegal");
   if(p&&p.color===g.turn()){const was=sel===sq;sel=sq;render();
     const s=bEl.getBoundingClientRect().width/8;floatEl=document.createElement("i");floatEl.className=`pc ${p.color}${p.type} float`;floatEl.style.width=floatEl.style.height=s+"px";document.body.appendChild(floatEl);
     drag={from:sq,was,x0:e.clientX,y0:e.clientY,moved:false,s};floatEl.style.transform=`translate(${e.clientX-s/2}px,${e.clientY-s/2}px)`;document.body.classList.add("grabbing");
@@ -327,7 +329,7 @@ window.addEventListener("pointerup",e=>{
     render();return}
   if(!drag)return;const d=drag;drag=null;endFloat();
   const to=sqAt(e.clientX,e.clientY);
-  if(to&&to!==d.from){if(!tryMove(d.from,to))render();return}
+  if(to&&to!==d.from){if(!tryMove(d.from,to)){const g=game();if(canMove(g)&&pinned(g,d.from,to))play("illegal");render()}return}
   if(to===d.from&&d.was&&!d.moved)sel=null;render();
 });
 const kstep=k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k}));

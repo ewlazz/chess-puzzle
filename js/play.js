@@ -161,6 +161,7 @@ $("#aBack").onclick=()=>{
 };
 /* 조작 */
 const COLS={n:["#5C54D6","#6A80B4"],s:["#505A82","#505A82"],c:["#242942","#5C54D6"],a:["#6A80B4","#6A80B4"]};
+const pinned=(g,f,t)=>{try{return g.moves({square:f,verbose:true,legal:false}).some(m=>m.to===t)&&!g.moves({square:f,verbose:true}).some(m=>m.to===t)}catch(e){return false}};
 const modK=e=>e.shiftKey?"s":(e.ctrlKey||e.metaKey)?"c":e.altKey?"a":"n";
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 bEl.addEventListener("contextmenu",e=>e.preventDefault());
@@ -176,6 +177,7 @@ bEl.addEventListener("pointerdown",e=>{
     if(!myTurn()){addPre(sel,sq);return}
     if(tryMove(sel,sq))return;
   }
+  if(myTurn()&&sel&&sel!==sq&&!(p&&p.color===me)&&pinned(g,sel,sq))play("illegal");
   if(!myTurn()&&pq.length&&!(p&&p.color===me)){pq=[];sel=null;render();return}
   if(p&&p.color===me){const was=sel===sq;sel=sq;render();
     const s=bEl.getBoundingClientRect().width/8;floatEl=document.createElement("i");floatEl.className=`pc ${p.color}${p.type} float`;floatEl.style.width=floatEl.style.height=s+"px";document.body.appendChild(floatEl);
@@ -197,7 +199,7 @@ window.addEventListener("pointerup",e=>{
   const to=sqAt(e.clientX,e.clientY);
   if(to&&to!==d.from){
     if(!myTurn()){if(on&&pmTargets(d.from).includes(to))addPre(d.from,to);else render();return}
-    if(tryMove(d.from,to))return;play("illegal");render();return;
+    if(tryMove(d.from,to))return;if(pinned(g,d.from,to))play("illegal");render();return;
   }
   if(to===d.from&&d.was&&!d.moved)sel=null;
   render();

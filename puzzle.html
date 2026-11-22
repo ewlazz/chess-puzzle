@@ -528,6 +528,7 @@ function sqAt(x,y){
 }
 function kingSq(c){for(const sq of order("w")){const p=g.get(sq);if(p&&p.type==="k"&&p.color===c)return sq}}
 /* 프리무브: 상대 차례에는 기물의 이동 패턴만으로 목적지를 정함 (막힘·합법성은 실행 순간에 판정) */
+const pinned=(g,f,t)=>{try{return g.moves({square:f,verbose:true,legal:false}).some(m=>m.to===t)&&!g.moves({square:f,verbose:true}).some(m=>m.to===t)}catch(e){return false}};
 const waiting=()=>phase==="opp"||phase==="intro";
 function vpos(){const b={};for(const sq of order("w")){const p=g.get(sq);if(p)b[sq]=p}
   if(premove){const m=premove,p=b[m.from];if(p){delete b[m.from];
@@ -751,6 +752,7 @@ boardEl.addEventListener("pointerdown",e=>{
     if(waiting()){premove={from:sel,to:sq};sel=null;play("premove");render();return}
     if(tryMove(sel,sq,true))return;
   }
+  if(phase==="idle"&&sel&&sel!==sq&&!(p&&p.color===myColor())&&pinned(g,sel,sq))play("illegal");
   if(waiting()&&premove){premove=null}
   if(p&&p.color===myColor()){const wasSel=sel===sq;sel=sq;render();startDrag(sq,p,e,wasSel)}
   else{sel=null;render()}
@@ -775,7 +777,7 @@ window.addEventListener("pointerup",e=>{
   if(to&&to!==d.from){
     if(waiting()){if(pmTargets(d.from).includes(to)){premove={from:d.from,to};sel=null;play("premove")}render();return}
     if(phase==="idle"&&tryMove(d.from,to,false))return;
-    if(phase==="idle")play("illegal");
+    if(phase==="idle"&&pinned(g,d.from,to))play("illegal");
     render();return;
   }
   if(to===d.from&&d.wasSel&&!d.moved)sel=null;
