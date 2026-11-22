@@ -335,6 +335,7 @@ function hangLoss(fen,me){
     const gain=back?VAL[x.captured]-VAL[x.piece]:VAL[x.captured];if(gain>worst)worst=gain});
   return worst;
 }
+window.hangLoss=(f,me)=>hangLoss(f,me);
 function sac(k,X){X=X||A;
   const m=X.moves[k],me=turnOf(X.fens[k]);
   if(m.promotion&&m.promotion!=="q")return true;

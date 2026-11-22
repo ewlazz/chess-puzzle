@@ -200,9 +200,16 @@ function oppSec(L){
 function mentEng(){const L=LIST;
   const R=window.BatchAPI?BatchAPI.results(L.slice(0,AUTO.n||ENGN)).filter(x=>x.r.v):[],prevRes=new Map();
   L.slice().sort((a,b)=>a.end-b.end).forEach((g,i,A)=>{const p=A[i-1];if(p&&(g.start||g.end)-p.end<=1800)prevRes.set(g.id,p.res)});
-  const blz=a=>a.length?a.reduce((s,x)=>s+(x.r.cnt.blunder||0),0)/a.length:null;
-  const bl=blz(R.filter(x=>prevRes.get(x.g.id)==="loss")),bw=blz(R.filter(x=>prevRes.get(x.g.id)==="win")),nl=R.filter(x=>prevRes.get(x.g.id)==="loss").length;
-  return bl!=null&&bw!=null&&nl>=3?`<h4>진 다음 판 블런더 <em class="hsub">엔진 분석한 판</em></h4><div class="rnums"><div><b>${bl.toFixed(1)}</b><small>진 다음 판<br>판당 블런더</small></div><div><b>${bw.toFixed(1)}</b><small>이긴 다음 판<br>판당 블런더</small></div></div>`:"";}
+  const V=R.filter(x=>(x.r.v||0)>=4);if(!V.length)return "";
+  const hz=a=>a.length?a.reduce((s,x)=>s+(x.r.hang||[]).length,0)/a.length:null;
+  const AL=V.filter(x=>prevRes.get(x.g.id)==="loss"),AW=V.filter(x=>prevRes.get(x.g.id)!=="loss");
+  const hl=hz(AL),hw=hz(AW),all=V.flatMap(x=>(x.r.hang||[]).map(h=>({g:x.g,h,after:prevRes.get(x.g.id)}))).sort((a,b)=>b.g.end-a.g.end);
+  AUTO.hang={hl,hw,nl:AL.length,all};
+  const what=v=>v>=8?"퀸":v>=5?"룩":"기물";
+  return `<h4>막 둔 수 <em class="hsub">시간 있는데 몇 초 만에 기물 내준 수 · ${V.length}판 기준</em></h4>
+    <div class="rnums"><div><b>${all.length}</b><small>막 둔 수</small></div>${AL.length>=3?`<div><b>${hl.toFixed(2)}</b><small>진 다음 판<br>판당</small></div><div><b>${hw.toFixed(2)}</b><small>그 밖의 판<br>판당</small></div>`:""}</div>
+    ${all.slice(0,5).map((x,i)=>{const no=Math.floor(x.h.k/2)+1;return `<div class="ritem" data-hg="${i}">${miniBoard(x.h.fen,x.g.me)}<div class="rt1">vs ${esc(x.g.op.name)}${x.after==="loss"?' <em>진 다음 판</em>':""}</div><div class="rt2"><b class="bad">${no}${x.h.k%2?"...":"."} ${esc(x.h.san)}</b> · ${x.h.think}초 만에 · ${what(x.h.hl)} 내줌 · 승률 −${Math.max(0,x.h.loss)}%p</div><div class="rt3">남은 시간 ${Math.floor(x.h.left/60)}:${String(x.h.left%60).padStart(2,"0")}</div><span class="rgo">게임</span></div>`}).join("")}`;
+}
 /* 4-2. 멘탈: 연패 뒤, 바로 다시 둔 판, 오래 둔 날, 무너진 날 */
 function sessions(L){const A=L.filter(g=>g.tclass!=="daily").slice().sort((a,b)=>a.end-b.end),S=[];let cur=[];
   A.forEach(g=>{const p=cur[cur.length-1],gap=p?((g.start||g.end-600)-p.end):1e9;if(p&&gap<=1800)cur.push(g);else{if(cur.length)S.push(cur);cur=[g]}});if(cur.length)S.push(cur);return S}
@@ -353,6 +360,7 @@ function todo(){
     const ph=["o","m","e"].map(k=>{let s=0,c=0;R.forEach(x=>{const [v,m]=x.r.ph[k];if(v!=null){s+=v*m;c+=m}});return [k,c?s/c:null]}).filter(x=>x[1]!=null).sort((a,b)=>a[1]-b[1]);
     if(ph.length>=2&&ph[1][1]-ph[0][1]>=5)C.push({s:(ph[1][1]-ph[0][1])/20,t:`${{o:"오프닝",m:"미들게임",e:"엔드게임"}[ph[0][0]]} 정확도`,d:`${ph[0][1].toFixed(1)} · 다른 구간보다 ${(ph[1][1]-ph[0][1]).toFixed(1)} 낮음`,id:"eng"})}
   const T=AUTO.timeK;if(T&&T.lost>=10&&T.tl/T.lost>=.25)C.push({s:T.tl/T.lost,t:"시간패",d:`진 판 중 ${P(T.tl/T.lost)}`,id:"time"});
+  const HG=AUTO.hang;if(HG&&HG.nl>=3&&HG.hl>=.3&&HG.hl>=HG.hw*1.5)C.push({s:Math.min(1.2,HG.hl),t:"진 다음 판 막 두기",d:`기물 그냥 내준 수 판당 ${HG.hl.toFixed(2)} · 그 밖의 판 ${HG.hw.toFixed(2)}`,id:"ment"});
   const M=AUTO.ment;if(M&&M.stop)C.push({s:(M.base-M.stop.r.s)*4,t:`${M.stop.k}연패면 쉬기`,d:`${M.stop.k}연패 뒤 승률 ${P(M.stop.r.s)} · 평소 ${P(M.base)}`,id:"ment"});
   if(M&&M.fast.n>=8&&M.fast.s<=M.slow.s-.08)C.push({s:(M.slow.s-M.fast.s)*3,t:"지고 바로 다시 두기",d:`1분 안에 다시 둔 판 승률 ${P(M.fast.s)} · 쉬고 둔 판 ${P(M.slow.s)}`,id:"ment"});
   const top=C.sort((a,b)=>b.s-a.s).slice(0,3);
@@ -374,6 +382,7 @@ function draw(L){
   pressTxt();fillStudy(RT);
   el.onclick=async e=>{
     const ft=e.target.closest("[data-full]");if(ft&&!e.target.closest("button")){ft.closest(".ritem").classList.toggle("open");return}
+    const hg=e.target.closest("[data-hg]");if(hg){const x=AUTO.hang&&AUTO.hang.all[+hg.dataset.hg];if(x)window.openAnalysis(x.g,x.h.k+1);return}
     const sub=e.target.closest(".ritem .lnk");
     const it=!sub&&e.target.closest(".ritem");if(it){if(it.dataset.href){location.href=it.dataset.href;return}
       if(it.dataset.sq!=null){const x=AUTO.scan.found[+it.dataset.sq];try{localStorage.setItem("hansu-oquiz",JSON.stringify([{c:x.color,path:x.path,best:x.best,san:x.mv,name:x.name||""}]))}catch(_){}location.href="opening.html?oquiz=1";return}}
