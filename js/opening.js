@@ -203,14 +203,15 @@ function gal(){
   const chips=(k,key,arr)=>arr.map(([v,t])=>`<button class="chip" data-${k}="${v}" aria-pressed="${ST[key]===v}">${t}</button>`).join("");
   const catOf=m=>m.startsWith("e4")?"e4":m.startsWith("d4")?"d4":/^(c4|Nf3)/.test(m)?"fl":"etc";
   const L=S.filter(o=>(ST.cat==="all"||stCat(o)===ST.cat)&&(ST.side==="all"||o.side===ST.side)&&(!ST.f||o.tags.includes(ST.f)));
-  const RT=(window.OROOTS||[]).filter(r=>(ST.cat==="all"||catOf(r.moves)===ST.cat)&&(ST.side==="all"||r.side===ST.side)&&!ST.f);
+  const RT=(window.OROOTS||[]).filter(r=>(ST.cat==="all"||catOf(r.moves)===ST.cat)&&(ST.side==="all"||r.side===ST.side)&&(!ST.f||(r.tags||[]).includes(ST.f)));
+  const hasBee=(window.OROOTS||[]).concat(S).some(x=>(x.tags||[]).includes("bee"));
   /* 카드: 작은 보드(백 기준, 차분한 색) + 이름 + 기보 */
   const card=(href,t,ply,name,side,badge)=>{const ps=stPos(t,ply),mr=myRec(t.slice(0,ply));return `<a class="gcard" href="${href}" data-pf="${esc(ps.fen)}">${miniBoard(ps.fen,"w",null)}<span><b>${esc(name)}${badge||""}</b><small>${esc(mvSeq(0,t.slice(0,ply)))}</small><em>${side==="w"?"백":"흑"}</em>${mr&&mr.n?`<span class="gmy">${myTag(mr,side)}</span>`:""}</span></a>`};
   const sec=(title,list)=>list.length?`<h2 class="gsec">${title}</h2><div class="gcards">${list.join("")}</div>`:"";
-  const rc=c=>RT.filter(r=>catOf(r.moves)===c).map(r=>{const t=r.moves.split(" ");return card(`opening.html?tree=${r.id}`,t,t.length,r.ko,r.side)});
-  el.innerHTML=`<div class="gfil">${chips("stc","cat",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}<i></i>${chips("sts","side",[["all","백·흑"],["w","백"],["b","흑"]])}<i></i>${chips("stf","f",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
+  const rc=c=>RT.filter(r=>catOf(r.moves)===c).map(r=>{const t=r.moves.split(" ");return card(`opening.html?tree=${r.id}`,t,t.length,r.ko,r.side,stBadge({tags:r.tags||[]}))});
+  el.innerHTML=`<div class="gfil">${chips("stc","cat",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}<i></i>${chips("sts","side",[["all","백·흑"],["w","백"],["b","흑"]])}<i></i>${chips("stf","f",[["","전부"]].concat(hasBee?[["bee",BEE("꿀벌")+"꿀벌"]]:[]).concat([["chad",CHAD("상남자")+"상남자"]]))}</div>`+
     (MY.games&&MY.games.length?(()=>{const M=(window.OROOTS||[]).map(r=>({r,x:myRec(r.moves.split(" "))})).filter(o=>o.x.n>=3).sort((a,b)=>b.x.n-a.x.n);
-      return M.length?`<h2 class="gsec">내 오프닝 <span class="cnt">${esc(MY.user)} · 최근 3달 ${MY.games.length}판</span></h2><div class="gcards">${M.map(({r})=>{const t=r.moves.split(" ");return card(`opening.html?tree=${r.id}`,t,t.length,r.ko,r.side)}).join("")}</div>`:""})():"")+
+      return M.length?`<h2 class="gsec">내 오프닝 <span class="cnt">${esc(MY.user)} · 최근 3달 ${MY.games.length}판</span></h2><div class="gcards">${M.map(({r})=>{const t=r.moves.split(" ");return card(`opening.html?tree=${r.id}`,t,t.length,r.ko,r.side,stBadge({tags:r.tags||[]}))}).join("")}</div>`:""})():"")+
     sec("1.e4",rc("e4"))+sec("1.d4",rc("d4"))+sec("1.c4 · 1.Nf3",rc("fl"))+sec("기타",rc("etc"))+
     sec("공부 자료",L.map(o=>{const t=o.trunk.split(" ");return card(`opening.html?study=${o.id}`,t,(o.gam!=null?o.gam:t.length-1)+1,o.ko,o.side,stBadge(o))}))+
     (!RT.length&&!L.length?'<p class="cnt">없어요</p>':"");
@@ -337,18 +338,21 @@ function treePanel(){if(!TR.trie)return;const path=line.slice(0,idx),r=TR.root,R
     const top=K.filter(x=>x.c>=Math.max(5,tot*.01)).slice(0,10),rest=K.filter(x=>!top.includes(x));
     const item=k=>{const sp=trPasses(path.concat(k.chain)),m=k.m,c=k.c;
       return `<div class="ritem" data-tc="${esc(k.chain.join(" "))}">${miniBoard(k.fen,r.side,k.last?[k.last.from,k.last.to]:null)}<div class="rt1">${esc(mvSeq(idx,k.chain.slice(0,3)))}${k.chain.length>3?` … <em>${k.chain.length}수</em>`:""}${sp&&sp.tags.includes("chad")?CHAD("상남자 라인"):""}${sp?'<span class="bkt">공부</span>':""}</div><div class="rt2">${k.nm&&k.nm!==(here&&here.name)?esc(shortName(k.nm)):`<span class="cnt">${esc(shortName(here?here.name:r.en))} 안</span>`}</div><div class="rt3">${myTag(myRec(path.concat(k.chain)),r.side)}${j?(c?`마스터 ${c.toLocaleString()}판 · 백 ${Math.round(m.white/c*100)}% 무 ${Math.round(m.draws/c*100)}% 흑 ${Math.round(m.black/c*100)}%`:"마스터 게임 없음"):"…"}</div><span class="rgo tsh">${j&&tot?Math.round(c/tot*100)+"%":""}</span></div>`};
-    const mr=myRec(path);
+    const mr=myRec(path),drb=`<button class="bgo trdr" data-tdrill="1">이 자리부터 연습 · ${CK[r.side]}으로</button>`;
     el.innerHTML=(here?`<div class="trh"><b>${esc(Openings.ko(here.name)||here.name)}</b><small>${esc(here.name)}${here.eco?" · "+esc(here.eco):""}</small></div>`:"")+
       (mr&&mr.n?`<div class="mybox"><small>${esc(MY.user)} · 최근 3달 이 자리까지 온 판</small>${(r.side==="b"?["b","w"]:["w","b"]).filter(c=>mr[c].n).map(c=>{const x=mr[c],v=myVerdict(x);return `<div class="myl${v==="강함"?" st":v==="공부 필요"?" wk":""}"><b>${CK[c]}으로 ${x.n}판</b><span>${x.w}승 ${x.d}무 ${x.l}패 · 점수 ${Math.round(x.sc*100)}%</span><em>${v||(x.n<5?"판수 적음":"")}</em></div>`}).join("")}</div>`:"")+
-      (st?`<a class="stgo" href="opening.html?study=${st.id}">${st.tags.includes("chad")?CHAD("상남자 라인"):""}<b>${esc(st.ko)} 공부하기</b><span>변화 ${st.lines.length}개 · 수마다 설명 · 연습</span></a>`:"")+
+      drb+(st?`<a class="stgo" href="opening.html?study=${st.id}">${st.tags.includes("chad")?CHAD("상남자 라인"):""}<b>${esc(st.ko)} 공부하기</b><span>변화 ${st.lines.length}개 · 수마다 설명 · 연습</span></a>`:"")+
       (K.length?`<p class="cnt trq">다음 갈림길 · 오른쪽 숫자는 마스터 게임에서 이 수를 둔 비율</p><div class="stlist">${top.map(item).join("")}${TR.more?rest.map(item).join(""):""}</div>${rest.length?`<button class="chip" data-tmore="1">${TR.more?"접기":`드물게 두는 수 ${rest.length}개 더 보기`}</button>`:""}`:(j?'<p class="cnt">여기서 더 갈라지는 수가 없어요.</p>':'<p class="cnt">불러오는 중…</p>'))};
   if(TR.lastKey!==key){TR.lastKey=key;draw(trStats&&trStats.fen===fen?trStats.j:null)}
   clearTimeout(TR.T);TR.T=setTimeout(()=>trMasters(fen).then(j=>{if(game().fen()!==fen)return;trStats={fen,j};draw(j);TR.lastKey=key;drawArrows()}),200);
 }
-$("#tStudy").addEventListener("click",e=>{if(MODE!=="tree")return;const t=e.target.closest("[data-tc],[data-tmore],[data-tk]");if(t&&t.dataset.tk){TR.more=false;go(+t.dataset.tk);return}if(!t)return;
+$("#tStudy").addEventListener("click",e=>{if(MODE!=="tree")return;const t=e.target.closest("[data-tc],[data-tmore],[data-tk],[data-tdrill]");if(t&&t.dataset.tk){TR.more=false;go(+t.dataset.tk);return}if(t&&t.dataset.tdrill){trDrill(idx);return}if(!t)return;
   if(t.dataset.tmore){TR.more=!TR.more;TR.lastKey="";treePanel();return}
   const ch=t.dataset.tc.split(" "),was=idx;line=line.slice(0,idx).concat(ch);idx=line.length;sel=null;marks.clear();circ.clear();
   if(ch.length===1){const g=game(idx-1),m=g.move(ch[0]);if(m){play(snd(m,g));animNext={m}}}else play("move-self");TR.more=false;refresh()});
+/* 갈래 연습: 지금 자리부터 내 색으로, 상대는 마스터가 많이 둔 수로 */
+function trDrill(at){const r=TR.root;DR={on:true,color:r.side,hits:0,miss:0,busy:false,msg:"",start:at,rep:null,tree:true};line=line.slice(0,at);idx=at;orient=r.side;sel=null;marks.clear();circ.clear();showTab("drill");refresh();dStep()}
+$("#tDrill").addEventListener("click",e=>{if(e.target.closest("[data-trre]")&&DR.tree)trDrill(DR.start)});
 $("#stTop").addEventListener("click",e=>{const b=e.target.closest("[data-tk]");if(b){TR.more=false;go(+b.dataset.tk)}});
 /* 지금 자리에서 이 오프닝 변화들이 어디로 갈라지는지 */
 function stForks(){const c=ST.cur;if(!c)return [];const o=c.o,cur=line.slice(0,idx),out=new Map();
@@ -434,7 +438,7 @@ function drill(){
 $("#tDrill").onclick=e=>{
   const c=e.target.closest("[data-c]");if(c){DR.color=c.dataset.c;drill();return}
   if(e.target.id==="drGo"){DR={on:true,color:DR.color,hits:0,miss:0,busy:false,msg:"",start:idx,rep:null};line=line.slice(0,idx);orient=DR.color;drill();render();dStep();return}
-  if(e.target.id==="drStop"){DR.on=false;drill();render()}
+  if(e.target.id==="drStop"){DR.on=false;if(MODE!=="ex"){showTab("study");refresh();return}drill();render()}
   if(e.target.id==="drHint"&&DR.on&&idx===line.length){DR.miss++;hint()}
 };
 const dMsg=(t,c)=>{DR.msg=t;DR.cls=c||"";drill()};
@@ -463,7 +467,7 @@ async function dStep(){
   await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
   const m=g.move(pick.san);if(!m){DR.busy=false;DR.on=false;dMsg("");drill();return}play(snd(m,g));animNext={m};pushMove(m.san);DR.busy=false;refresh();dMsg(`상대: ${pick.san} · 내 차례예요.`);
 }
-function el2(){$("#tDrill").innerHTML=`<div class="pr"><div class="prm good">${esc(DR.msg)}</div>${DR.rep?`<button class="bgo" data-redo="${DR.color}">다시 연습</button>`:'<button class="bgo" id="drGo">다시 연습</button>'}</div>`}
+function el2(){$("#tDrill").innerHTML=`<div class="pr"><div class="prm good">${esc(DR.msg)}</div>${DR.tree?'<div class="racts"><button class="bgo" data-trre="1">다시</button><button class="chip" data-stbk="1">갈래로</button></div>':DR.rep?`<button class="bgo" data-redo="${DR.color}">다시 연습</button>`:'<button class="bgo" id="drGo">다시 연습</button>'}</div>`}
 $("#tDrill").addEventListener("click",e=>{const r=e.target.closest("[data-redo]");if(!r)return;const R=reps().filter(x=>x.color===r.dataset.redo&&x.moves.length).map(x=>x.moves);if(!R.length)return;DR={on:true,color:r.dataset.redo,hits:0,miss:0,busy:false,msg:"",rep:R};line=[];idx=0;orient=DR.color;refresh();drill();dStep()});
 async function dCheck(m,fenBefore){
   if(DR.rep){const exp=[...new Set(repCands(idx-1).map(r=>r[idx-1]))];
@@ -568,7 +572,7 @@ stTop();
 if(MODE==="gal"){$("#galSec").hidden=false;gal();myLoad().then(g=>{if(g&&g.length)gal()})}
 else{render();
 if(MODE==="tree"){const r=(window.OROOTS||[]).find(x=>x.id===SP0.get("tree"));TR.root=r;
-  if(r){$("#oH1").textContent=r.ko;document.title=r.ko+" - 한 수";orient=r.side;showTab("study")}
+  if(r){$("#oH1").innerHTML=esc(r.ko)+stBadge({tags:r.tags||[]});document.title=r.ko+" - 한 수";orient=r.side;showTab("study")}
   myLoad().then(g=>{if(g&&g.length&&TR.trie){TR.lastKey="";treePanel()}});
   Openings.load().then(()=>{if(!r){$("#tStudy").innerHTML='<p class="cnt">없는 오프닝이에요.</p>';return}TR.trie=trBuild(r);
     const at=(SP0.get("at")||"").split(",").filter(Boolean),base=r.moves.split(" "),g=new Chess(),ok=[];for(const x of at.length?at:base){const m=g.move(x);if(!m)break;ok.push(m.san)}

@@ -219,8 +219,8 @@ footer p{margin:0}
       <aside class="card" aria-live="polite">
         <div class="meta"><span id="pnum">1 / 12</span><span class="tag" id="plevel">쉬움</span><a class="psrc" id="psrc" target="_blank" rel="noopener" hidden>리체스</a><button class="snd" id="bAna">분석</button><button class="snd" id="bSound" aria-pressed="true">소리 켬</button></div>
         <div class="rush" id="rushBar" hidden></div>
-        <h3 id="ptitle">백랭크 메이트</h3>
-        <div class="turn"><i id="tdot" class="w"></i><span id="tgoal">백 차례 · 1수 메이트</span></div>
+        <h3 id="ptitle">퍼즐</h3>
+        <div class="turn"><i id="tdot" class="w"></i><span id="tgoal">백 차례</span></div>
         <div class="status" id="status"></div>
         <button class="btn stepb" id="bStep" hidden>다음 수 →</button>
         <div class="btns">
@@ -612,14 +612,16 @@ function stats(){
 }
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const e=sqEl(hov);if(e)e.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 let booted=false;
+/* 퍼즐 주제(포크, 2수 메이트 등)는 풀거나 틀린 뒤에만 보여 줌 */
+function reveal(){if(!CP)return;$("#ptitle").textContent=CP.title+(CP.goal&&!/대신$/.test(CP.title||"")?" · "+CP.goal:"")}
 function start(p,info){stepOff();
   clearTimeout(timer);ctok++;endFloat();drag=rdrag=null;if(booted&&mode!=="rush"&&!(p.prev&&p.last))play("start");
   CP=p;lastInfo=info;g=new Chess(p.fen);ply=0;orient=g.turn();sel=last=hintSq=badSq=premove=bdg=endBdg=null;phase="idle";shown=false;failed=false;CP._rated=false;
   if(p.last)last={from:p.last.slice(0,2),to:p.last.slice(2,4)};
   arrows.clear();circles.clear();$("#promo").classList.remove("on");
-  $("#pnum").textContent=info.num;$("#plevel").textContent=p.lv||"";$("#plevel").hidden=!p.lv;$("#ptitle").textContent=p.title;
+  $("#pnum").textContent=info.num;$("#plevel").textContent=p.lv||"";$("#plevel").hidden=!p.lv;$("#ptitle").textContent=(p.kind==="mine"||p._mine||mode==="mine")?p.title:"퍼즐";
   $("#psrc").hidden=!p.url;if(p.url)$("#psrc").href=p.url;$("#psrc").textContent=p.src||"리체스";
-  $("#tdot").className=orient;$("#tgoal").textContent=`${orient==="w"?"백":"흑"} 차례 · ${p.goal}`;
+  $("#tdot").className=orient;$("#tgoal").textContent=`${orient==="w"?"백":"흑"} 차례`;
   setStatus("",info.status||"");
   $("#bHint").disabled=$("#bShow").disabled=mode==="rush";
   /* 체스닷컴처럼: 상대의 직전 수를 보드에서 두고 시작 */
@@ -675,7 +677,7 @@ async function cont(base){
   setStatus("win",`${base} · 상대 최선 수 보기`);stepOn(step);
 }
 function finish(){
-  phase="done";premove=null;$("#bHint").disabled=$("#bShow").disabled=true;
+  phase="done";premove=null;$("#bHint").disabled=$("#bShow").disabled=true;reveal();
   let extra="";
   if(mode==="basic"){if(!shown){if(!store.solved.includes(cur))store.solved.push(cur);store.streak++;store.best=Math.max(store.best,store.streak);save()}}
   else if(mode==="daily"){if(!shown&&!failed){dailySolved();stats()}}
@@ -708,7 +710,7 @@ function commit(from,to,pr,anim){
     badSq=to;phase="wrong";render();if(anim)animate(from,to);
     play("wrong",.12);failed=true;if(mode==="mine"||CP._mine)mineResult(false);
     let extra="";if(((mode==="rated"||mode==="theme"||mode==="weak"))&&!CP._rated)extra=" "+sgn(rate(false));
-    setStatus("wrong",`${m.san} 오답${extra}`);
+    setStatus("wrong",`${m.san} 오답${extra}`);reveal();
     if(mode==="basic"&&store.streak){store.streak=0;save();stats()}
     if(mode==="rush"){const over=rushStrike();timer=setTimeout(()=>{if(!over)rushNext()},700);return}
     const bb=$("#boardbox");bb.classList.remove("shake");void bb.offsetWidth;bb.classList.add("shake");
@@ -798,7 +800,7 @@ $("#bShow").onclick=()=>{
   if(phase==="wrong"){g.undo();last=null;badSq=null}
   bdg=null;
   $("#promo").classList.remove("on");
-  shown=true;phase="show";sel=hintSq=premove=null;
+  shown=true;phase="show";sel=hintSq=premove=null;reveal();
   if(mode==="basic"&&store.streak){store.streak=0;save();stats()}
   if(((mode==="rated"||mode==="theme"||mode==="weak"))&&!CP._rated)rate(false);
   setStatus("hint","정답: "+P().sol.join(" "));
@@ -831,7 +833,7 @@ function bindChart(){const sv=$("#pchsvg");if(!sv)return;const H=rs.hist.filter(
 function renderList(){
   if((mode==="rated"||mode==="theme"||mode==="weak")||mode==="daily"){$("#plist").innerHTML=(mode!=="daily"?rchart():"")+(rs.hist.length?`<table class="htab">${rs.hist.slice(0,40).map(h=>`<tr><td>${h.url?`<a href="${h.url}" target="_blank" rel="noopener">${h.t}</a>`:h.t}</td><td>${h.r}</td><td>${h.w?"성공":"실패"}</td><td class="${h.d>=0?"up":"dn"}">${sgn(h.d)}</td></tr>`).join("")}</table>`:"<p>아직 기록이 없어요.</p>");bindChart();return}
   if(mode==="rush"){$("#plist").innerHTML="<p>"+[["180","3분"],["300","5분"],["0","생존"]].map(([k,l])=>`${l} 최고 ${rushBest[k]||0}점`).join(" · ")+"</p>";return}
-  if(mode==="mine"){const L=myList();$("#plist").innerHTML=L.map((p,i)=>`<a class="pz${i===mi?" cur":""}" href="#mine" data-mi="${i}"><div class="mini" aria-hidden="true">${mini(p)}</div><b>${p.title}<button class="del" data-del="${i}" aria-label="삭제">삭제</button></b><div class="meta"><span>${p.goal}</span>${p.solved?icon("correct","ok"):""}</div></a>`).join("")||"<p>아직 없어요.</p>";return}
+  if(mode==="mine"){const L=myList();$("#plist").innerHTML=L.map((p,i)=>`<a class="pz${i===mi?" cur":""}" href="#mine" data-mi="${i}"><div class="mini" aria-hidden="true">${mini(p)}</div><b>${p.title}<button class="del" data-del="${i}" aria-label="삭제">삭제</button></b><div class="meta"><span>${p.solved?p.goal:(p.vs?"vs "+p.vs:"")}</span>${p.solved?icon("correct","ok"):""}</div></a>`).join("")||"<p>아직 없어요.</p>";return}
   $("#plist").innerHTML=PUZ.map((p,i)=>{
     const solved=store.solved.includes(i);
     if(filter==="mate"&&p.kind!=="mate"||filter==="win"&&p.kind!=="win"||filter==="todo"&&solved)return "";
