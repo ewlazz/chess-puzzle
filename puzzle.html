@@ -315,12 +315,13 @@ const themeTitle=th=>{for(const k in TH)if(th.includes(k))return TH[k];return "�
 const diffFor=r=>{const d=r-1500;return d<-450?"easiest":d<-150?"easier":d<150?"normal":d<450?"harder":"hardest"};
 function conv(x){
   const p=x.puzzle;let fen=p.fen,lastMv=p.lastMove;
-  if(!fen){const c=new Chess();for(const t of (x.game&&x.game.pgn||"").split(" ")){if(!t||!c.move(t,{sloppy:true}))break}const h=c.history({verbose:true}),l=h[h.length-1];fen=c.fen();if(l)lastMv=l.from+l.to}
+  let prev=null;
+  if(!fen){const c=new Chess();for(const t of (x.game&&x.game.pgn||"").split(" ")){if(!t||!c.move(t,{sloppy:true}))break}const h=c.history({verbose:true}),l=h[h.length-1];fen=c.fen();if(l){lastMv=l.from+l.to+(l.promotion||"");c.undo();prev=c.fen()}}
   const c=new Chess(fen),sol=[];
   for(const u of p.solution){const m=c.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]});if(!m)return null;sol.push(m.san)}
   const th=p.themes||[],mate=th.find(t=>/^mateIn\d/.test(t))||(th.includes("mate")?"mate":null);
   const goal=mate?(mate==="mate"?"메이트":mate.slice(6)+"수 메이트"):th.includes("crushing")?"결정적 우위":th.includes("advantage")?"우위 잡기":th.includes("equality")?"동점 만들기":"최선수";
-  return {fen,last:lastMv,sol,rating:p.rating,id:p.id,th,title:themeTitle(th),goal,lv:String(p.rating),kind:mate?"mate":"win",url:"https://lichess.org/training/"+p.id};
+  return {fen,prev,last:lastMv,sol,rating:p.rating,id:p.id,th,title:themeTitle(th),goal,lv:String(p.rating),kind:mate?"mate":"win",url:"https://lichess.org/training/"+p.id};
 }
 async function fetchBatch(angle,diff,nb){const r=await fetch(`https://lichess.org/api/puzzle/batch/${angle}?nb=${nb}&difficulty=${diff}`);if(!r.ok)throw new Error(r.status);const j=await r.json();return (j.puzzles||[]).map(conv).filter(Boolean)}
 const Q={key:"",list:[]};
@@ -500,7 +501,7 @@ function play(name,delay,opp){
   const k=name==="move"&&opp?"opp":name;
   try{if(sndBuf[k]){const s=a.createBufferSource();s.buffer=sndBuf[k];s.connect(a.destination);s.start(t)}else if(SFX[name])SFX[name](t)}catch(e){}
 }
-const moveSound=m=>g.in_check()?"check":m.flags.indexOf("p")>=0?"promote":/[kq]/.test(m.flags)?"castle":m.captured?"capture":"move";
+const moveSound=m=>g.in_checkmate()?"end":g.in_check()?"check":m.flags.indexOf("p")>=0?"promote":/[kq]/.test(m.flags)?"castle":m.captured?"capture":"move";
 function soundBtn(){const b=$("#bSound");b.setAttribute("aria-pressed",soundOn);b.textContent=soundOn?"소리 켬":"소리 끔"}
 $("#bSound").onclick=()=>{soundOn=!soundOn;try{localStorage.setItem("hansu-sound",soundOn?"on":"off")}catch(e){}soundBtn();if(soundOn)play("move")};
 document.addEventListener("pointerdown",()=>{if(soundOn)ac()},{once:true});
@@ -590,7 +591,7 @@ function stats(){
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const e=sqEl(hov);if(e)e.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 let booted=false;
 function start(p,info){stepOff();
-  clearTimeout(timer);ctok++;endFloat();drag=rdrag=null;if(booted&&mode!=="rush")play("start");
+  clearTimeout(timer);ctok++;endFloat();drag=rdrag=null;if(booted&&mode!=="rush"&&!(p.prev&&p.last))play("start");
   CP=p;lastInfo=info;g=new Chess(p.fen);ply=0;orient=g.turn();sel=last=hintSq=badSq=premove=bdg=endBdg=null;phase="idle";shown=false;failed=false;CP._rated=false;
   if(p.last)last={from:p.last.slice(0,2),to:p.last.slice(2,4)};
   arrows.clear();circles.clear();$("#promo").classList.remove("on");
@@ -599,6 +600,10 @@ function start(p,info){stepOff();
   $("#tdot").className=orient;$("#tgoal").textContent=`${orient==="w"?"백":"흑"} 차례 · ${p.goal}`;
   setStatus("",info.status||"");
   $("#bHint").disabled=$("#bShow").disabled=mode==="rush";
+  /* 체스닷컴처럼: 상대의 직전 수를 보드에서 두고 시작 */
+  let pre=null;if(p.prev&&p.last){try{pre=new Chess(p.prev);const t=new Chess(p.prev),m=t.move({from:p.last.slice(0,2),to:p.last.slice(2,4),promotion:p.last[4]||"q"});if(!m||t.fen().split(" ").slice(0,4).join(" ")!==p.fen.split(" ").slice(0,4).join(" "))pre=null}catch(e){pre=null}}
+  if(pre){g=pre;last=null;phase="intro";render();
+    timer=setTimeout(()=>{if(CP!==p)return;const m=g.move({from:p.last.slice(0,2),to:p.last.slice(2,4),promotion:p.last[4]||"q"});last={from:m.from,to:m.to};phase="idle";play(moveSound(m),0,true);render();animate(m.from,m.to)},mode==="rush"?300:550);return}
   render();
 }
 function load(i,fromHash){
@@ -649,7 +654,6 @@ async function cont(base){
 }
 function finish(){
   phase="done";premove=null;$("#bHint").disabled=$("#bShow").disabled=true;
-  if(g.in_checkmate())play("end",.15);
   let extra="";
   if(mode==="basic"){if(!shown){if(!store.solved.includes(cur))store.solved.push(cur);store.streak++;store.best=Math.max(store.best,store.streak);save()}}
   else if(mode==="daily"){if(!shown&&!failed){dailySolved();stats()}}
@@ -763,7 +767,7 @@ window.addEventListener("pointerup",e=>{
 boardEl.addEventListener("pointercancel",()=>{drag=rdrag=null;endFloat();render()});
 $("#bHint").onclick=()=>{if(phase!=="idle")return;if(mode==="rush"||mode==="daily"||mode==="mine"||CP._mine)failed=true;else CP._hint=true;const t=new Chess(g.fen()),m=t.move(P().sol[ply]);hintSq=m.from;sel=null;render();setStatus("hint","힌트")};
 $("#bShow").onclick=()=>{
-  if(phase==="done"||phase==="show"||phase==="cont")return;
+  if(phase==="done"||phase==="show"||phase==="cont"||phase==="intro")return;
   clearTimeout(timer);
   if(phase==="wrong"){g.undo();last=null;badSq=null}
   bdg=null;

@@ -165,7 +165,7 @@ function mistakePuzzles(X){X=X||A;
     const sol=[];for(const u of pv.slice(0,n)){const m=pos.move(uciObj(u));if(!m)break;sol.push(m.san)}
     if(!sol.length)return;
     const num=+X.fens[k].split(" ")[5],dots=mover==="w"?".":"...",prev=k>0?X.moves[k-1]:null;
-    out.push({id:(X.game.id||"g")+"-"+k,fen:X.fens[k],last:prev?prev.from+prev.to:"",sol,title:`${num}${dots} ${X.moves[k].san} 대신`,goal:n>1?Math.ceil(n/2)+"수 메이트":CL[c].l+"한 장면",lv:"",kind:"mine",url:X.game.url||"",src:X.game.url?"게임":"",vs:X.game.op.name,orient:mover});
+    out.push({id:(X.game.id||"g")+"-"+k,fen:X.fens[k],prev:k>0?X.fens[k-1]:null,last:prev?prev.from+prev.to+(prev.promotion||""):"",sol,title:`${num}${dots} ${X.moves[k].san} 대신`,goal:n>1?Math.ceil(n/2)+"수 메이트":CL[c].l+"한 장면",lv:"",kind:"mine",url:X.game.url||"",src:X.game.url?"게임":"",vs:X.game.op.name,orient:mover});
   });
   return out;
 }
