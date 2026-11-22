@@ -95,8 +95,8 @@ function renderProfile(){
     <a class="ext" href="${esc(p.url)}" target="_blank" rel="noopener">체스닷컴 프로필</a>`;
   $("#prof").classList.add("on");
   const st=S.stats||{},keys=[["chess_bullet","불릿"],["chess_blitz","블리츠"],["chess_rapid","래피드"],["chess_daily","데일리"]];
-  let h=keys.map(([k,l])=>{const s=st[k];if(!s||!s.last)return `<div class="rc off"><small>${l}</small><b>–</b><div class="best">기록 없음</div></div>`;
-    const r=s.record||{win:0,draw:0,loss:0};return `<div class="rc"><small>${l}</small><b>${s.last.rating}</b><div class="best">최고 ${s.best?s.best.rating:"–"}</div>${wdl(r.win,r.draw,r.loss)}<div class="nums">${r.win.toLocaleString()}승 ${r.draw.toLocaleString()}무 ${r.loss.toLocaleString()}패</div></div>`}).join("");
+  let h=keys.map(([k,l])=>{const s=st[k];const ic=tcIcon(k.slice(6));if(!s||!s.last)return `<div class="rc off"><small>${ic}${l}</small><b>–</b><div class="best">기록 없음</div></div>`;
+    const r=s.record||{win:0,draw:0,loss:0};return `<div class="rc"><small>${ic}${l}</small><b>${s.last.rating}</b><div class="best">최고 ${s.best?s.best.rating:"–"}</div>${wdl(r.win,r.draw,r.loss)}<div class="nums">${r.win.toLocaleString()}승 ${r.draw.toLocaleString()}무 ${r.loss.toLocaleString()}패</div></div>`}).join("");
   const tac=st.tactics&&st.tactics.highest,pr=st.puzzle_rush&&st.puzzle_rush.best;
   h+=`<div class="rc${tac?"":" off"}"><small>퍼즐</small><b>${tac?tac.rating:"–"}</b><div class="best">최고 기록</div></div>`;
   h+=`<div class="rc${pr?"":" off"}"><small>퍼즐 러시</small><b>${pr?pr.score:"–"}</b><div class="best">최고 점수</div></div>`;
@@ -109,7 +109,7 @@ function chips(el,list,key){$(el).innerHTML=list.map(([v,l])=>`<button class="ch
   $(el).onclick=e=>{const b=e.target.closest("button");if(!b)return;S[key]=b.dataset.v;S.shown=50;renderFilters();renderAll()}}
 function renderFilters(){
   const has=new Set(S.games.map(g=>g.tclass));
-  chips("#fTc",[["all","전체"]].concat(Object.keys(TC).filter(k=>has.has(k)).map(k=>[k,TC[k]])),"tc");
+  chips("#fTc",[["all","전체"]].concat(Object.keys(TC).filter(k=>has.has(k)).map(k=>[k,tcIcon(k)+TC[k]])),"tc");
   chips("#fRes",[["all","전체"],["win","승"],["loss","패"],["draw","무"]],"res");
   chips("#fCol",[["all","전체"],["w","백"],["b","흑"]],"col");
   $("#fRes").hidden=$("#fCol").hidden=S.tab!=="games";
@@ -129,11 +129,11 @@ function renderGames(){
     const d=new Date(g.end*1000),acc=g.acc?`${g.acc.me!=null?g.acc.me.toFixed(1):"–"} <em>/ ${g.acc.op!=null?g.acc.op.toFixed(1):"–"}</em>`:"<em>–</em>";
     const opc=g.me==="w"?"b":"w";
     return `<div class="gr"><span class="res ${g.res}">${RL[g.res]}</span>
-      <span class="tcx">${TC[g.tclass]||g.tclass} ${tcLabel(g.tc)}</span>
+      <span class="tcx">${tcIcon(g.tclass)}${TC[g.tclass]||g.tclass} ${tcLabel(g.tc)}</span>
       <div class="pl"><span class="me"><i class="${g.me}"></i>${esc(g.my.name)} <em>${g.my.rating}</em></span><span><i class="${opc}"></i>${esc(g.op.name)} <em>${g.op.rating}</em></span></div>
       <span class="how">${esc(g.how)}</span><span class="op" title="${esc(g.open)}">${esc(g.open)||"–"}</span>
       <span class="acc">${acc}</span><span class="dt">${pad(d.getMonth()+1)}.${pad(d.getDate())}</span>
-      <div class="mline"><span>${TC[g.tclass]||g.tclass} ${tcLabel(g.tc)}</span><span>${esc(g.how)}</span>${g.acc&&g.acc.me!=null?`<span>정확도 ${g.acc.me.toFixed(1)}</span>`:""}<span>${pad(d.getMonth()+1)}.${pad(d.getDate())}</span>${g.open?`<span>${esc(g.open)}</span>`:""}</div>
+      <div class="mline"><span>${tcIcon(g.tclass)}${TC[g.tclass]||g.tclass} ${tcLabel(g.tc)}</span><span>${esc(g.how)}</span>${g.acc&&g.acc.me!=null?`<span>정확도 ${g.acc.me.toFixed(1)}</span>`:""}<span>${pad(d.getMonth()+1)}.${pad(d.getDate())}</span>${g.open?`<span>${esc(g.open)}</span>`:""}</div>
       <button class="ab" data-i="${i}">분석</button></div>`}).join("")||'<p class="empty">게임이 없어요.</p>';
   $("#more").hidden=l.length<=S.shown;
   $("#glist").onclick=e=>{const b=e.target.closest(".ab");if(b)window.openAnalysis(l[+b.dataset.i])};
@@ -173,7 +173,7 @@ function renderStats(){
   const tcs=[...new Set(L.map(g=>g.tclass))].sort((a,b)=>L.filter(g=>g.tclass===b).length-L.filter(g=>g.tclass===a).length);
   let rt=S.tc!=="all"?S.tc:tcs[0];
   const draw=()=>{
-    $("#rgTc").innerHTML=tcs.map(k=>`<button class="chip" data-v="${k}" aria-pressed="${k===rt}">${TC[k]||k}</button>`).join("");
+    $("#rgTc").innerHTML=tcs.map(k=>`<button class="chip" data-v="${k}" aria-pressed="${k===rt}">${tcIcon(k)}${TC[k]||k}</button>`).join("");
     ratingChart($("#rsvg"),L.filter(g=>g.tclass===rt&&g.rated).slice().reverse());
   };
   $("#rgTc").onclick=e=>{const b=e.target.closest("button");if(b){rt=b.dataset.v;draw()}};

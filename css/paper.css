@@ -113,3 +113,9 @@ main>section+section{border-top:1px solid #C4C9DC}
 .rov .rbs small{background:none!important;color:#EFF0F6!important;opacity:.8}
 header{padding:0 max(5vw,16px)!important}
 .nav{padding:12px 0!important}
+.tci{width:1.15em;height:1.15em;vertical-align:-.2em;margin-right:.35em;color:#5C54D6;flex:none}
+.rc small{display:flex;align-items:center;font-size:15px!important;color:#242942!important;font-weight:700}
+.rc small .tci{width:20px;height:20px;margin-right:6px}
+.rc.off small .tci{color:#6A80B4}
+.chip[aria-pressed=true] .tci{color:#EFF0F6}
+.chip{display:inline-flex;align-items:center}
