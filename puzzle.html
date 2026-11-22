@@ -183,6 +183,9 @@ footer p{margin:0}
 .pch{margin-bottom:14px}.pchs{display:flex;gap:14px;font-size:13px;color:#505A82;margin-bottom:6px}.pchs b{color:#242942;font-family:"Inter","Pretendard",sans-serif;font-weight:800}
 .pchf{position:relative}.pchf svg{width:100%;height:auto;display:block;touch-action:pan-y;cursor:crosshair}
 .rtip{position:absolute;pointer-events:none;background:#242942;color:#EFF0F6;border-radius:3px;padding:5px 9px;font-size:12px;white-space:nowrap;z-index:5}.rtip b{display:block;font-size:15px;font-weight:800}
+.mcf{display:flex;align-items:center;gap:8px;margin-top:12px}.mcf input{flex:1;min-width:0;min-height:42px;border:1px solid #C4C9DC;border-radius:3px;padding:0 10px;font:inherit;background:#EFF0F6;color:#242942}
+.mcf button,.mcgo{min-height:42px;padding:0 16px;border:0;border-radius:3px;background:#5C54D6;color:#EFF0F6;font:inherit;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;text-decoration:none}
+.mcu{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:16px}.sico{width:22px;height:22px;flex:none;border-radius:3px}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#EFF0F6">
@@ -436,8 +439,15 @@ function saveMy(l){try{localStorage.setItem("hansu-mypuz",JSON.stringify(l))}cat
 /* 내 실수: 안 푼 것 중에서 무작위, 이전은 본 순서대로 되돌아감 */
 let MH=[];
 function pickMine(ex){const L=myList(),now=Date.now();if(!L.length)return 0;let c=L.map((p,i)=>i).filter(i=>!L[i].solved&&(!L[i].due||L[i].due<=now)&&i!==ex);if(!c.length)c=L.map((p,i)=>i).filter(i=>!L[i].solved&&i!==ex);if(!c.length)c=L.map((p,i)=>i).filter(i=>i!==ex);if(!c.length)return 0;return c[Math.floor(Math.random()*c.length)]}
+/* 실전 퍼즐이 없을 때: 보드 위에서 바로 체스닷컴 연결 → 내 게임 분석 */
+function mineOv(){const o=$("#rov"),me=window.ME&&ME.get(),ic='<img class="sico" src="https://www.chess.com/bundles/web/favicons/favicon-32x32.png" alt="체스닷컴" width="22" height="22">';o.hidden=false;
+  o.innerHTML=me?`<div><h3>실전 퍼즐</h3><p class="mcu">${ic}<b>${me.replace(/[<>&"]/g,"")}</b></p><div class="rbs"><a class="mcgo" href="stats.html?user=${encodeURIComponent(me)}&tab=report">내 게임 분석</a></div></div>`
+    :`<div><h3>실전 퍼즐</h3><form class="mcf" id="mcf">${ic}<input name="u" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button>연결</button></form></div>`;
+  const f=$("#mcf");if(f)f.onsubmit=async e=>{e.preventDefault();const u=f.u.value.trim();if(!u)return;const b=f.querySelector("button");b.disabled=true;b.textContent="확인 중";
+    try{const r=await fetch("https://api.chess.com/pub/player/"+encodeURIComponent(u.toLowerCase()));if(!r.ok)throw 0;const j=await r.json();ME.set(j.username||u);mineOv();const ab=document.getElementById("acb");if(ab)ab.textContent=ME.get()}
+    catch(_){b.disabled=false;b.textContent="연결";f.u.setCustomValidity("없는 닉네임이에요");f.u.reportValidity();f.u.oninput=()=>f.u.setCustomValidity("")}}}
 function loadMine(i){
-  const L=myList();if(!L.length){clearTimeout(timer);phase="done";$("#pnum").textContent="0 / 0";$("#plevel").hidden=true;$("#psrc").hidden=true;$("#ptitle").textContent="내 실수";$("#tgoal").textContent="";setStatus("","아직 없어요. 전적이나 분석에서 게임을 분석하고 실수를 저장하세요.");$("#bHint").disabled=$("#bShow").disabled=true;stats();renderList();return}
+  const L=myList();if(!L.length){clearTimeout(timer);phase="done";$("#pnum").textContent="0 / 0";$("#plevel").hidden=true;$("#psrc").hidden=true;$("#ptitle").textContent="실전 퍼즐";$("#tgoal").textContent="";setStatus("","");$("#bHint").disabled=$("#bShow").disabled=true;stats();renderList();mineOv();return}
   mi=(i+L.length)%L.length;start(L[mi],{num:`${mi+1} / ${L.length}`,status:L[mi].solved?"푼 퍼즐":""});renderList();
 }
 function setMode(m,noLoad){
