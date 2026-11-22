@@ -177,6 +177,7 @@ footer p{margin:0}
 @media(max-width:900px){.grid{grid-template-columns:minmax(0,560px);}}
 @media(max-width:600px){.nav nav{margin-left:0;width:100%}.nav nav a{padding:8px 10px}.card h3{font-size:26px}.plist{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pz{padding:8px}.pz b{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+.wbar{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.wtag{font-size:12px;font-weight:700;border:1px solid #C4C9DC;border-radius:2px;padding:2px 6px;color:#505A82}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#EFF0F6">
@@ -197,8 +198,8 @@ footer p{margin:0}
   <div class="wrap">
     <div class="head">
       <h1>퍼즐</h1>
-      <div class="modes" id="modes" role="tablist"><button data-m="basic">기본</button><button data-m="daily">오늘</button><button data-m="rated">추천</button><button data-m="theme">테마</button><button data-m="rush">러시</button><button data-m="mine">내 실수</button></div>
-      <select class="tsel" id="themeSel" aria-label="테마" hidden></select>
+      <div class="modes" id="modes" role="tablist"><button data-m="basic">기본</button><button data-m="daily">오늘</button><button data-m="rated">추천</button><button data-m="theme">테마</button><button data-m="weak">약점</button><button data-m="rush">러시</button><button data-m="mine">내 실수</button></div>
+      <select class="tsel" id="themeSel" aria-label="테마" hidden></select><div class="wbar" id="weakBar" hidden></div>
     </div>
     <div class="grid">
       <div class="boardbox" id="boardbox">
@@ -289,7 +290,7 @@ try{const x=JSON.parse(localStorage.getItem("hansu-rated")||"null");if(x)rs=Obje
 const saveRs=()=>{try{localStorage.setItem("hansu-rated",JSON.stringify(rs))}catch(e){}};
 const TH={mateIn1:"1수 메이트",mateIn2:"2수 메이트",mateIn3:"3수 메이트",mateIn4:"4수 메이트",mateIn5:"긴 메이트",backRankMate:"백랭크 메이트",smotheredMate:"스머더드 메이트",anastasiaMate:"아나스타시아 메이트",arabianMate:"아라비안 메이트",hookMate:"훅 메이트",bodenMate:"보덴 메이트",doubleBishopMate:"더블 비숍 메이트",dovetailMate:"도브테일 메이트",
   fork:"포크",pin:"핀",skewer:"스큐어",discoveredAttack:"디스커버드 어택",doubleCheck:"더블 체크",sacrifice:"희생",deflection:"디플렉션",attraction:"어트랙션",hangingPiece:"공짜 기물",trappedPiece:"갇힌 기물",capturingDefender:"수비수 잡기",xRayAttack:"엑스레이",interference:"인터피어런스",clearance:"클리어런스",intermezzo:"중간 수",
-  promotion:"승진",underPromotion:"언더프로모션",advancedPawn:"전진한 폰",enPassant:"앙파상",castling:"캐슬링",exposedKing:"노출된 킹",kingsideAttack:"킹사이드 공격",queensideAttack:"퀸사이드 공격",defensiveMove:"방어",quietMove:"조용한 수",zugzwang:"추크추방",
+  promotion:"승진",advantage:"우위 잡기",crushing:"결정타",equality:"동점 만들기",underPromotion:"언더프로모션",advancedPawn:"전진한 폰",enPassant:"앙파상",castling:"캐슬링",exposedKing:"노출된 킹",kingsideAttack:"킹사이드 공격",queensideAttack:"퀸사이드 공격",defensiveMove:"방어",quietMove:"조용한 수",zugzwang:"추크추방",
   rookEndgame:"룩 엔드게임",pawnEndgame:"폰 엔드게임",queenEndgame:"퀸 엔드게임",bishopEndgame:"비숍 엔드게임",knightEndgame:"나이트 엔드게임",queenRookEndgame:"퀸·룩 엔드게임",endgame:"엔드게임",opening:"오프닝",middlegame:"미들게임"};
 const THEMES=["mix","mateIn1","mateIn2","mateIn3","fork","pin","skewer","discoveredAttack","doubleCheck","sacrifice","deflection","attraction","hangingPiece","trappedPiece","capturingDefender","backRankMate","smotheredMate","promotion","exposedKing","kingsideAttack","defensiveMove","quietMove","zugzwang","opening","middlegame","endgame","rookEndgame","pawnEndgame"];
 $("#themeSel").innerHTML=THEMES.map(t=>`<option value="${t}">${t==="mix"?"전체 테마":TH[t]}</option>`).join("");
@@ -303,7 +304,7 @@ function conv(x){
   for(const u of p.solution){const m=c.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]});if(!m)return null;sol.push(m.san)}
   const th=p.themes||[],mate=th.find(t=>/^mateIn\d/.test(t))||(th.includes("mate")?"mate":null);
   const goal=mate?(mate==="mate"?"메이트":mate.slice(6)+"수 메이트"):th.includes("crushing")?"결정적 우위":th.includes("advantage")?"우위 잡기":th.includes("equality")?"동점 만들기":"최선수";
-  return {fen,last:lastMv,sol,rating:p.rating,id:p.id,title:themeTitle(th),goal,lv:String(p.rating),kind:mate?"mate":"win",url:"https://lichess.org/training/"+p.id};
+  return {fen,last:lastMv,sol,rating:p.rating,id:p.id,th,title:themeTitle(th),goal,lv:String(p.rating),kind:mate?"mate":"win",url:"https://lichess.org/training/"+p.id};
 }
 async function fetchBatch(angle,diff,nb){const r=await fetch(`https://lichess.org/api/puzzle/batch/${angle}?nb=${nb}&difficulty=${diff}`);if(!r.ok)throw new Error(r.status);const j=await r.json();return (j.puzzles||[]).map(conv).filter(Boolean)}
 const Q={key:"",list:[]};
@@ -311,10 +312,30 @@ function rate(win){
   if(CP._rated||mode==="rush")return 0;CP._rated=true;
   const K=rs.n<20?40:20,ex=1/(1+Math.pow(10,(CP.rating-rs.rating)/400)),d=Math.round(K*((win?1:0)-ex));
   rs.rating+=d;rs.n++;if(win){rs.win++;rs.streak++;rs.best=Math.max(rs.best,rs.streak)}else rs.streak=0;
+  if(CP.th){const S=thStat();CP.th.forEach(t=>{if(!TH[t]||/^mateIn|^(short|long|veryLong|oneMove|master|masterVsMaster|superGM)$/.test(t))return;const x=S[t]||(S[t]={n:0,w:0});x.n++;if(win)x.w++});try{localStorage.setItem("hansu-thstat",JSON.stringify(S))}catch(e){}}
   rs.hist.unshift({id:CP.id,t:CP.title,r:CP.rating,w:win,d,url:CP.url});rs.hist=rs.hist.slice(0,30);saveRs();stats();renderList();return d;
 }
 const sgn=d=>(d>0?"+":"")+d;
+/* 약점 모드: 리포트에서 찾은 약점 테마 + 퍼즐에서 자주 틀린 테마를 더 자주 */
+let THS=null;function thStat(){if(!THS){try{THS=JSON.parse(localStorage.getItem("hansu-thstat")||"{}")}catch(e){THS={}}}return THS}
+const WPOOL=["fork","pin","skewer","discoveredAttack","hangingPiece","defensiveMove","endgame","mateIn2","deflection","sacrifice"];
+function weakList(){let R=[];try{R=JSON.parse(localStorage.getItem("hansu-weak")||"null")||[]}catch(e){}
+  const S=thStat(),w=new Map();R.forEach(x=>w.set(x.t,(w.get(x.t)||0)+3));
+  Object.entries(S).forEach(([t,x])=>{if(x.n>=3&&TH[t]){const f=1-x.w/x.n;if(f>=.35)w.set(t,(w.get(t)||0)+f*4)}});
+  if(!w.size)WPOOL.forEach(t=>w.set(t,1));
+  return [...w.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6)}
+function weakBar(){const el=$("#weakBar");if(!el)return;if(mode!=="weak"){el.hidden=true;return}el.hidden=false;
+  el.innerHTML=weakList().map(([t])=>`<span class="wtag">${TH[t]||t}</span>`).join("")}
+const WQ={};
+async function nextWeak(){
+  const L=weakList(),tot=L.reduce((s,x)=>s+x[1],0);let r=Math.random()*tot,t=L[0][0];for(const [k,v] of L){if((r-=v)<=0){t=k;break}}
+  const diff=diffFor(rs.rating),key=t+"|"+diff;
+  if(!WQ[key]||!WQ[key].length){setStatus("","불러오는 중…");try{WQ[key]=await fetchBatch(t,diff,6)}catch(e){setStatus("wrong","퍼즐을 불러오지 못했어요.");return}}
+  if(!WQ[key].length){setStatus("wrong","퍼즐이 없어요.");return}
+  start(WQ[key].shift(),{num:(TH[t]||t)+" · 레이팅 "+rs.rating});weakBar();
+}
 async function nextRated(){
+  if(mode==="weak")return nextWeak();
   const angle=mode==="theme"?$("#themeSel").value:"mix",diff=diffFor(rs.rating),key=angle+"|"+diff;
   if(Q.key!==key){Q.key=key;Q.list=[]}
   if(!Q.list.length){setStatus("","불러오는 중…");try{Q.list=await fetchBatch(angle,diff,12)}catch(e){setStatus("wrong","퍼즐을 불러오지 못했어요.");return}}
@@ -388,9 +409,9 @@ function loadMine(i){
 function setMode(m,noLoad){
   if(R.on&&m!=="rush")rushEnd();
   mode=m;document.querySelectorAll("#modes button").forEach(b=>b.setAttribute("aria-selected",b.dataset.m===m));
-  $("#themeSel").hidden=m!=="theme";$("#fchips").hidden=m!=="basic";rushBar();
+  $("#themeSel").hidden=m!=="theme";weakBar();$("#fchips").hidden=m!=="basic";rushBar();
   $("#bPrev").disabled=!(m==="basic"||m==="mine");$("#bNext").disabled=m==="rush"||m==="daily";$("#bReset").disabled=m==="rush";
-  const tl={basic:"목록",daily:"최근 기록",rated:"최근 기록",theme:"최근 기록",rush:"러시",mine:"내 실수"};$("#lTitle").textContent=tl[m];
+  const tl={basic:"목록",daily:"최근 기록",rated:"최근 기록",theme:"최근 기록",weak:"최근 기록",rush:"러시",mine:"내 실수"};$("#lTitle").textContent=tl[m];
   try{if(m!=="basic")history.replaceState(null,"","#"+m)}catch(e){}
   stats();
   if(noLoad)return;
@@ -521,7 +542,7 @@ const ST_ICON={win:"correct",good:"correct"};
 function setStatus(kind,txt){const s=$("#status");s.className="status "+kind;s.innerHTML=txt&&ST_ICON[kind]?icon(ST_ICON[kind],"sti"):"";if(txt)s.append(txt)}
 function stats(){
   const set=(a,b,c,la,lb,lc)=>{$("#sSolved").textContent=a;$("#sStreak").textContent=b;$("#sBest").textContent=c;$("#l1").textContent=la;$("#l2").textContent=lb;$("#l3").textContent=lc};
-  if(mode==="rated"||mode==="theme")set(rs.rating,rs.n,rs.streak,"레이팅","푼 퍼즐","연속");
+  if((mode==="rated"||mode==="theme"||mode==="weak"))set(rs.rating,rs.n,rs.streak,"레이팅","푼 퍼즐","연속");
   else if(mode==="rush")set(R.score,R.strikes,rushBest[R.len]||0,"점수","실수","최고");
   else if(mode==="daily")set(dly.streak,dly.days,CP&&CP.rating||"–","연속 일수","푼 날","퍼즐 레이팅");
   else if(mode==="mine"){const L=myList();set(L.length,L.filter(x=>x.solved).length,L.length-L.filter(x=>x.solved).length,"전체","푼 퍼즐","남음")}
@@ -590,7 +611,7 @@ function finish(){
   if(mode==="basic"){if(!shown){if(!store.solved.includes(cur))store.solved.push(cur);store.streak++;store.best=Math.max(store.best,store.streak);save()}}
   else if(mode==="daily"){if(!shown&&!failed){dailySolved();stats()}}
   else if(mode==="mine"){if(!shown&&!failed){const L=myList();if(L[mi]){L[mi].solved=true;saveMy(L)}}}
-  else if(mode==="rated"||mode==="theme"){if(!CP._rated){const d=rate(!shown&&!failed);extra=" "+sgn(d)}}
+  else if((mode==="rated"||mode==="theme"||mode==="weak")){if(!CP._rated){const d=rate(!shown&&!failed);extra=" "+sgn(d)}}
   else if(mode==="rush"){R.score++;$("#pnum").textContent="점수 "+R.score;stats();timer=setTimeout(rushNext,350)}
   setStatus(shown?"":"win",shown?"정답: "+P().sol.join(" "):"정답"+extra);
   if(mode!=="rush"&&!g.game_over())cont(shown?"정답: "+P().sol.join(" "):"정답"+extra);
@@ -617,7 +638,7 @@ function commit(from,to,pr,anim){
   if(!ok){
     badSq=to;phase="wrong";render();if(anim)animate(from,to);
     play("wrong",.12);failed=true;
-    let extra="";if((mode==="rated"||mode==="theme")&&!CP._rated)extra=" "+sgn(rate(false));
+    let extra="";if(((mode==="rated"||mode==="theme"||mode==="weak"))&&!CP._rated)extra=" "+sgn(rate(false));
     setStatus("wrong",`${m.san} 오답${extra}`);
     if(mode==="basic"&&store.streak){store.streak=0;save();stats()}
     if(mode==="rush"){const over=rushStrike();timer=setTimeout(()=>{if(!over)rushNext()},700);return}
@@ -706,7 +727,7 @@ $("#bShow").onclick=()=>{
   $("#promo").classList.remove("on");
   shown=true;phase="show";sel=hintSq=premove=null;
   if(mode==="basic"&&store.streak){store.streak=0;save();stats()}
-  if((mode==="rated"||mode==="theme")&&!CP._rated)rate(false);
+  if(((mode==="rated"||mode==="theme"||mode==="weak"))&&!CP._rated)rate(false);
   setStatus("hint","정답: "+P().sol.join(" "));
   const step=()=>{if(ply>=P().sol.length){finish();return}const r=g.move(P().sol[ply]);last={from:r.from,to:r.to};bdg=r.color===orient?{sq:r.to,ic:"best"}:null;ply++;play(moveSound(r),0,r.color!==orient);render();animate(r.from,r.to);timer=setTimeout(step,750)};
   render();timer=setTimeout(step,300);
@@ -716,14 +737,14 @@ $("#bAna").onclick=()=>{if(!CP)return;const t=new Chess(P().fen),mv=g.history();
   window.open(`analysis.html?pgn=${encodeURIComponent(pgn)}&me=${orient}&ply=0&t=${encodeURIComponent(P().title||"퍼즐")}`,"_blank")};
 $("#bReset").onclick=()=>{if(mode==="basic")load(cur);else if(mode!=="rush"){const r=CP._rated;start(CP,lastInfo);CP._rated=r}};
 $("#bPrev").onclick=()=>{if(mode==="basic")load(cur-1);else if(mode==="mine")loadMine(mi-1)};
-$("#bNext").onclick=()=>{if(mode==="basic")load(cur+1);else if(mode==="mine")loadMine(mi+1);else if(mode==="rated"||mode==="theme")nextRated()};
+$("#bNext").onclick=()=>{if(mode==="basic")load(cur+1);else if(mode==="mine")loadMine(mi+1);else if((mode==="rated"||mode==="theme"||mode==="weak"))nextRated()};
 function mini(p){
   const t=new Chess(p.fen),o=t.turn();
   return order(o).map(sq=>{const q=t.get(sq);return `<div class="${isDark(sq)?"d":""}">${q?`<i class="pc ${q.color}${q.type}"></i>`:""}</div>`}).join("");
 }
 const minis=PUZ.map(mini);
 function renderList(){
-  if(mode==="rated"||mode==="theme"||mode==="daily"){$("#plist").innerHTML=rs.hist.length?`<table class="htab">${rs.hist.map(h=>`<tr><td>${h.url?`<a href="${h.url}" target="_blank" rel="noopener">${h.t}</a>`:h.t}</td><td>${h.r}</td><td>${h.w?"성공":"실패"}</td><td class="${h.d>=0?"up":"dn"}">${sgn(h.d)}</td></tr>`).join("")}</table>`:"<p>아직 기록이 없어요.</p>";return}
+  if((mode==="rated"||mode==="theme"||mode==="weak")||mode==="daily"){$("#plist").innerHTML=rs.hist.length?`<table class="htab">${rs.hist.map(h=>`<tr><td>${h.url?`<a href="${h.url}" target="_blank" rel="noopener">${h.t}</a>`:h.t}</td><td>${h.r}</td><td>${h.w?"성공":"실패"}</td><td class="${h.d>=0?"up":"dn"}">${sgn(h.d)}</td></tr>`).join("")}</table>`:"<p>아직 기록이 없어요.</p>";return}
   if(mode==="rush"){$("#plist").innerHTML="<p>"+[["180","3분"],["300","5분"],["0","생존"]].map(([k,l])=>`${l} 최고 ${rushBest[k]||0}점`).join(" · ")+"</p>";return}
   if(mode==="mine"){const L=myList();$("#plist").innerHTML=L.map((p,i)=>`<a class="pz${i===mi?" cur":""}" href="#mine" data-mi="${i}"><div class="mini" aria-hidden="true">${mini(p)}</div><b>${p.title}<button class="del" data-del="${i}" aria-label="삭제">삭제</button></b><div class="meta"><span>${p.goal}</span>${p.solved?icon("correct","ok"):""}</div></a>`).join("")||"<p>아직 없어요.</p>";return}
   $("#plist").innerHTML=PUZ.map((p,i)=>{
@@ -739,7 +760,7 @@ $("#plist").addEventListener("click",e=>{
 });
 const fromHash=()=>{
   const h=location.hash.slice(1);
-  if(["daily","rated","theme","rush","mine"].includes(h)){if(mode!==h||!g)setMode(h);return true}
+  if(["daily","rated","theme","weak","rush","mine"].includes(h)){if(mode!==h||!g)setMode(h);return true}
   const m=/^p(\d+)$/.exec(h);if(m){const i=+m[1]-1;if(i>=0&&i<N){if(i!==cur||!g||mode!=="basic")load(i,true);document.getElementById("play").scrollIntoView();return true}}return false};
 window.addEventListener("hashchange",fromHash);
 stats();soundBtn();

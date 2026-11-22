@@ -45,6 +45,41 @@ function openSec(L){
   return `<section class="rsec"><h3 class="rh">오프닝</h3><div class="rcols">${col("w")}${col("b")}</div></section>`;
 }
 function pick(c,v){const o=OTHER[c+"|"+v];return o?LIST.filter(g=>o.has(g.id)):LIST.filter(g=>g.me===c&&varOf(g)===v)}
+/* 0. 변화 추이: 월별 승률·레이팅·정확도, 지난달 대비 */
+function trendSec(L){
+  const mk=g=>{const d=new Date(g.end*1000);return d.getFullYear()+"-"+pad(d.getMonth()+1)};
+  const M=new Map();L.slice().sort((a,b)=>a.end-b.end).forEach(g=>{const k=mk(g);if(!M.has(k))M.set(k,[]);M.get(k).push(g)});
+  const ms=[...M.keys()].sort();if(ms.length<2)return "";
+  const tc=Object.keys(TC).map(k=>[k,L.filter(g=>g.tclass===k&&g.rated).length]).sort((a,b)=>b[1]-a[1])[0][0];
+  const R=window.BatchAPI?BatchAPI.results(L):[],RA=new Map(R.map(x=>[x.g.id,x.r.acc]));
+  const accOf=g=>g.acc&&g.acc.me!=null?g.acc.me:RA.has(g.id)?RA.get(g.id):null;
+  const rows=ms.map(k=>{const G=M.get(k),r=rec(G),A=G.map(accOf).filter(v=>v!=null),T=G.filter(g=>g.tclass===tc&&g.rated);
+    return {k,n:G.length,s:r.s,acc:A.length>=3?A.reduce((a,b)=>a+b,0)/A.length:null,an:A.length,rt:T.length?T[T.length-1].my.rating:null,bl:null}});
+  const cur=rows[rows.length-1],prv=rows[rows.length-2];
+  const dlt=(a,b,f,u)=>a==null||b==null?"":`<em class="${a-b>=0?"up":"dn"}">${a-b>=0?"+":""}${f(a-b)}${u||""}</em>`;
+  const W=Math.max(300,Math.min(1200,($("#pRep")&&$("#pRep").clientWidth)||640)),H=150,pad2=28,x=i=>pad2+i*(W-pad2*2)/Math.max(1,rows.length-1);
+  const rts=rows.map(r=>r.rt).filter(v=>v!=null),rmin=Math.min(...rts)-20,rmax=Math.max(...rts)+20,yr=v=>12+(H-40)*(1-(v-rmin)/Math.max(1,rmax-rmin));
+  const ys=v=>12+(H-40)*(1-v);
+  let lr="",ls="",la="",dots="";
+  rows.forEach((r,i)=>{if(r.rt!=null){lr+=(lr?" L":"M")+x(i).toFixed(1)+","+yr(r.rt).toFixed(1);dots+=`<circle cx="${x(i)}" cy="${yr(r.rt)}" r="3" fill="#242942"/>`}
+    ls+=(ls?" L":"M")+x(i).toFixed(1)+","+ys(r.s).toFixed(1);
+    if(r.acc!=null)la+=(la?" L":"M")+x(i).toFixed(1)+","+ys(r.acc/100).toFixed(1)});
+  const lab=rows.map((r,i)=>(rows.length<=12||i%2===0||i===rows.length-1)?`<text x="${x(i)}" y="${H-6}" text-anchor="middle">${r.k.slice(2).replace("-",".")}</text>`:"").join("");
+  const svg=`<svg class="tsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="월별 추이">
+    <line x1="${pad2}" x2="${W-pad2}" y1="${ys(.5)}" y2="${ys(.5)}" stroke="#C4C9DC" stroke-dasharray="3 3"/>
+<text x="${pad2-4}" y="${ys(.5)+4}" text-anchor="end">50%</text>
+    <path d="${ls}" fill="none" stroke="#5C54D6" stroke-width="2.5"/>${rows.map((r,i)=>`<circle cx="${x(i)}" cy="${ys(r.s)}" r="3" fill="#5C54D6"/>`).join("")}<text x="${x(rows.length-1)}" y="${ys(cur.s)-8}" text-anchor="middle" class="tv">${P(cur.s)}</text>${la?`<path d="${la}" fill="none" stroke="#6A80B4" stroke-width="2" stroke-dasharray="5 4"/>`:""}
+    ${lab}</svg>
+    <svg class="tsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="월별 레이팅"><path d="${lr}" fill="none" stroke="#242942" stroke-width="2.5"/>${dots}
+    ${rows.map((r,i)=>r.rt!=null&&(i===0||i===rows.length-1||r.rt===Math.max(...rts)||r.rt===Math.min(...rts))?`<text x="${x(i)}" y="${yr(r.rt)-8}" text-anchor="middle" class="tv">${r.rt}</text>`:"").join("")}${lab}</svg>`;
+  return `<section class="rsec"><h3 class="rh">변화 추이</h3>
+    <div class="rnums"><div><b>${P(cur.s)}</b><small>이번 달 승률 ${dlt(cur.s*100,prv.s*100,v=>Math.round(v),"%p")}<br>${cur.n}판</small></div>
+      <div><b>${cur.rt??"–"}</b><small>${window.tcIcon(tc)}${TC[tc]} 레이팅 ${dlt(cur.rt,prv.rt,v=>v)}</small></div>
+      <div><b>${cur.acc!=null?cur.acc.toFixed(1):"–"}</b><small>이번 달 정확도 ${dlt(cur.acc,prv.acc,v=>v.toFixed(1))}<br>${cur.an}판 기준</small></div></div>
+    <div class="tleg"><span><i style="background:#5C54D6"></i>승률</span><span><i class="dash"></i>정확도</span><span class="tcap">월별</span></div>${svg.split("</svg>")[0]}</svg>
+    <div class="tleg"><span><i style="background:#242942"></i>${TC[tc]} 레이팅</span></div>${svg.split("</svg>")[1]}</svg>
+    ${S.per===3?`<div class="racts"><button class="ract" data-per="12">1년으로 보기</button></div>`:""}</section>`;
+}
 /* 1-2. 오프닝 공부: 자주 두는 오프닝마다 정석에서 벗어나는 곳, 이어서 볼 정석, 약한 변화 */
 const MC=new Map();let MQ=Promise.resolve();
 function masters(path){const c=new Chess();for(const m of path)c.move(m);const fen=c.fen();if(MC.has(fen))return MC.get(fen);
@@ -145,9 +180,34 @@ function engBody(){
   const pz=R.flatMap(x=>x.r.pz||[]);
   const worst=R.flatMap(x=>x.r.worst.map(w=>({g:x.g,w}))).sort((a,b)=>b.w.loss-a.w.loss).slice(0,5);AUTO.worst=worst;AUTO.pz=pz;
   return prog+`<div class="rnums"><div><b>${R.length}</b><small>분석한 판</small></div><div><b>${f1(mean(R.map(x=>x.r.acc)))}</b><small>내 평균 정확도</small></div><div><b>${f1(mean(R.map(x=>x.r.opAcc)))}</b><small>상대 평균</small></div><div><b>${per("blunder").toFixed(1)}</b><small>판당 블런더</small></div><div><b>${per("mistake").toFixed(1)}</b><small>판당 실수</small></div><div><b>${per("miss").toFixed(1)}</b><small>판당 놓친 기회</small></div></div>
+    ${weakHtml(R,wph,per)}
+    ${blownHtml(R)}
     <h4>국면별 정확도</h4>${bar("오프닝",wph("o"))}${bar("미들게임",wph("m"))}${bar("엔드게임",wph("e"))}
     <h4>큰 실수</h4>${worst.map((x,i)=>{const k=x.w.k,no=Math.floor(k/2)+1;return `<div class="og"><span class="res ${x.g.res}">${RL[x.g.res]||"–"}</span><span class="on">vs ${esc(x.g.op.name)} · <b>${no}${k%2?"...":"."} ${esc(x.w.san)}</b> <em>${x.w.c==="blunder"?"블런더":x.w.c==="miss"?"놓침":"실수"}</em></span><span class="od">−${x.w.loss}%</span><button class="ab" data-w="${i}">보기</button></div>`}).join("")||'<p class="empty">없음</p>'}
     <div class="racts" style="margin-top:14px">${pz.length?`<button class="ract" data-save="1">내 실수 ${pz.length}개 퍼즐로 풀기</button>`:""}${n<50&&L.length>n?`<button class="ract" data-more="50">50판으로 늘리기</button>`:""}${n<100&&n>=50&&L.length>n?`<button class="ract" data-more="100">100판으로 늘리기</button>`:""}</div>`;
+}
+/* 약점 퍼즐 테마: 엔진 진단 결과에서 고름 (퍼즐 페이지 약점 모드가 씀) */
+const THK={opening:"오프닝",middlegame:"미들게임",endgame:"엔드게임",advantage:"우위 잡기",crushing:"결정타",hangingPiece:"공짜 기물",defensiveMove:"방어",kingsideAttack:"킹사이드 공격",fork:"포크"};
+function weakHtml(R,wph,per){
+  if(R.length<5)return "";
+  const T=[],add=t=>{if(!T.includes(t))T.push(t)};
+  const ph=[["opening",wph("o")],["middlegame",wph("m")],["endgame",wph("e")]].filter(x=>x[1]!=null).sort((a,b)=>a[1]-b[1]);
+  if(ph.length)add(ph[0][0]);
+  if(per("blunder")>=.8){add("hangingPiece");add("defensiveMove")}
+  if(per("miss")>=.5){add("advantage");add("fork")}
+  const V=R.filter(x=>x.r.v),hi=V.filter(x=>x.r.high),hw=hi.filter(x=>x.g.res==="win");if(hi.length>=3&&hw.length/hi.length<.7)add("crushing");
+  const lo=V.filter(x=>x.r.low),ls=lo.filter(x=>x.r.saved);if(lo.length>=3&&ls.length/lo.length<.2)add("defensiveMove");
+  const sh=LIST.filter(g=>g.res==="loss"&&g._o&&g._o.len<=25).length/Math.max(1,LIST.filter(g=>g.res==="loss").length);if(sh>=.35)add("kingsideAttack");
+  const W=T.slice(0,4).map(t=>({t}));try{localStorage.setItem("hansu-weak",JSON.stringify(W))}catch(e){}
+  return `<h4>약점 퍼즐</h4><div class="racts">${W.map(x=>`<span class="rtag">${THK[x.t]||x.t}</span>`).join("")}<a class="ract" href="puzzle.html#weak">풀기</a></div>`;
+}
+function blownHtml(R){
+  const V=R.filter(x=>x.r.v),hi=V.filter(x=>x.r.high),hw=hi.filter(x=>x.g.res==="win"),lo=V.filter(x=>x.r.low),ls=lo.filter(x=>x.r.saved);
+  const B=V.filter(x=>x.r.blown).sort((a,b)=>b.g.end-a.g.end);AUTO.blown=B;
+  if(!V.length)return "";
+  return `<div class="rnums"><div><b>${hi.length?P(hw.length/hi.length):"–"}</b><small>유리했던 판 마무리<br>${hw.length}/${hi.length}판</small></div><div><b>${lo.length?P(ls.length/lo.length):"–"}</b><small>불리했던 판 버팀<br>${ls.length}/${lo.length}판</small></div></div>
+    <h4>이길 판 놓친 판 ${B.length?`<em>${B.length}판</em>`:""}</h4>${B.length?B.slice(0,6).map((x,i)=>{const b=x.r.blown,no=Math.floor(b.k/2)+1;
+      return `<div class="og bw"><span class="res ${x.g.res}">${RL[x.g.res]||"–"}</span><span class="on">vs ${esc(x.g.op.name)} · 승률 ${b.w}%에서 <b>${no}${b.k%2?"...":"."} ${esc(b.san)}</b></span><button class="ab" data-bw="${i}">게임</button><a class="ab pri2" href="play.html?fen=${encodeURIComponent(b.fen)}&me=${x.g.me}&lvl=8&t=${encodeURIComponent("다시 이겨 보기 · 엔진 레벨 9")}">다시 두기</a></div>`}).join(""):'<p class="empty">분석한 판 중엔 없어요.</p>'}`;
 }
 function pressTxt(){
   const el=$("#rPress");if(!el||!window.BatchAPI)return;const R=BatchAPI.results(LIST.slice(0,AUTO.n||ENGN));
@@ -195,6 +255,7 @@ function draw(L){
   const el=$("#pRep"),R=rec(L),p=S.profile||{};
   const rt=Object.keys(TC).map(k=>{const a=L.filter(g=>g.tclass===k&&g.rated).sort((x,y)=>x.end-y.end);if(a.length<5)return "";const d=a[a.length-1].my.rating-a[0].my.rating;return `<span>${window.tcIcon(k)}${a[a.length-1].my.rating} <em class="${d>=0?"up":"dn"}">${d>=0?"+":""}${d}</em></span>`}).join("");
   el.innerHTML=`<div class="rhead"><div><b>${esc(p.username||S.user)}</b><small>${L.length}판 · ${recTxt(R)} · 승률 ${P(R.s)}</small></div><div class="rrt">${rt}</div><button class="ract" id="rShare">링크 복사</button></div>
+    ${trendSec(L)}
     ${openSec(L)}
     ${studySec(L)}
     <section class="rsec"><h3 class="rh">자꾸 두는 안 좋은 수</h3><p class="rsub">세 번 이상 둔 내 수 중에서 엔진이 0.6 이상 손해라고 보는 수. 평가는 내 쪽 기준이에요.</p><div id="rScan">${scanBody()}</div></section>
@@ -202,13 +263,15 @@ function draw(L){
     <section class="rsec"><h3 class="rh">엔진 진단</h3><div id="rEngB">${engBody()}</div></section>`;
   pressTxt();fillStudy(RT);
   el.onclick=async e=>{
-    const b=e.target.closest("[data-var],[data-morevar],[data-gid],[data-badg],[data-w],[data-save],[data-more],#rShare");if(!b)return;
+    const b=e.target.closest("[data-per],[data-var],[data-morevar],[data-gid],[data-badg],[data-bw],[data-w],[data-save],[data-more],#rShare");if(!b)return;
+    if(b.dataset.per){const c=document.querySelector(`#fPer [data-v="${b.dataset.per}"]`);if(c)c.click();return}
     if(b.dataset.var){const [c,...v]=b.dataset.var.split("|"),id="rx-"+b.dataset.var.replace(/[^\w가-힣]/g,"_"),x=document.getElementById(id);if(!x)return;
       if(x.hidden){x.innerHTML=varPanel(c,v.join("|"));x.hidden=false;b.classList.add("on")}else{x.hidden=true;b.classList.remove("on")}return}
     if(b.dataset.morevar){const [c,...v]=b.dataset.morevar.split("|"),G=pick(c,v.join("|"));b.previousElementSibling.innerHTML=G.map(gameRow).join("");b.remove();return}
     if(b.dataset.gid){const g=LIST.find(x=>x.id===b.dataset.gid);if(g)window.openAnalysis(g);return}
     if(b.dataset.badg!=null){const x=AUTO.scan.found[+b.dataset.badg],box=$("#rbg"+b.dataset.badg);if(!box)return;
       if(box.hidden){const ids=new Set(x.ids);box.innerHTML=LIST.filter(g=>ids.has(g.id)).map(gameRow).join("");box.hidden=false}else box.hidden=true;return}
+    if(b.dataset.bw!=null){const x=AUTO.blown[+b.dataset.bw];if(x)window.openAnalysis(x.g,x.r.blown.k);return}
     if(b.dataset.w!=null){const x=AUTO.worst[+b.dataset.w];if(x)window.openAnalysis(x.g,x.w.k+1);return}
     if(b.dataset.save){let M=[];try{M=JSON.parse(localStorage.getItem("hansu-mypuz")||"[]")}catch(_){}const ids=new Set(M.map(x=>x.id));(AUTO.pz||[]).forEach(q=>{if(!ids.has(q.id))M.push(q)});try{localStorage.setItem("hansu-mypuz",JSON.stringify(M))}catch(_){}location.href="puzzle.html#mine";return}
     if(b.dataset.more){AUTO.n=+b.dataset.more;upd();const tok=++AUTO.tok;BatchAPI.stop();AUTO.p=AUTO.p.then(()=>tok===AUTO.tok?auto(LIST,tok):null).catch(()=>{});return}

@@ -21,7 +21,13 @@ function summarize(X,g){
     if(["blunder","mistake","miss"].includes(c)){const wb=X.winPct(X.ev[k]),wa=X.winPct(X.ev[k+1]);worst.push({k,loss:Math.round(me==="w"?wb-wa:wa-wb),san:m.san,c})}
   });
   const avg=a=>a.length?[+(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1),a.length]:[null,0];
-  return {id:g.id,end:g.end,res:g.res,tclass:g.tclass,acc:gacc(accMe),opAcc:gacc(accOp),ph:{o:avg(ph.o),m:avg(ph.m),e:avg(ph.e)},pr:{p:avg(pr.p),n:avg(pr.n),pb:pr.pb,nb:pr.nb},cnt,worst:worst.sort((a,b)=>b.loss-a.loss).slice(0,3),pz:X.puzzles||[],moves:accMe.length};
+  /* 이길 판 놓침: 이기지 못한 판에서 내 차례에 승률 85% 이상이던 마지막 자리 */
+  let blown=null;if(g.res!=="win")for(let k=0;k<X.fens.length;k++){if(turnOf(X.fens[k])!==me||X.ev[k]==null||!X.moves[k])continue;const w=X.winPct(X.ev[k]),wm=me==="w"?w:100-w;if(wm>=85)blown={k,fen:X.fens[k],w:Math.round(wm),san:X.moves[k]?X.moves[k].san:""}}
+  /* 질 판 버팀: 내 차례에 승률 15% 이하였는데 지지 않은 판 */
+  let saved=false;if(g.res!=="loss")for(let k=0;k<X.fens.length;k++){if(turnOf(X.fens[k])!==me||X.ev[k]==null)continue;const w=X.winPct(X.ev[k]),wm=me==="w"?w:100-w;if(wm<=15){saved=true;break}}
+  let low=false;for(let k=0;k<X.fens.length;k++){if(turnOf(X.fens[k])!==me||X.ev[k]==null)continue;const w=X.winPct(X.ev[k]),wm=me==="w"?w:100-w;if(wm<=15){low=true;break}}
+  let high=false;for(let k=0;k<X.fens.length;k++){if(turnOf(X.fens[k])!==me||X.ev[k]==null)continue;const w=X.winPct(X.ev[k]),wm=me==="w"?w:100-w;if(wm>=85){high=true;break}}
+  return {v:2,blown,saved,low,high,id:g.id,end:g.end,res:g.res,tclass:g.tclass,acc:gacc(accMe),opAcc:gacc(accOp),ph:{o:avg(ph.o),m:avg(ph.m),e:avg(ph.e)},pr:{p:avg(pr.p),n:avg(pr.n),pb:pr.pb,nb:pr.nb},cnt,worst:worst.sort((a,b)=>b.loss-a.loss).slice(0,3),pz:X.puzzles||[],moves:accMe.length};
 }
 window.renderBatch=function(list){
   loadRes();
@@ -34,7 +40,7 @@ window.renderBatch=function(list){
   out(L);
 };
 async function run(L){
-  const T=L.slice(0,B.n),todo=T.filter(g=>!B.res[g.id]);B.running=true;$("#bGo").textContent="멈추기";
+  const T=L.slice(0,B.n),todo=T.filter(g=>!B.res[g.id]||!B.res[g.id].v);B.running=true;$("#bGo").textContent="멈추기";
   for(let i=0;i<todo.length&&B.running;i++){
     const g=todo[i],pr=$("#bProg");
     const X=await window.batchAnalyse(g,"go depth 11 movetime 250",(a,b)=>{const p=$("#bProg");if(p)p.textContent=`${i+1}/${todo.length}판 · ${a}/${b}수`},()=>B.running);
@@ -87,7 +93,7 @@ window.BatchAPI={
   running:()=>B.running,
   stop(){B.running=false},
   async ensure(games,onProg){
-    loadRes();const todo=games.filter(g=>!B.res[g.id]&&(!g.rules||g.rules==="chess"));B.running=true;
+    loadRes();const todo=games.filter(g=>(!B.res[g.id]||!B.res[g.id].v)&&(!g.rules||g.rules==="chess"));B.running=true;
     for(let i=0;i<todo.length&&B.running;i++){
       const g=todo[i];const X=await window.batchAnalyse(g,"go depth 11 movetime 250",(a,b)=>{if(onProg)onProg(i,todo.length,a,b)},()=>B.running);
       if(!B.running)break;if(X){B.res[g.id]=summarize(X,g);saveRes()}

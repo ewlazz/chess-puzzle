@@ -82,7 +82,8 @@ function moveList(){
 function save(){try{localStorage.setItem("hansu-game",JSON.stringify(on?{pgn:g.pgn(),me,lvl,base,inc,clock}:null))}catch(e){}}
 function startGame(resume){
   clearInterval(iv);eTok++;premove=sel=null;marks.clear();circ.clear();result=null;
-  if(resume){g=new Chess();g.load_pgn(resume.pgn);me=resume.me;lvl=resume.lvl;base=resume.base;inc=resume.inc;clock=resume.clock}
+  if(resume&&resume.fen){g=new Chess(resume.fen);me=resume.me;lvl=resume.lvl;base=0;inc=0;clock={w:0,b:0}}
+  else if(resume){g=new Chess();g.load_pgn(resume.pgn);me=resume.me;lvl=resume.lvl;base=resume.base;inc=resume.inc;clock=resume.clock}
   else{g=new Chess();me=pref.col==="r"?(Math.random()<.5?"w":"b"):pref.col;lvl=pref.lvl;const [b,i]=String(pref.tc).split("+").map(Number);base=b||0;inc=i||0;clock={w:base,b:base};
     try{localStorage.setItem("hansu-play",JSON.stringify(pref))}catch(e){}play("start")}
   orient=me;on=true;thinking=false;
@@ -137,7 +138,7 @@ function finish(res,how){
 }
 function analyse(){
   const r=result||{res:"",how:""},h=g.history().length;
-  const pgn=`[White "${me==="w"?"나":"Stockfish 레벨 "+(lvl+1)}"]\n[Black "${me==="b"?"나":"Stockfish 레벨 "+(lvl+1)}"]\n[Result "${g.in_checkmate()?(g.turn()==="w"?"0-1":"1-0"):r.res==="draw"?"1/2-1/2":r.res==="win"?(me==="w"?"1-0":"0-1"):r.res==="loss"?(me==="w"?"0-1":"1-0"):"*"}"]\n\n`+g.pgn({max_width:0}).replace(/^\[[^\]]*\]\s*/gm,"");
+  const pgn=`[White "${me==="w"?"나":"Stockfish 레벨 "+(lvl+1)}"]\n[Black "${me==="b"?"나":"Stockfish 레벨 "+(lvl+1)}"]\n[Result "${g.in_checkmate()?(g.turn()==="w"?"0-1":"1-0"):r.res==="draw"?"1/2-1/2":r.res==="win"?(me==="w"?"1-0":"0-1"):r.res==="loss"?(me==="w"?"0-1":"1-0"):"*"}"]\n${g.header().FEN?`[SetUp "1"]\n[FEN "${g.header().FEN}"]\n`:""}\n`+g.pgn({max_width:0}).replace(/^\[[^\]]*\]\s*/gm,"");
   if(!h)return;
   window.openAnalysis({id:"play",url:"",pgn,tc:"",rules:"chess",me,res:r.res,how:r.how,my:{name:"나",rating:""},op:{name:"Stockfish 레벨 "+(lvl+1),rating:""},acc:null,title:`나 vs Stockfish 레벨 ${lvl+1}${r.how?" · "+r.how:""}`});
 }
@@ -196,5 +197,9 @@ window.addEventListener("pointerup",e=>{
 /* 이어 두기 */
 let saved=null;try{saved=JSON.parse(localStorage.getItem("hansu-game")||"null")}catch(e){}
 lvl=pref.lvl;orient=pref.col==="b"?"b":"w";render();
-if(saved&&saved.pgn!=null)startGame(saved);
+const qs=new URL(location.href).searchParams,qf=qs.get("fen");
+if(qf){let ok=true;try{ok=new Chess().validate_fen(qf).valid}catch(e){}
+  if(ok){history.replaceState(null,"",location.pathname);const t=qs.get("t");startGame({fen:qf,me:qs.get("me")==="b"?"b":"w",lvl:Math.max(0,Math.min(9,+(qs.get("lvl")||8)))});
+    if(t){const c=document.createElement("p");c.className="pchal";c.textContent=t;$("#pmv").parentNode.insertBefore(c,$("#pmv").parentNode.firstChild)}}}
+else if(saved&&saved.pgn!=null)startGame(saved);
 }
