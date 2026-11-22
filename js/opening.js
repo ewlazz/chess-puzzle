@@ -41,7 +41,7 @@ function render(){
 }
 let topArrows=[];
 function drawArrows(){let s="";
-  if(DR.on||(QZ&&QZ.on));
+  if(DR.on||(QZ&&QZ.on)){const a=stGuideArrow();if(a)s+=arrow(a.from,a.to,"#5C54D6",.85)}
   else if(MODE==="study"){const A=ST.cur?stArrows():[];A.slice().reverse().forEach(a=>{s+=a.main?arrow(a.from,a.to,"#5C54D6",.85):arrow(a.from,a.to,"#242942",.6)})}
   else topArrows.slice().reverse().forEach((a,i,arr)=>{s+=arrow(a.from,a.to,"#5C54D6",i===arr.length-1?.85:.4)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
 /* 저장 (내 오프닝) */
@@ -197,8 +197,8 @@ function stTop(){const el=$("#stTop");
 function study(){
   const o=stObj(),el=$("#tStudy"),P=stProg();if(!o){el.innerHTML='<p class="cnt">없는 오프닝이에요.</p>';return}
   const t=o.trunk.split(" "),row=(l)=>{const mv=stFull(o,l),ps=stPos(mv,mv.length),key=o.id+"/"+(l?l.id:"_"),pr=P[key],on=ST.cur&&ST.cur.key===key;
-    const st=l?(pr?(pr.ok?"외움":`연습 ${pr.n}번`):"아직"):"";
-    return `<div class="ritem${on?" on":""}" data-sv="${l?l.id:"_"}">${miniBoard(ps.fen,o.side,ps.hl)}<div class="rt1">${l?esc(l.ko):"공통 수순"}${l&&l===o.lines[0]?'<span class="bkt">메인</span>':""}${l&&l.trap?'<span class="bkt">함정</span>':""}</div><div class="rt2">${l?esc(l.sub):`${Math.ceil(t.length/2)}.${t[t.length-1]}까지`}</div><div class="rt3">${st}</div>${l?`<button class="chip rgo" data-sd="${l.id}">연습</button>`:""}</div>`};
+    const st=pr?(pr.ok?"외움":`연습 ${pr.n}번`):"아직";
+    return `<div class="ritem${on?" on":""}" data-sv="${l?l.id:"_"}">${miniBoard(ps.fen,o.side,ps.hl)}<div class="rt1">${l?esc(l.ko):"공통 수순"}${l&&l===o.lines[0]?'<span class="bkt">메인</span>':""}${l&&l.trap?'<span class="bkt">함정</span>':""}</div><div class="rt2">${l?esc(l.sub):`${Math.ceil(t.length/2)}.${t[t.length-1]}까지`}</div><div class="rt3">${st}</div><button class="chip rgo" data-sd="${l?l.id:"_"}">연습</button></div>`};
   el.innerHTML=`<div class="stlist">${row(null)}${o.lines.map(row).join("")}</div><p class="cnt" style="margin-top:10px">줄을 누르면 보드에서 한 수씩 볼 수 있어요. ← → 키로 넘겨요.</p>`;
 }
 function stSet(o,l){const mv=stFull(o,l);ST.cur={key:o.id+"/"+(l?l.id:"_"),o,l,mv,notes:stNotes(o,l),name:l?l.ko:"공통 수순"}}
@@ -206,12 +206,19 @@ function stView(o,l,at,noScroll){stSet(o,l);DR.on=false;if(QZ)QZ.on=false;orient
   if(tab!=="study")showTab("study");else study();refresh();
   if(!noScroll&&innerWidth<=980){const hh=parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hh"))||64;scrollTo({top:$("#ob8").getBoundingClientRect().top+scrollY-hh-8,behavior:"smooth"})}}
 function stDrill(o,l){stSet(o,l);if(QZ)QZ.on=false;
-  DR={on:true,color:o.side,hits:0,miss:0,busy:false,msg:"내 차례예요.",rep:null,prefix:ST.cur.mv,study:ST.cur.key};line=[];idx=0;orient=o.side;showTab("drill");refresh();dStep()}
+  DR={on:true,color:o.side,hits:0,miss:0,busy:false,msg:"",rep:null,prefix:ST.cur.mv,study:ST.cur.key,guide:l?stBase(o,ST.cur.mv):0,free:false};line=[];idx=0;orient=o.side;showTab("drill");refresh();dStep()}
+/* 연습: 공통 수순(갈라지기 전)은 화살표로 알려 주고, 갈라지는 자리부터 직접 */
+function stGuideArrow(){if(!DR.on||!DR.study||DR.busy||idx>=DR.guide||idx!==line.length)return null;const g=game();if(g.turn()!==DR.color)return null;const m=g.moves({verbose:true}).find(z=>z.san===DR.prefix[idx]);return m?{from:m.from,to:m.to}:null}
+function stGuide(op){const pre=op?`상대: ${op} · `:"";
+  if(idx<DR.guide)dMsg(pre+"화살표대로 두세요.","");
+  else if(!DR.free){DR.free=true;dMsg(pre+(DR.guide?"여기서 갈라져요. 이제부터 직접 두세요.":"처음부터 직접 두세요."),"go")}
+  else dMsg(pre+"내 차례예요.","");
+  drawArrows()}
 function stDone(){const P=stProg(),k=DR.study,p=P[k]||{n:0,ok:false};p.n++;if(!DR.miss)p.ok=true;p.t=Date.now();P[k]=p;stSaveP(P);DR.on=false;
   $("#tDrill").innerHTML=`<div class="pr"><div class="prm ${DR.miss?"":"good"}">${DR.miss?`끝까지 왔어요. 틀림 ${DR.miss}번`:"한 번도 안 틀렸어요. 외움으로 표시했어요."}</div><div class="racts"><button class="bgo" data-stre="1">다시</button><button class="chip" data-stbk="1">${MODE==="study"?"변화 목록":"공부로"}</button></div></div>`;refresh()}
-$("#tDrill").addEventListener("click",e=>{if(e.target.closest("[data-stre]")&&ST.cur&&ST.cur.l)stDrill(ST.cur.o,ST.cur.l);else if(e.target.closest("[data-stbk]")){DR.on=false;showTab("study");refresh()}});
+$("#tDrill").addEventListener("click",e=>{if(e.target.closest("[data-stre]")&&ST.cur)stDrill(ST.cur.o,ST.cur.l);else if(e.target.closest("[data-stbk]")){DR.on=false;showTab("study");refresh()}});
 $("#tStudy").onclick=e=>{const b=e.target.closest("[data-sd],[data-sv]");if(!b)return;const o=stObj();if(!o)return;
-  if(b.dataset.sd){stDrill(o,o.lines.find(l=>l.id===b.dataset.sd));return}
+  if(b.dataset.sd){stDrill(o,b.dataset.sd==="_"?null:o.lines.find(l=>l.id===b.dataset.sd));return}
   stView(o,b.dataset.sv==="_"?null:o.lines.find(l=>l.id===b.dataset.sv))};
 /* 지금 자리에서 이 오프닝 변화들이 어디로 갈라지는지 */
 function stForks(){const c=ST.cur;if(!c)return [];const o=c.o,cur=line.slice(0,idx),out=new Map();
@@ -312,9 +319,9 @@ async function dStep(){
   if(DR.study&&idx>=DR.prefix.length){stDone();return}
   if(g.game_over()){DR.on=false;dMsg("");drill();return}
   if(DR.rep&&!repCands(idx).length){DR.on=false;DR.msg=`저장한 수순 끝까지 왔어요. 맞힘 ${DR.hits} · 틀림 ${DR.miss}`;render();el2();return}
-  if(g.turn()===DR.color){if(!DR.msg)dMsg("내 차례예요.");render();return}
+  if(g.turn()===DR.color){if(DR.study){stGuide();render();return}if(!DR.msg)dMsg("내 차례예요.");render();return}
   if(DR.prefix&&idx<DR.prefix.length){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
-    const m=g.move(DR.prefix[idx]);DR.busy=false;if(!m){DR.prefix=null;dStep();return}play(snd(m,g));pushMove(m.san);refresh();if(DR.study&&idx>=DR.prefix.length){stDone();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
+    const m=g.move(DR.prefix[idx]);DR.busy=false;if(!m){DR.prefix=null;dStep();return}play(snd(m,g));pushMove(m.san);refresh();if(DR.study&&idx>=DR.prefix.length){stDone();return}if(DR.study){stGuide(m.san);return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
   if(DR.rep){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
     const C=repCands(idx),pk=C[Math.floor(Math.random()*C.length)][idx],m=g.move(pk);DR.busy=false;if(!m){DR.on=false;drill();return}
     play(snd(m,g));pushMove(m.san);refresh();if(!repCands(idx).length){dStep();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
@@ -334,8 +341,9 @@ async function dCheck(m,fenBefore){
     else{DR.miss++;dMsg(`저장한 수는 ${exp.join(", ")}예요.`,"bad");DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill()},1300)}
     return}
   if(DR.prefix&&idx-1<DR.prefix.length){const exp=DR.prefix[idx-1];
-    if(m.san===exp){DR.hits++;dMsg(`맞아요, ${m.san}.`,"good");setTimeout(dStep,300)}
-    else{DR.miss++;dMsg(`이 수순은 ${exp}예요.`,"bad");DR.hintMv=exp;DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill();showHint()},1100)}
+    const gd=DR.study&&idx-1<DR.guide;
+    if(m.san===exp){if(!gd)DR.hits++;dMsg(gd?`좋아요, ${m.san}.`:`맞아요, ${m.san}.`,"good");setTimeout(dStep,300)}
+    else{if(!gd)DR.miss++;dMsg(gd?`화살표 수는 ${exp}예요.`:`이 수순은 ${exp}예요.`,"bad");DR.hintMv=exp;DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill();showHint()},1100)}
     return}
   let ok=!!Openings.at(fenAt()),pop=[];
   try{const x=await fetchX(fenBefore,true),tot=(x.moves||[]).reduce((s,y)=>s+y.white+y.draws+y.black,0);pop=(x.moves||[]).slice(0,3).map(y=>y.san);
