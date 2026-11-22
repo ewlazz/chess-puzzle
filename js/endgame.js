@@ -52,7 +52,7 @@ function randPos(x){
   for(const c of x.w)put(c,c==="P"?pr("P"):null);for(const c of x.b)put(c.toLowerCase(),c==="P"?pr("p"):null);
   if(x.w==="KBB"){const bs=Object.keys(P).filter(s=>P[s]==="B");if(bs.length===2&&(fi(bs[0])+ri(bs[0]))%2===(fi(bs[1])+ri(bs[1]))%2)return null}
   const at=c=>Object.keys(P).find(s=>P[s]===c);
-  if(x.id==="opp"){const K=at("K"),k=at("k"),p=at("P");if(!(ri(K)>ri(p)&&Math.abs(fi(K)-fi(p))<=1&&ri(k)>=ri(K)&&dist(K,k)===2))return null}
+  if(x.id==="opp"){const K=at("K"),k=at("k"),p=at("P");if(!(ri(K)>ri(p)&&Math.abs(fi(K)-fi(p))<=1&&ri(k)>ri(K)&&Math.abs(fi(k)-fi(K))<=1&&(dist(K,k)===2||dist(K,k)===3)))return null}
   if(x.id==="kpk"){const K=at("K"),p=at("P");if(dist(K,p)>2)return null}
   if(x.square){const p=Object.keys(P).find(s=>P[s]==="p"),k=Object.keys(P).find(s=>P[s]==="k"),K=Object.keys(P).find(s=>P[s]==="K");if(dist(p,k)<4||dist(K,p)<3||dist(K,p)>5)return null}
   return P}
