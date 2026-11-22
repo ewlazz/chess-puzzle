@@ -33,5 +33,13 @@ window.STUDY=[
 window.OROOTS=[
 {id:"italian",ko:"이탈리안 게임",en:"Italian Game",moves:"e4 e5 Nf3 Nc6 Bc4",side:"w",one:"비숍을 c4로. f7을 겨누며 빠르게 개발하는 오래된 오프닝"},
 {id:"ruy",ko:"루이 로페즈",en:"Ruy Lopez",moves:"e4 e5 Nf3 Nc6 Bb5",side:"w",one:"비숍으로 c6 나이트를 눌러 e5를 압박하는 정통 오프닝"},
-{id:"sicilian",ko:"시실리안 디펜스",en:"Sicilian Defense",moves:"e4 c5",side:"b",one:"c5로 비대칭을 만들어 이기러 가는 흑의 대표 응수"}
+{id:"sicilian",ko:"시실리안 디펜스",en:"Sicilian Defense",moves:"e4 c5",side:"b",one:"c5로 비대칭을 만들어 이기러 가는 흑의 대표 응수"},
+{id:"london",ko:"런던 시스템",en:"London System",moves:"d4 d5 Bf4",side:"w",one:"Bf4, e3, Nf3, c3 모양을 상대 수와 상관없이 그대로 쌓는 시스템"},
+{id:"colle",ko:"콜 시스템",en:"Colle System",moves:"d4 d5 Nf3 Nf6 e3",side:"w",one:"e3, Bd3, c3로 단단히 짓고 나중에 e4로 판을 여는 시스템"},
+{id:"qg",ko:"퀸즈 갬빗",en:"Queen's Gambit",moves:"d4 d5 c4",side:"w",one:"c4로 d5 폰을 흔드는 1.d4의 메인. 슬라브·QGD·QGA로 갈라져요"},
+{id:"kid",ko:"킹스 인디언 디펜스",en:"King's Indian Defense",moves:"d4 Nf6 c4 g6 Nc3 Bg7",side:"b",one:"중앙을 내주고 피안케토 뒤 킹 쪽에서 반격하는 흑"},
+{id:"nimzo",ko:"님조 인디언 디펜스",en:"Nimzo-Indian Defense",moves:"d4 Nf6 c4 e6 Nc3 Bb4",side:"b",one:"Bb4로 c3 나이트를 묶어 e4를 막는 흑의 정석"},
+{id:"dutch",ko:"더치 디펜스",en:"Dutch Defense",moves:"d4 f5",side:"b",one:"f5로 e4 칸을 잡고 킹 쪽을 노리는 공격적인 흑"},
+{id:"tromp",ko:"트롬포프스키 어택",en:"Trompowsky Attack",moves:"d4 Nf6 Bg5",side:"w",one:"2.Bg5로 바로 나이트를 건드려 이론을 피하는 백"},
+{id:"bdg",ko:"블랙마-디머 갬빗",en:"Blackmar-Diemer Gambit",moves:"d4 d5 e4",side:"w",one:"폰을 주고 f파일과 빠른 개발로 몰아치는 백의 갬빗"}
 ];

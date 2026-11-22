@@ -271,40 +271,44 @@ function trBuild(r){const R=r.moves.split(" "),T={kids:new Map(),name:r.en,eco:"
     if(t.length>R.length&&!n.name){n.name=name;n.eco=eco}}
   return T}
 function trNode(path){const r=TR.root,R=r.moves.split(" ");if(path.length<R.length||R.some((x,i)=>path[i]!==x))return null;let n=TR.trie;for(let i=R.length;i<path.length;i++){n=n.kids.get(path[i]);if(!n)return null}return n}
-function trKids(n){const out=[];for(const [san,k] of n.kids){const ch=[san];let e=k,nm=k.name?k:null;while(!e.name&&e.kids.size===1){const [s2,k2]=[...e.kids][0];ch.push(s2);e=k2;if(e.name)nm=e}out.push({chain:ch,end:e,named:nm||(e.name?e:null)})}return out}
+function trKids(n){const out=[];for(const [san,k] of n.kids){const ch=[san];let e=k,nm=k.name?k:null;while(!e.name&&e.kids.size===1){const [s2,k2]=[...e.kids][0];ch.push(s2);e=k2;if(e.name)nm=e}if(ch.length>4){out.push({chain:[san],end:k,named:k.name?k:null});continue}out.push({chain:ch,end:e,named:nm||(e.name?e:null)})}return out}
 const shortName=n=>{if(!n)return "";const k=Openings.ko(n)||n,i=k.indexOf(":");return i>=0?k.slice(i+1).trim():k};
 const mvSeq=(start,sans)=>sans.map((s,i)=>{const p=start+i;return p%2===0?`${p/2+1}.${s}`:(i===0?`${Math.floor(p/2)+1}...${s}`:s)}).join(" ");
 function trMasters(fen){if(TR.mc.has(fen))return TR.mc.get(fen);const pr=fetch(`https://explorer.lichess.ovh/masters?moves=30&topGames=0&fen=${encodeURIComponent(fen)}`).then(r=>r.ok?r.json():null).catch(()=>null);TR.mc.set(fen,pr);pr.then(j=>{if(!j)TR.mc.delete(fen)});return pr}
 let trStats=null;
-function trArrows(){if(!TR.trie)return [];const n=trNode(line.slice(0,idx));if(!n)return [];const K=trKids(n),g=game(),st=trStats&&trStats.fen===g.fen()?trStats.j:null;
-  const cnt=k=>{const m=st&&(st.moves||[]).find(x=>x.san===k.chain[0]);return m?m.white+m.draws+m.black:-1};
-  return K.sort((a,b)=>cnt(b)-cnt(a)).slice(0,4).map((k,i)=>{const m=g.moves({verbose:true}).find(z=>z.san===k.chain[0]);return m?{from:m.from,to:m.to,main:i===0}:null}).filter(Boolean)}
+/* 갈림길: 이름 붙은 가지 + 마스터가 많이 두는 수(이름이 없어도). 갈래 밖 자리도 마스터 수로 계속 따라감 */
+function trKidsAll(path,fen,j){const n=trNode(path),out=n?trKids(n):[],tot=j?j.white+j.draws+j.black:0;
+  if(j)for(const m of (j.moves||[]).slice(0,8)){const c=m.white+m.draws+m.black;if(out.some(k=>k.chain[0]===m.san))continue;if(c<Math.max(5,tot*.04))continue;out.push({chain:[m.san],end:null,named:null})}
+  for(const k of out){const t=new Chess(fen);let last=null;for(const x of k.chain)last=t.move(x);k.fen=t.fen();k.last=last;if(!k.named){const a=Openings.at(k.fen);if(a&&a.name)k.nm=a.name}else k.nm=k.named.name;
+    const m=j&&(j.moves||[]).find(x=>x.san===k.chain[0]);k.m=m;k.c=m?m.white+m.draws+m.black:0}
+  return out.sort((a,b)=>b.c-a.c)}
+function trArrows(){if(!TR.root)return [];const g=game(),fen=g.fen(),st=trStats&&trStats.fen===fen?trStats.j:null,K=trKidsAll(line.slice(0,idx),fen,st);
+  return K.slice(0,4).map((k,i)=>{const m=g.moves({verbose:true}).find(z=>z.san===k.chain[0]);return m?{from:m.from,to:m.to,main:i===0}:null}).filter(Boolean)}
 function trStudy(path){for(const s of window.STUDY||[]){const key=s.trunk.split(" ").slice(0,(s.gam||0)+1);if(path.length>=key.length&&key.every((x,i)=>path[i]===x))return s}return null}
 function trPasses(path){for(const s of window.STUDY||[]){const key=s.trunk.split(" ").slice(0,(s.gam||0)+1);if(path.length>=key.length&&key.every((x,i)=>path[i]===x))return s}return null}
-function treePanel(){if(!TR.trie)return;const path=line.slice(0,idx),n=trNode(path),r=TR.root,R=r.moves.split(" "),g=game(),fen=g.fen();
+function nameAt(k){const g=game(k),a=Openings.at(g.fen());if(a&&a.name)return a;const x=trNode(line.slice(0,k));return x&&x.name?{name:x.name,eco:x.eco}:null}
+function treePanel(){if(!TR.trie)return;const path=line.slice(0,idx),r=TR.root,R=r.moves.split(" "),g=game(),fen=g.fen();
   try{const u=new URL(location.href);u.searchParams.set("at",path.join(","));history.replaceState(null,"",u)}catch(e){}
-  /* 지나온 길 */
-  const cr=[`<button class="lnk" data-tk="${R.length}">${esc(r.ko)}</button>`];
-  let lastNm="";for(let k=R.length+1;k<=Math.min(idx,line.length);k++){const x=trNode(line.slice(0,k));if(x&&x.name){const sn=shortName(x.name);if(sn===lastNm)continue;lastNm=sn;cr.push(`<button class="lnk" data-tk="${k}">${esc(sn)}</button>`)}}
-  $("#stTop").innerHTML=`<a class="lnk" href="opening.html">← 오프닝 목록</a><div class="tcrumb">${cr.join('<span>›</span>')}</div>`;
   const el=$("#tStudy");
-  if(!n){el.innerHTML=`<p class="cnt">이름 붙은 갈래에서 벗어났어요.</p><button class="chip" data-tback="1">갈래로 돌아가기</button>`;return}
-  let here=null;for(let k=idx;k>=R.length;k--){const x=trNode(line.slice(0,k));if(x&&x.name){here=x;break}}
-  const st=trStudy(path),K=trKids(n),key=fen+"|"+K.length+"|"+TR.more;
-  const draw=j=>{const tot=j?j.white+j.draws+j.black:0,mv=j?j.moves||[]:[];
-    const rows=K.map(k=>{const m=mv.find(x=>x.san===k.chain[0]),c=m?m.white+m.draws+m.black:0;return {k,m,c}}).sort((a,b)=>b.c-a.c);
-    const top=rows.filter(x=>x.c>=Math.max(5,tot*.01)),rest=rows.filter(x=>!top.includes(x));
-    const item=({k,m,c})=>{const t=new Chess(fen);let last=null;for(const s of k.chain)last=t.move(s);const sp=trPasses(path.concat(k.chain));
-      return `<div class="ritem" data-tc="${esc(k.chain.join(" "))}">${miniBoard(t.fen(),r.side,last?[last.from,last.to]:null)}<div class="rt1">${esc(mvSeq(idx,k.chain.slice(0,3)))}${k.chain.length>3?` … <em>${k.chain.length}수</em>`:""}${sp&&sp.tags.includes("chad")?CHAD("상남자 라인"):""}${sp?'<span class="bkt">공부</span>':""}</div><div class="rt2">${esc(shortName(k.named?k.named.name:""))||'<span class="cnt">이름 없음</span>'}</div><div class="rt3">${j?(c?`마스터 ${c.toLocaleString()}판 · 백 ${Math.round(m.white/c*100)}% 무 ${Math.round(m.draws/c*100)}% 흑 ${Math.round(m.black/c*100)}%`:"마스터 게임 없음"):"…"}</div><span class="rgo tsh">${j&&tot?Math.round(c/tot*100)+"%":""}</span></div>`};
+  if(idx<R.length||R.some((x,i)=>path[i]!==x)){$("#stTop").innerHTML=`<a class="lnk" href="opening.html">← 오프닝 목록</a>`;el.innerHTML=`<p class="cnt">${esc(r.ko)} 수순 밖이에요.</p><button class="chip" data-tk="${R.length}">${esc(r.ko)}로 돌아가기</button>`;return}
+  /* 지나온 길: 이름이 바뀌는 자리마다 */
+  const cr=[`<button class="lnk" data-tk="${R.length}">${esc(r.ko)}</button>`];
+  let lastNm=shortName(r.en);for(let k=R.length+1;k<=idx;k++){const x=nameAt(k);if(!x)continue;const sn=shortName(x.name);if(sn===lastNm)continue;lastNm=sn;cr.push(`<button class="lnk" data-tk="${k}">${esc(sn)}</button>`)}
+  $("#stTop").innerHTML=`<a class="lnk" href="opening.html">← 오프닝 목록</a><div class="tcrumb">${cr.join('<span>›</span>')}</div>`;
+  let here=null;for(let k=idx;k>=R.length&&!here;k--)here=nameAt(k);
+  const st=trStudy(path),key=fen+"|"+TR.more;
+  const draw=j=>{const tot=j?j.white+j.draws+j.black:0,K=trKidsAll(path,fen,j);
+    const top=K.filter(x=>x.c>=Math.max(5,tot*.01)).slice(0,10),rest=K.filter(x=>!top.includes(x));
+    const item=k=>{const sp=trPasses(path.concat(k.chain)),m=k.m,c=k.c;
+      return `<div class="ritem" data-tc="${esc(k.chain.join(" "))}">${miniBoard(k.fen,r.side,k.last?[k.last.from,k.last.to]:null)}<div class="rt1">${esc(mvSeq(idx,k.chain.slice(0,3)))}${k.chain.length>3?` … <em>${k.chain.length}수</em>`:""}${sp&&sp.tags.includes("chad")?CHAD("상남자 라인"):""}${sp?'<span class="bkt">공부</span>':""}</div><div class="rt2">${k.nm&&k.nm!==(here&&here.name)?esc(shortName(k.nm)):`<span class="cnt">${esc(shortName(here?here.name:r.en))} 안</span>`}</div><div class="rt3">${j?(c?`마스터 ${c.toLocaleString()}판 · 백 ${Math.round(m.white/c*100)}% 무 ${Math.round(m.draws/c*100)}% 흑 ${Math.round(m.black/c*100)}%`:"마스터 게임 없음"):"…"}</div><span class="rgo tsh">${j&&tot?Math.round(c/tot*100)+"%":""}</span></div>`};
     el.innerHTML=(here?`<div class="trh"><b>${esc(Openings.ko(here.name)||here.name)}</b><small>${esc(here.name)}${here.eco?" · "+esc(here.eco):""}</small></div>`:"")+
       (st?`<a class="stgo" href="opening.html?study=${st.id}">${st.tags.includes("chad")?CHAD("상남자 라인"):""}<b>${esc(st.ko)} 공부하기</b><span>변화 ${st.lines.length}개 · 수마다 설명 · 연습</span></a>`:"")+
-      (K.length?`<p class="cnt trq">다음 갈림길 · 오른쪽 숫자는 마스터 게임에서 이 수를 둔 비율</p><div class="stlist">${top.map(item).join("")}${TR.more?rest.map(item).join(""):""}</div>${rest.length?`<button class="chip" data-tmore="1">${TR.more?"접기":`드물게 두는 수 ${rest.length}개 더 보기`}</button>`:""}`:'<p class="cnt">여기서 더 갈라지는 이름 붙은 수순이 없어요.</p>')};
+      (K.length?`<p class="cnt trq">다음 갈림길 · 오른쪽 숫자는 마스터 게임에서 이 수를 둔 비율</p><div class="stlist">${top.map(item).join("")}${TR.more?rest.map(item).join(""):""}</div>${rest.length?`<button class="chip" data-tmore="1">${TR.more?"접기":`드물게 두는 수 ${rest.length}개 더 보기`}</button>`:""}`:(j?'<p class="cnt">여기서 더 갈라지는 수가 없어요.</p>':'<p class="cnt">불러오는 중…</p>'))};
   if(TR.lastKey!==key){TR.lastKey=key;draw(trStats&&trStats.fen===fen?trStats.j:null)}
-  clearTimeout(TR.T);TR.T=setTimeout(()=>trMasters(fen).then(j=>{if(game().fen()!==fen)return;trStats={fen,j};TR.lastKey="";draw(j);TR.lastKey=key;drawArrows()}),200);
+  clearTimeout(TR.T);TR.T=setTimeout(()=>trMasters(fen).then(j=>{if(game().fen()!==fen)return;trStats={fen,j};draw(j);TR.lastKey=key;drawArrows()}),200);
 }
-$("#tStudy").addEventListener("click",e=>{if(MODE!=="tree")return;const t=e.target.closest("[data-tc],[data-tmore],[data-tback]");if(!t)return;
+$("#tStudy").addEventListener("click",e=>{if(MODE!=="tree")return;const t=e.target.closest("[data-tc],[data-tmore],[data-tk]");if(t&&t.dataset.tk){TR.more=false;go(+t.dataset.tk);return}if(!t)return;
   if(t.dataset.tmore){TR.more=!TR.more;TR.lastKey="";treePanel();return}
-  if(t.dataset.tback){const P=line.slice(0,idx),L=TR.root.moves.split(" ").length;let k=P.length;while(k>L&&!trNode(P.slice(0,k)))k--;go(k);return}
   const ch=t.dataset.tc.split(" "),was=idx;line=line.slice(0,idx).concat(ch);idx=line.length;sel=null;marks.clear();circ.clear();
   if(ch.length===1){const g=game(idx-1),m=g.move(ch[0]);if(m){play(snd(m,g));animNext={m}}}else play("move-self");TR.more=false;refresh()});
 $("#stTop").addEventListener("click",e=>{const b=e.target.closest("[data-tk]");if(b){TR.more=false;go(+b.dataset.tk)}});

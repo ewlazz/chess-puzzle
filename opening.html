@@ -12,8 +12,8 @@
 <style>
 .ob{background:var(--band);color:#242942}
 .ob h1{font-size:clamp(32px,4.6vw,48px);margin-bottom:16px}
-.ogrid2{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:clamp(18px,3vw,32px);align-items:start;max-width:1240px;margin:0 auto}
-@media(max-width:980px){.ogrid2{grid-template-columns:minmax(0,560px);justify-content:center}}
+.ogrid2{display:grid;grid-template-columns:minmax(0,640px) minmax(0,1fr);gap:clamp(18px,3vw,40px);align-items:start;max-width:1440px;margin:0 auto}
+@media(max-width:980px){.ogrid2{grid-template-columns:minmax(0,640px);justify-content:center}}
 .wood{padding:clamp(6px,1.2vw,12px);background:linear-gradient(160deg,#6b4428,#4a2c18);border-radius:14px;box-shadow:0 24px 50px -20px #000a}
 .obar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
 .obar button{min-height:44px;border-radius:3px;border:1px solid #C4C9DC;background:transparent;color:#242942;font-weight:700;font-size:15px}
@@ -112,6 +112,19 @@
 .onote{margin-top:10px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;border:1px solid #5C54D6;border-radius:4px;padding:10px 12px;font-size:15px;line-height:1.55}
 .onote>b{font-size:13px;color:#5C54D6;width:100%}.onote>b em{font-style:normal;color:#505A82;font-family:"Inter","Pretendard",sans-serif;margin-left:4px}
 .onote>span{flex:1;min-width:0}.onote .lnk{font-size:13px}
+
+/* 크게: 목록·갈래·공부 */
+.gwrap{max-width:1440px}header .nav,footer .wrap{max-width:1440px}
+#gal .stf{gap:8px}#gal .stf .chip{min-height:40px;padding:0 16px;font-size:15px}#gal .stf .bee{width:18px;height:18px}
+.gsec{font-size:24px;margin:30px 0 14px}
+#gal .scards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+.scard{padding:14px;gap:12px}.sct b{font-size:19px}.sct small{font-size:14px}.sct em{font-size:15px}
+.opanel{font-size:16px}
+.stlist .ritem{grid-template-columns:96px minmax(0,1fr) auto;gap:6px 16px;padding:14px 10px}.stlist .mbd{width:96px;height:96px}
+.stlist .rt1{font-size:17px}.stlist .rt2{font-size:15px}.stlist .rt3{font-size:14px}.tsh{font-size:24px!important}
+.trh b{font-size:22px}.trh small{font-size:14px}.trq{font-size:14px}.tcrumb,.tcrumb .lnk{font-size:15px}
+.onote{font-size:16px}.sth small{font-size:14px}.sth p{font-size:16px}
+@media(max-width:640px){.stlist .ritem{grid-template-columns:72px minmax(0,1fr)}.stlist .mbd{width:72px;height:72px}.stlist .rgo{grid-column:2;grid-row:auto;justify-self:start}.tsh{font-size:18px!important}#gal .scards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sct b{font-size:16px}.sct em{font-size:13px}}
 </style>
 <link rel="stylesheet" href="css/paper.css">
 </head>
