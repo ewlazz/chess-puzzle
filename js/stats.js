@@ -40,7 +40,9 @@ function norm(g,user){
   const res=abort?"abort":my.result==="win"?"win":DRAW.has(my.result)?"draw":"loss";
   const how=abort?"중단":HOW[res==="win"?op.result:my.result]||(res==="win"?op.result:my.result);
   const o=opening(g);
-  return {id:g.uuid,url:g.url,pgn:g.pgn,eco:g.eco,term:abort?"aborted":res==="win"?op.result:my.result,tc:g.time_control,tclass:g.time_class,rated:g.rated,rules:g.rules,end:g.end_time,me,res,how,
+  const sd=/\[UTCDate "(\d+)\.(\d+)\.(\d+)"\]/.exec(g.pgn||""),stt=/\[UTCTime "(\d+):(\d+):(\d+)"\]/.exec(g.pgn||"");
+  const start=sd&&stt?Date.UTC(+sd[1],+sd[2]-1,+sd[3],+stt[1],+stt[2],+stt[3])/1000:null;
+  return {start,id:g.uuid,url:g.url,pgn:g.pgn,eco:g.eco,term:abort?"aborted":res==="win"?op.result:my.result,tc:g.time_control,tclass:g.time_class,rated:g.rated,rules:g.rules,end:g.end_time,me,res,how,
     my:{name:my.username,rating:my.rating},op:{name:op.username,rating:op.rating},
     open:o.name,fam:o.fam,acc:g.accuracies?{me:g.accuracies[me==="w"?"white":"black"],op:g.accuracies[me==="w"?"black":"white"]}:null,setup:g.initial_setup};
 }
@@ -53,7 +55,7 @@ function normLi(g,user){
   const res=abort?"abort":!g.winner?"draw":(g.winner==="white")===(me==="w")?"win":"loss";
   const on=g.opening&&g.opening.name||"",fam=on.split(":")[0].trim();
   const cl=g.clock?`${g.clock.initial}+${g.clock.increment}`:g.daysPerTurn?`1/${g.daysPerTurn*86400}`:"";
-  return {id:"li-"+g.id,url:"https://lichess.org/"+g.id+(me==="b"?"/black":""),linkText:"리체스에서 보기",pgn:g.pgn,eco:"",term:g.status,tc:cl,tclass:LIS[g.speed]||g.speed,rated:g.rated,rules:g.variant==="standard"?"chess":g.variant,end:Math.round((g.lastMoveAt||g.createdAt)/1000),me,res,
+  return {start:Math.round(g.createdAt/1000),id:"li-"+g.id,url:"https://lichess.org/"+g.id+(me==="b"?"/black":""),linkText:"리체스에서 보기",pgn:g.pgn,eco:"",term:g.status,tc:cl,tclass:LIS[g.speed]||g.speed,rated:g.rated,rules:g.variant==="standard"?"chess":g.variant,end:Math.round((g.lastMoveAt||g.createdAt)/1000),me,res,
     how:abort?"중단":LHOW[g.status]||g.status,my:{name:(my.user&&my.user.name)||"익명",rating:my.rating||""},op:{name:(op.user&&op.user.name)||(op.aiLevel?"Stockfish "+op.aiLevel:"익명"),rating:op.rating||""},
     open:on,fam,acc:my.analysis&&op.analysis&&my.analysis.accuracy!=null?{me:my.analysis.accuracy,op:op.analysis.accuracy}:null};
 }

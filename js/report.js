@@ -192,11 +192,39 @@ function oppSec(L){
   for(let i=1;i<A.length;i++){const p=A[i-1],g=A[i];if(g.tclass!==p.tclass||g.tclass==="daily"||g.end-p.end>1800)continue;if(p.res==="win")aw.push(g);else if(p.res==="loss")al.push(g)}
   const hrs=[["새벽 0~6시",0,6],["오전 6~12시",6,12],["오후 12~18시",12,18],["저녁 18~24시",18,24]];
   const op=x=>Object.assign({},flag(x,base));
-  AUTO.oppSum=`높은 상대 ${up.n?P(up.s):"–"} · 진 다음 판 ${al.length?P(rec(al).s):"–"}`;AUTO.oppK={al:rec(al),base,up};
+  AUTO.oppSum=`높은 상대 ${up.n?P(up.s):"–"} · 낮은 상대 ${dn.n?P(dn.s):"–"}`;AUTO.oppK={al:rec(al),base,up};
   return `<section class="rsec"><h3 class="rh">상대와 흐름</h3>
     <h4>상대 레이팅</h4>${up.n?line("나보다 50 이상 높음",up,op(up)):""}${eq.n?line("비슷함",eq,op(eq)):""}${dn.n?line("나보다 50 이상 낮음",dn,op(dn)):""}
-    <h4>연달아 둔 판</h4>${aw.length?line("이긴 다음 판",rec(aw),op(rec(aw))):""}${al.length?line("진 다음 판",rec(al),op(rec(al))):""}${!aw.length&&!al.length?'<p class="empty">이어서 둔 판이 없어요.</p>':""}
     <h4>시간대</h4>${hrs.map(([l,a,b])=>{const r=rec(L.filter(g=>{const x=new Date(g.end*1000).getHours();return x>=a&&x<b}));return r.n?line(l,r,op(r)):""}).join("")}</section>`;
+}
+function mentEng(){const L=LIST;
+  const R=window.BatchAPI?BatchAPI.results(L.slice(0,AUTO.n||ENGN)).filter(x=>x.r.v):[],prevRes=new Map();
+  L.slice().sort((a,b)=>a.end-b.end).forEach((g,i,A)=>{const p=A[i-1];if(p&&(g.start||g.end)-p.end<=1800)prevRes.set(g.id,p.res)});
+  const blz=a=>a.length?a.reduce((s,x)=>s+(x.r.cnt.blunder||0),0)/a.length:null;
+  const bl=blz(R.filter(x=>prevRes.get(x.g.id)==="loss")),bw=blz(R.filter(x=>prevRes.get(x.g.id)==="win")),nl=R.filter(x=>prevRes.get(x.g.id)==="loss").length;
+  return bl!=null&&bw!=null&&nl>=3?`<h4>진 다음 판 블런더 <em class="hsub">엔진 분석한 판</em></h4><div class="rnums"><div><b>${bl.toFixed(1)}</b><small>진 다음 판<br>판당 블런더</small></div><div><b>${bw.toFixed(1)}</b><small>이긴 다음 판<br>판당 블런더</small></div></div>`:"";}
+/* 4-2. 멘탈: 연패 뒤, 바로 다시 둔 판, 오래 둔 날, 무너진 날 */
+function sessions(L){const A=L.filter(g=>g.tclass!=="daily").slice().sort((a,b)=>a.end-b.end),S=[];let cur=[];
+  A.forEach(g=>{const p=cur[cur.length-1],gap=p?((g.start||g.end-600)-p.end):1e9;if(p&&gap<=1800)cur.push(g);else{if(cur.length)S.push(cur);cur=[g]}});if(cur.length)S.push(cur);return S}
+function mentalSec(L){
+  const S=sessions(L),base=rec(L.filter(g=>g.tclass!=="daily")).s,after={0:[],1:[],2:[],3:[]},fast=[],slow=[],idx={a:[],b:[],c:[]};
+  S.forEach(ss=>{let st=0;ss.forEach((g,i)=>{
+    if(i>0){after[Math.min(st,3)].push(g);const p=ss[i-1];if(p.res==="loss"){const gap=(g.start||g.end)-p.end;(g.start&&gap<=60?fast:slow).push(g)}}
+    (i<5?idx.a:i<10?idx.b:idx.c).push(g);
+    st=g.res==="loss"?st+1:0})});
+  const bad=S.map(ss=>{let run=0,mx=0;ss.forEach(g=>{run=g.res==="loss"?run+1:0;mx=Math.max(mx,run)});const r0=ss[0].my.rating,r1=ss[ss.length-1].my.rating,d=(+r1||0)-(+r0||0);return {ss,mx,d,n:ss.length}}).filter(x=>x.mx>=3).sort((a,b)=>a.d-b.d).slice(0,3);
+  let stop=null;for(const k of [1,2,3]){const r=rec(after[k]);if(r.n>=8&&r.s<=base-.08){stop={k,r};break}}
+  AUTO.ment={stop,base,fast:rec(fast),slow:rec(slow)};
+  AUTO.mentSum=stop?`${stop.k}연패 뒤 승률 ${P(stop.r.s)}`:`연패 뒤 승률 ${after[1].length?P(rec(after[1]).s):"–"}`;
+  const row=(l,a)=>{const r=rec(a);return r.n?line(l,r,flag(r,base)):""};
+  return `<section class="rsec"><h3 class="rh">멘탈</h3>
+    ${stop?`<div class="stopc"><b>${stop.k}연패면 쉬기</b><span>${stop.k}연패 뒤 승률 ${P(stop.r.s)} · 평소 ${P(base)} · ${stop.r.n}판</span></div>`:""}
+    <h4>연패 뒤 다음 판</h4>${row("이긴 다음",after[0])}${row("1연패 뒤",after[1])}${row("2연패 뒤",after[2])}${row("3연패 이상 뒤",after[3])}
+    ${fast.length+slow.length?`<h4>진 다음 다시 시작까지</h4>${row("1분 안에 바로",fast)}${row("1분 넘게 쉬고",slow)}`:""}
+    <h4>한 번에 몇 판째</h4>${row("1~5판째",idx.a)}${row("6~10판째",idx.b)}${row("11판째부터",idx.c)}
+    <div id="rMentB">${mentEng()}</div>
+    ${bad.length?`<h4>무너진 날</h4>${bad.map(x=>{const d=new Date(x.ss[0].end*1000),r=rec(x.ss);return `<div class="tday"><b>${d.getMonth()+1}.${d.getDate()}</b><span>${x.n}판 · ${recTxt(r)} · 최대 ${x.mx}연패</span><em class="${x.d>=0?"up":"dn"}">${x.d>=0?"+":""}${x.d}</em></div>`}).join("")}`:""}
+  </section>`;
 }
 /* 5. 엔진 진단 */
 function engBody(){
@@ -270,7 +298,7 @@ const LAST={};
 function put(el,html,key){if(!el)return;const sig=html.replace(/<p class="rprog">[^<]*<\/p>/g,"");
   if(LAST[key]===sig&&el.isConnected&&el.dataset.k===key){const ps=el.querySelectorAll(".rprog"),nw=[...html.matchAll(/<p class="rprog">([^<]*)<\/p>/g)].map(m=>m[1]);if(ps.length===nw.length){ps.forEach((p,i)=>p.innerHTML=nw[i]);return}}
   LAST[key]=sig;el.dataset.k=key;el.innerHTML=html}
-function upd(){put($("#rScan"),scanBody(),"scan");put($("#rEngB"),engBody(),"eng");put($("#rOm"),omBody(),"om");put($("#rTodo"),todo(),"todo");pressTxt();
+function upd(){put($("#rScan"),scanBody(),"scan");put($("#rEngB"),engBody(),"eng");put($("#rOm"),omBody(),"om");put($("#rTodo"),todo(),"todo");put($("#rMentB"),mentEng(),"ment");pressTxt();
   Object.keys(SUM).forEach(k=>{const e=$("#sum-"+k);if(e)e.textContent=SUM[k]()});
   const pb=$("#rProg");if(pb){const t=AUTO.etxt||AUTO.txt||"";pb.hidden=!t;pb.querySelector("span").textContent=t;pb.querySelector("i").style.width=Math.round((AUTO.frac||0)*100)+"%"}}
 /* 자동 엔진: 자꾸 두는 수 → 최근 판 분석 */
@@ -312,9 +340,9 @@ window.renderReport=async function(list){
 /* 섹션: 접히는 칸 + 한 줄 요약 */
 function wrap(html,id){const m=/^\s*<section class="rsec"><h3 class="rh">([\s\S]*?)<\/h3>([\s\S]*)<\/section>\s*$/.exec(html);if(!m)return "";
   return `<details class="rsec" id="s-${id}"${OPEN.has(id)?" open":""}><summary><h3 class="rh">${m[1]}</h3><span class="rsum" id="sum-${id}">${esc(SUM[id]?SUM[id]():"")}</span></summary><div class="rbody">${m[2]}</div></details>`}
-const OPEN=new Set(["trend","open","study","time","opp","eng"]);
+const OPEN=new Set(["trend","open","study","ment","time","opp","eng"]);
 const SUM={trend:()=>AUTO.trendSum||"",open:()=>AUTO.openSum||"",study:()=>{const a=AUTO.scan&&AUTO.scan.done?AUTO.scan.found.length:null,b=AUTO.om?AUTO.om.length:null;return a==null&&b==null?"분석 중":`자꾸 두는 수 ${a??"–"} · 흔들린 수 ${b??"–"}`},
-  time:()=>AUTO.timeSum||"",opp:()=>AUTO.oppSum||"",eng:()=>AUTO.engSum||"분석 중"};
+  ment:()=>AUTO.mentSum||"",time:()=>AUTO.timeSum||"",opp:()=>AUTO.oppSum||"",eng:()=>AUTO.engSum||"분석 중"};
 /* 지금 고칠 것: 가장 큰 약점 3개 */
 function todo(){
   const C=[];
@@ -325,22 +353,23 @@ function todo(){
     const ph=["o","m","e"].map(k=>{let s=0,c=0;R.forEach(x=>{const [v,m]=x.r.ph[k];if(v!=null){s+=v*m;c+=m}});return [k,c?s/c:null]}).filter(x=>x[1]!=null).sort((a,b)=>a[1]-b[1]);
     if(ph.length>=2&&ph[1][1]-ph[0][1]>=5)C.push({s:(ph[1][1]-ph[0][1])/20,t:`${{o:"오프닝",m:"미들게임",e:"엔드게임"}[ph[0][0]]} 정확도`,d:`${ph[0][1].toFixed(1)} · 다른 구간보다 ${(ph[1][1]-ph[0][1]).toFixed(1)} 낮음`,id:"eng"})}
   const T=AUTO.timeK;if(T&&T.lost>=10&&T.tl/T.lost>=.25)C.push({s:T.tl/T.lost,t:"시간패",d:`진 판 중 ${P(T.tl/T.lost)}`,id:"time"});
-  const O=AUTO.oppK;if(O&&O.al.n>=10&&O.al.s<=O.base-.08)C.push({s:(O.base-O.al.s)*4,t:"진 다음 판",d:`승률 ${P(O.al.s)} · 평소 ${P(O.base)}`,id:"opp"});
+  const M=AUTO.ment;if(M&&M.stop)C.push({s:(M.base-M.stop.r.s)*4,t:`${M.stop.k}연패면 쉬기`,d:`${M.stop.k}연패 뒤 승률 ${P(M.stop.r.s)} · 평소 ${P(M.base)}`,id:"ment"});
+  if(M&&M.fast.n>=8&&M.fast.s<=M.slow.s-.08)C.push({s:(M.slow.s-M.fast.s)*3,t:"지고 바로 다시 두기",d:`1분 안에 다시 둔 판 승률 ${P(M.fast.s)} · 쉬고 둔 판 ${P(M.slow.s)}`,id:"ment"});
   const top=C.sort((a,b)=>b.s-a.s).slice(0,3);
   return top.length?top.map((x,i)=>`<a class="todo" href="#s-${x.id}" data-go="${x.id}"><i>${i+1}</i><b>${esc(x.t)}</b><small>${esc(x.d)}</small></a>`).join(""):'<p class="empty">큰 약점이 안 보여요.</p>';
 }
 function draw(L){
   const el=$("#pRep"),R=rec(L),p=S.profile||{};
   const rt=Object.keys(TC).map(k=>{const a=L.filter(g=>g.tclass===k&&g.rated).sort((x,y)=>x.end-y.end);if(a.length<5)return "";const d=a[a.length-1].my.rating-a[0].my.rating;return `<span>${window.tcIcon(k)}${a[a.length-1].my.rating} <em class="${d>=0?"up":"dn"}">${d>=0?"+":""}${d}</em></span>`}).join("");
-  const trend=trendSec(L),open=openHi(L),stu=studySec(L),time=timeSec(L),opp=oppSec(L);
+  const trend=trendSec(L),open=openHi(L),stu=studySec(L),time=timeSec(L),opp=oppSec(L),ment=mentalSec(L);
   const stuBody=(/^\s*<section class="rsec"><h3 class="rh">[^<]*<\/h3>([\s\S]*)<\/section>\s*$/.exec(stu)||[,""])[1];
   const study=`<section class="rsec"><h3 class="rh">오프닝 연습</h3>${stuBody}<h4 class="h4b">흔들린 수</h4><div id="rOm">${omBody()}</div><h4 class="h4b">자꾸 두는 안 좋은 수</h4><div id="rScan">${scanBody()}</div></section>`;
   const eng=`<section class="rsec"><h3 class="rh">엔진 진단</h3><div id="rEngB">${engBody()}</div></section>`;
   el.innerHTML=`<div class="rhead"><div><b>${esc(p.username||S.user)}</b><small>${L.length}판 · ${recTxt(R)} · 승률 ${P(R.s)}</small></div><div class="rrt">${rt}</div><button class="ract" id="rShare">링크 복사</button></div>
     <div class="rprogbar" id="rProg" hidden><span></span><i></i></div>
     <h3 class="rh todo-h">지금 고칠 것</h3><div class="todos" id="rTodo">${todo()}</div>
-    <nav class="rnav"><a href="#s-trend" data-go="trend">추이</a><a href="#s-open" data-go="open">오프닝</a><a href="#s-study" data-go="study">오프닝 연습</a><a href="#s-time" data-go="time">시간</a><a href="#s-opp" data-go="opp">상대</a><a href="#s-eng" data-go="eng">엔진</a><button class="lnk" id="rAll">${OPEN.size>=6?"모두 접기":"모두 펼치기"}</button></nav>
-    ${wrap(trend,"trend")}${wrap(open,"open")}${wrap(study,"study")}${wrap(time,"time")}${wrap(opp,"opp")}${wrap(eng,"eng")}`;
+    <nav class="rnav"><a href="#s-trend" data-go="trend">추이</a><a href="#s-open" data-go="open">오프닝</a><a href="#s-study" data-go="study">오프닝 연습</a><a href="#s-ment" data-go="ment">멘탈</a><a href="#s-time" data-go="time">시간</a><a href="#s-opp" data-go="opp">상대</a><a href="#s-eng" data-go="eng">엔진</a><button class="lnk" id="rAll">${OPEN.size>=7?"모두 접기":"모두 펼치기"}</button></nav>
+    ${wrap(trend,"trend")}${wrap(open,"open")}${wrap(study,"study")}${wrap(ment,"ment")}${wrap(time,"time")}${wrap(opp,"opp")}${wrap(eng,"eng")}`;
   el.querySelectorAll("details.rsec").forEach(d=>d.addEventListener("toggle",()=>{const id=d.id.slice(2);d.open?OPEN.add(id):OPEN.delete(id)}));
   pressTxt();fillStudy(RT);
   el.onclick=async e=>{
