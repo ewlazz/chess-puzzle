@@ -114,7 +114,7 @@ function upd(){const a=$("#rScan"),b=$("#rEngB");if(a)a.innerHTML=scanBody();if(
 async function auto(L,tok){
   const sig=S.user+"|"+L.length+"|"+(L[0]&&L[0].id);
   if(AUTO.sig!==sig){AUTO.sig=sig;AUTO.scan=null;AUTO.n=ENGN;
-    try{const c=JSON.parse(localStorage.getItem("hansu-scan-"+S.user)||"null");if(c&&c.sig===sig)AUTO.scan={found:c.found,done:true}}catch(e){}}
+    try{const c=JSON.parse(localStorage.getItem("hansu-scan2-"+S.user)||"null");if(c&&c.sig===sig)AUTO.scan={found:c.found,done:true}}catch(e){}}
   const alive=()=>tok===AUTO.tok;AUTO.active=true;try{await run()}finally{if(tok===AUTO.tok)AUTO.active=false}
   async function run(){
   if(!AUTO.scan||!AUTO.scan.done){
@@ -124,7 +124,7 @@ async function auto(L,tok){
       if(!alive()||!f)return;all.push(...f);
     }
     AUTO.scan={found:all.sort((x,y)=>y.loss*y.n-x.loss*x.n).slice(0,12),done:true};AUTO.txt="";
-    try{localStorage.setItem("hansu-scan-"+S.user,JSON.stringify({sig,found:AUTO.scan.found}))}catch(e){}
+    try{localStorage.setItem("hansu-scan2-"+S.user,JSON.stringify({sig,found:AUTO.scan.found}))}catch(e){}
     upd();
   }
   if(!alive())return;
