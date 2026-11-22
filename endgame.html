@@ -45,6 +45,11 @@ header .nav,footer .wrap{max-width:1440px}
 .gcard em{font-style:normal;font-size:16px;letter-spacing:2px;color:#5C54D6}.gcard em s{text-decoration:none;color:#C4C9DC}
 @media(max-width:640px){.gcards{grid-template-columns:1fr}.gcard{grid-template-columns:88px minmax(0,1fr)}.gcard .mbd{width:88px;height:88px}}
 .s8.pre::after{content:"";position:absolute;inset:0;background:#24294270}
+.etl{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.etl span{font-size:14px;color:#505A82;margin-right:4px}.etl .chip{min-height:34px;padding:0 12px;font-size:14px}
+.eclk{font-family:"Inter","Pretendard",sans-serif;font-size:44px;font-weight:800;line-height:1;padding:10px 14px;border-radius:4px;background:#D5D9E8;color:#505A82;text-align:right;font-variant-numeric:tabular-nums}
+.eclk.run{background:#242942;color:#EFF0F6}.eclk.low{background:#5C54D6;color:#EFF0F6}
+.eready{position:absolute;inset:0;display:grid;place-items:center;background:#D5D9E8;z-index:20}.eready[hidden]{display:none}
+.eready button{min-height:60px;padding:0 34px;border-radius:4px;border:0;background:#242942;color:#EFF0F6;font-size:20px;font-weight:800}
 .m-list #boardSec{display:none}.m-play #listSec{display:none}
 </style>
 <link rel="manifest" href="manifest.json">
@@ -68,12 +73,14 @@ header .nav,footer .wrap{max-width:1440px}
   <div class="egrid">
     <div>
       <h1 id="eH1">엔드게임</h1>
-      <div class="wood"><div class="aboard"><div class="ab8" id="eb8" aria-label="엔드게임 보드"></div><svg class="amarks" id="emarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="epromo"><div id="epromoRow"></div></div></div></div>
+      <div class="wood"><div class="aboard"><div class="ab8" id="eb8" aria-label="엔드게임 보드"></div><svg class="amarks" id="emarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="epromo"><div id="epromoRow"></div></div><div class="eready" id="eReady" hidden><button id="eReadyBtn">시작 (Enter)</button></div></div></div>
       <div class="ebar"><button id="bUndo">무르기</button><button id="bHint">힌트</button><button id="bNew">다른 자리</button><button id="bFlip">뒤집기</button></div>
     </div>
     <div class="epanel">
       <div class="etop"><a class="lnk" href="endgame.html">← 엔드게임 목록</a><p class="ename" id="eName"></p></div>
+      <div class="etl" id="eTL"></div>
       <div class="egoal" id="eGoal"></div>
+      <div class="eclk" id="eClk" hidden></div>
       <div class="emsg" id="eMsg"></div>
       <p class="estat" id="eStat"></p>
       <div class="emv" id="eMv"></div>

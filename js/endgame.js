@@ -3,11 +3,11 @@
 {
 const F="abcdefgh",TB="https://tablebase.lichess.ovh/standard?fen=";
 const L=[
- {id:"kq",grp:"mate",ko:"퀸 메이트",goal:"mate",w:"KQ",b:"K",minDtm:12,sample:"8/8/8/4k3/8/8/8/3QK3 w - - 0 1"},
- {id:"kr",grp:"mate",ko:"룩 메이트",goal:"mate",w:"KR",b:"K",minDtm:22,sample:"8/8/8/4k3/8/8/8/R3K3 w - - 0 1"},
- {id:"krr",grp:"mate",ko:"룩 두 개 메이트",goal:"mate",w:"KRR",b:"K",minDtm:8,sample:"8/8/8/4k3/8/8/8/R3K2R w - - 0 1"},
- {id:"kbb",grp:"mate",ko:"비숍 두 개 메이트",goal:"mate",w:"KBB",b:"K",minDtm:26,sample:"8/8/8/4k3/8/8/8/2B1KB2 w - - 0 1"},
- {id:"kbn",grp:"mate",ko:"비숍+나이트 메이트",goal:"mate",w:"KBN",b:"K",minDtm:50,sample:"8/8/8/4k3/8/8/8/1NB1K3 w - - 0 1"},
+ {id:"kq",grp:"mate",ko:"퀸 메이트",goal:"mate",w:"KQ",b:"K",minDtm:12,tl:15,sample:"8/8/8/4k3/8/8/8/3QK3 w - - 0 1"},
+ {id:"kr",grp:"mate",ko:"룩 메이트",goal:"mate",w:"KR",b:"K",minDtm:22,tl:30,sample:"8/8/8/4k3/8/8/8/R3K3 w - - 0 1"},
+ {id:"krr",grp:"mate",ko:"룩 두 개 메이트",goal:"mate",w:"KRR",b:"K",minDtm:8,tl:15,sample:"8/8/8/4k3/8/8/8/R3K2R w - - 0 1"},
+ {id:"kbb",grp:"mate",ko:"비숍 두 개 메이트",goal:"mate",w:"KBB",b:"K",minDtm:26,tl:60,sample:"8/8/8/4k3/8/8/8/2B1KB2 w - - 0 1"},
+ {id:"kbn",grp:"mate",ko:"비숍+나이트 메이트",goal:"mate",w:"KBN",b:"K",minDtm:50,tl:60,sample:"8/8/8/4k3/8/8/8/1NB1K3 w - - 0 1"},
  {id:"kpk",grp:"pawn",ko:"킹+폰 이기기",goal:"promote",w:"KP",b:"K",want:"win",needAlt:1,sample:"8/8/8/8/4k3/8/4P3/4K3 w - - 0 1"},
  {id:"opp",grp:"pawn",ko:"오포지션",goal:"promote",w:"KP",b:"K",want:"win",exactWin:1,sample:"8/8/4k3/8/4K3/4P3/8/8 w - - 0 1"},
  {id:"kpkd",grp:"pawn",ko:"킹+폰 막기",goal:"draw",w:"K",b:"KP",want:"draw",needLose:1,hold:12,sample:"8/8/8/4k3/4p3/8/8/4K3 w - - 0 1"},
@@ -16,6 +16,7 @@ const L=[
  {id:"lucena",grp:"rook",ko:"루세나",goal:"promote",tpl:"lucena",want:"win",needAlt:1,sample:"1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1"},
  {id:"philidor",grp:"rook",ko:"필리도르",goal:"draw",tpl:"philidor",want:"draw",needLose:1,hold:15,sample:"8/8/7r/4k3/4p3/R7/8/4K3 w - - 0 1"}
 ];
+const TLS=[15,30,60];
 const GRP=[["mate","기본 메이트"],["pawn","폰 엔드게임"],["rook","룩 엔드게임"]];
 const GOAL={mate:"메이트하기",promote:"승진해서 이기기",draw:"무승부 지키기"};
 const prog=()=>{try{return JSON.parse(localStorage.getItem("hansu-eg")||"{}")}catch(e){return {}}};
@@ -23,11 +24,14 @@ const saveProg=o=>{try{localStorage.setItem("hansu-eg",JSON.stringify(o))}catch(
 const stars=n=>"★".repeat(n)+`<s>${"★".repeat(3-n)}</s>`;
 const qs=new URL(location.href).searchParams,LID=qs.get("l"),LS=L.find(x=>x.id===LID);
 document.body.classList.add(LS?"m-play":"m-list");
+let TL=LS&&LS.goal==="mate"&&TLS.includes(+qs.get("t"))?+qs.get("t"):0;
 
 /* 목록 */
 function list(){const P=prog();
   $("#eList").innerHTML=GRP.map(([g,t])=>`<h2 class="gsec">${t}</h2><div class="gcards">${L.filter(x=>x.grp===g).map(x=>{const p=P[x.id];
-    return `<a class="gcard" href="endgame.html?l=${x.id}">${miniBoard(x.sample,"w",null)}<span><b>${esc(x.ko)}</b><small>${GOAL[x.goal]}</small>${p?`<em>${stars(p.s)}</em>`:""}</span></a>`}).join("")}</div>`).join("")}
+    return `<a class="gcard" href="endgame.html?l=${x.id}">${miniBoard(x.sample,"w",null)}<span><b>${esc(x.ko)}</b><small>${GOAL[x.goal]}</small>${p?`<em>${stars(p.s)}</em>`:""}</span></a>`}).join("")}</div>`).join("")+
+  `<h2 class="gsec">불렛 메이트 <span class="cnt">시간 안에 메이트</span></h2><div class="gcards">${L.filter(x=>x.goal==="mate").map(x=>{const rec=TLS.filter(t=>P[x.id+"@"+t]).map(t=>`${t}초 ${(P[x.id+"@"+t].best/1000).toFixed(1)}초 남김`).join(" · ");
+    return `<a class="gcard" href="endgame.html?l=${x.id}&t=${x.tl}">${miniBoard(x.sample,"w",null)}<span><b>${esc(x.ko)}</b><small>${x.tl}초${rec?" · 최고 "+rec:""}</small></span></a>`}).join("")}</div>`}
 
 /* 테이블베이스 */
 const tbc=new Map();
@@ -69,7 +73,7 @@ const E={w:null,ready:null,cb:null,
   init(){if(this.ready)return this.ready;this.ready=new Promise((res,rej)=>{try{this.w=new Worker("engine/stockfish-19-lite-single.js")}catch(e){rej(e);return}this.w.onerror=rej;let ok=false;
     this.w.onmessage=e=>{const l=String(e.data);if(l==="uciok"){this.w.postMessage("setoption name Hash value 64");this.w.postMessage("setoption name Skill Level value 20");this.w.postMessage("isready")}else if(l==="readyok"){if(!ok){ok=true;res()}}else if(l.startsWith("bestmove")&&this.cb){const c=this.cb;this.cb=null;c(l.split(" ")[1])}};
     this.w.postMessage("uci")});return this.ready},
-  move(fen){return this.init().then(()=>new Promise(res=>{this.cb=res;this.w.postMessage("position fen "+fen);this.w.postMessage("go movetime 1000")}))}
+  move(fen,ms){return this.init().then(()=>new Promise(res=>{this.cb=res;this.w.postMessage("position fen "+fen);this.w.postMessage("go movetime "+(ms||1000))}))}
 };
 if(LS)E.init().catch(()=>{});
 /* 판 */
@@ -105,33 +109,43 @@ function render(){if(!g)return;const legalT=sel?(myTurn()?g.moves({square:sel,ve
 function arrowSvg(from,to){const d=s=>{const f=fi(s),r=+s[1];return orient==="w"?[f,8-r]:[7-f,r-1]};const [c1,r1]=d(from),[c2,r2]=d(to),x1=c1+.5,y1=r1+.5,x2=c2+.5,y2=r2+.5,l=Math.hypot(x2-x1,y2-y1),ux=(x2-x1)/l,uy=(y2-y1)/l,bx=x2-ux*.46,by=y2-uy*.46,W=.3;
   return `<g opacity=".85"><line x1="${x1}" y1="${y1}" x2="${bx}" y2="${by}" stroke="#5C54D6" stroke-width=".2"/><polygon points="${x2},${y2} ${bx-uy*W},${by+ux*W} ${bx+uy*W},${by-ux*W}" fill="#5C54D6"/></g>`}
 function stat(){const x=LS;$("#eStat").innerHTML=x.goal==="draw"?`버틴 수 ${myMoves} / ${x.hold}`:`내 수 ${myMoves}`;
-  $("#bUndo").disabled=!hist.length||phase==="busy";$("#bHint").disabled=!(phase==="play"&&myTurn())}
+  $("#bUndo").disabled=!!TL||!hist.length||phase==="busy";$("#bHint").disabled=!!TL||!(phase==="play"&&myTurn());clk()}
 const msg=(t,c)=>{$("#eMsg").className="emsg"+(c?" "+c:"");$("#eMsg").innerHTML=t};
-async function newGame(){const x=LS,tok=++TOK;phase="busy";g=null;pq=[];hist=[];usedHelp=0;myMoves=0;sel=null;hint=null;lastM=null;
+/* 불렛: 내 차례일 때만 시계가 줄어듦. 상대는 빨리(0.12초) 둠. 힌트·무르기 없음 */
+const CL={left:0,last:0,on:false};
+function clk(){const el=$("#eClk");if(!el)return;if(!TL){el.hidden=true;return}el.hidden=false;const v=Math.max(0,CL.left)/1000;el.textContent=v>=10?Math.ceil(v)+"초":v.toFixed(1)+"초";el.className="eclk"+(CL.on&&myTurn()?" run":"")+(v<5?" low":"")}
+setInterval(()=>{const n=performance.now();if(TL&&CL.on&&myTurn()){CL.left-=n-CL.last;if(CL.left<=0){CL.left=0;CL.on=false;clk();timeout();return}}CL.last=n;clk()},50);
+function timeout(){pq=[];phase="slip";render();msg('시간 초과! <div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">다음 (Enter)</button></div>',"bad");$("#eNext").onclick=newGame}
+function goTimed(){if(phase!=="ready")return;$("#eReady").hidden=true;phase="play";CL.left=TL*1000;CL.last=performance.now();CL.on=true;msg("메이트하세요!");render()}
+addEventListener("keydown",e=>{if(!LS||e.target.closest&&e.target.closest("input,textarea"))return;if(e.key==="Enter"||e.key===" "){if(phase==="ready"){e.preventDefault();goTimed()}else if(TL&&(phase==="done"||phase==="slip")){e.preventDefault();newGame()}}});
+async function newGame(){CL.on=false;$("#eReady").hidden=true;const x=LS,tok=++TOK;phase="busy";g=null;pq=[];hist=[];usedHelp=0;myMoves=0;sel=null;hint=null;lastM=null;
   $("#bUndo").disabled=$("#bHint").disabled=true;msg("자리 만드는 중…");bEl.innerHTML="";
   let fen=null;try{fen=await makePos(x,tok)}catch(e){if(tok===TOK){msg('테이블베이스에 연결하지 못했어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame}return}
   if(tok!==TOK)return;if(!fen){msg('알맞은 자리를 못 찾았어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame;return}
-  start=fen;g=new Chess(fen);phase="play";msg("백 차례예요.");render()}
+  start=fen;g=new Chess(fen);if(TL){phase="ready";CL.left=TL*1000;render();$("#eReady").hidden=false;msg(`${TL}초 안에 메이트하세요. 시작을 누르면 시계가 가요.`);return}phase="play";msg("백 차례예요.");render()}
 async function after(m){/* 내 수 뒤 판정 */
   myMoves++;sel=null;hint=null;const x=LS;
   if(g.in_checkmate()){finish(true);return}
   if(g.in_stalemate()||g.insufficient_material()||g.in_threefold_repetition()){if(x.goal==="draw")finish(true);else slip(g.in_stalemate()?"스테일메이트예요. 무승부가 됐어요.":"무승부가 됐어요.");return}
-  phase="busy";render();let j;try{j=await tb(g.fen())}catch(e){phase="play";msg("테이블베이스에 연결하지 못했어요. 이 수는 판정을 못 했어요.","bad");return}
+  phase="busy";render();const ep=TL?E.move(g.fen(),120).catch(()=>null):null;let j;try{j=await tb(g.fen())}catch(e){phase="play";msg("테이블베이스에 연결하지 못했어요. 이 수는 판정을 못 했어요.","bad");return}
   if(x.goal==="draw"){if(j.category==="win"){slip("이 수로 지는 자리가 됐어요.");return}if(myMoves>=x.hold){finish(true);return}}
   else{if(j.category!=="loss"){slip(j.category==="draw"||j.category==="blessed-loss"?"이 수로 무승부가 됐어요.":"이 수로 지는 자리가 됐어요.");return}
     if(x.goal==="promote"&&m.flags.includes("p")){finish(true);return}}
   /* 상대 수: 스톡피시 최고 레벨. 엔진이 안 되면 테이블베이스 최선 수 */
-  const tok=TOK,t0=performance.now();let u=null;try{u=await E.move(g.fen())}catch(e){}
+  const tok=TOK,t0=performance.now();let u=null;try{u=await (ep||E.move(g.fen()))}catch(e){}
   if(tok!==TOK||!g)return;if(!u||u==="(none)"){const best=j.moves&&j.moves[0];if(!best){phase="play";render();return}u=best.uci}
-  await new Promise(r=>setTimeout(r,Math.max(0,350-(performance.now()-t0))));if(tok!==TOK||!g)return;
+  if(!TL)await new Promise(r=>setTimeout(r,Math.max(0,350-(performance.now()-t0))));if(tok!==TOK||!g)return;
   const r=g.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});if(!r){phase="play";render();return}
   lastM=r;anim=r;play(snd(r,true));phase="play";
   if(g.in_checkmate()){render();slip("메이트당했어요.");return}
   if(g.in_stalemate()||g.insufficient_material()){if(x.goal==="draw")finish(true);else{render();slip("무승부가 됐어요.")}return}
-  msg(x.goal==="draw"?"잘 막고 있어요.":"이기는 자리예요. 계속.");render();
+  if(!TL)msg(x.goal==="draw"?"잘 막고 있어요.":"이기는 자리예요. 계속.");render();
   if(pq.length){const pm=pq.shift();if(!tryMove(pm.from,pm.to,"q")){pq=[];render()}}}
-function slip(t){pq=[];phase="slip";render();msg(`${t} <button class="lnk" id="eUndo2">무르기</button>`,"bad");$("#eUndo2").onclick=undo}
-function finish(ok){pq=[];phase="done";const s=Math.max(1,3-usedHelp),P=prog(),x=LS;if(!P[x.id]||P[x.id].s<s)P[x.id]={s,t:Date.now()};else P[x.id].t=Date.now();saveProg(P);
+function slip(t){pq=[];phase="slip";CL.on=false;render();if(TL){msg(`${t} <div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">다음 (Enter)</button></div>`,"bad");$("#eNext").onclick=newGame;return}msg(`${t} <button class="lnk" id="eUndo2">무르기</button>`,"bad");$("#eUndo2").onclick=undo}
+function finish(ok){pq=[];phase="done";CL.on=false;
+  if(TL){const P=prog(),k=LS.id+"@"+TL,v=Math.max(0,CL.left),nb=!P[k]||v>P[k].best;if(nb)P[k]={best:v,t:Date.now()};saveProg(P);render();
+    msg(`메이트! ${(v/1000).toFixed(1)}초 남김${nb?" · 최고 기록":` · 최고 ${(P[k].best/1000).toFixed(1)}초`}<div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">다음 (Enter)</button><a class="lnk" href="endgame.html">목록</a></div>`,"good");$("#eNext").onclick=newGame;return}
+  const s=Math.max(1,3-usedHelp),P=prog(),x=LS;if(!P[x.id]||P[x.id].s<s)P[x.id]={s,t:Date.now()};else P[x.id].t=Date.now();saveProg(P);
   render();
   msg(`${x.goal==="mate"?"메이트!":x.goal==="promote"?"승진! 이겼어요.":"지켜 냈어요. 무승부예요."} <span class="estars">${stars(s)}</span><div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">다른 자리</button><a class="lnk" href="endgame.html">목록</a></div>`,"good");
   $("#eNext").onclick=newGame}
@@ -163,6 +177,10 @@ addEventListener("pointerup",e=>{if(!drag)return;const d=drag;drag=null;endFloat
   if(to===d.from&&d.was&&!d.moved)sel=null;render()});
 $("#bUndo").onclick=undo;$("#bHint").onclick=giveHint;$("#bNew").onclick=newGame;$("#bFlip").onclick=()=>{orient=orient==="w"?"b":"w";render()};
 /* 시작 */
-if(LS){$("#eH1").textContent=LS.ko;document.title=LS.ko+" - 한 수";$("#eName").textContent=LS.ko;$("#eGoal").innerHTML=`<i class="w"></i>백으로 ${GOAL[LS.goal]}${LS.goal==="draw"?` (${LS.hold}수 버티기)`:""}`;newGame()}
+function tlChips(){const el=$("#eTL");if(!el)return;if(LS.goal!=="mate"){el.hidden=true;return}
+  el.innerHTML=`<span>시간 제한</span>`+[0].concat(TLS).map(t=>`<button class="chip" data-tl="${t}" aria-pressed="${TL===t}">${t?(t<60?t+"초":t/60+"분"):"없음"}</button>`).join("");
+  el.onclick=e=>{const b=e.target.closest("[data-tl]");if(!b)return;TL=+b.dataset.tl;try{const u=new URL(location.href);if(TL)u.searchParams.set("t",TL);else u.searchParams.delete("t");history.replaceState(null,"",u)}catch(_){}tlChips();newGame()}}
+$("#eReadyBtn")&&($("#eReadyBtn").onclick=goTimed);
+if(LS){tlChips();$("#eH1").textContent=LS.ko;document.title=LS.ko+" - 한 수";$("#eName").textContent=LS.ko;$("#eGoal").innerHTML=`<i class="w"></i>백으로 ${GOAL[LS.goal]}${LS.goal==="draw"?` (${LS.hold}수 버티기)`:""}`;newGame()}
 else list();
 }
