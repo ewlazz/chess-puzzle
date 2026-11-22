@@ -146,28 +146,33 @@ function onClick(e){
     let p=[];for(let i=0;i<DEPTH;i++){const s=a[0]._o.san[i];if(!s||!a.every(g=>g._o.san[i]===s))break;p.push(s)}
     O.path=p;drawTree();$(".otree").scrollIntoView({behavior:"smooth",block:"start"})}
 }
-/* 엔진 점검: 세 판 이상 둔 내 수 중 손해가 큰 수 */
-async function scan(){
-  const out=$("#oScanOut"),btn=$("#oScan");btn.disabled=true;
-  const cnt=new Map();
-  mine().forEach(g=>{const s=g._o.san;for(let i=0;i<Math.min(s.length,16);i++){if((i%2===0?"w":"b")!==O.color)continue;const k=s.slice(0,i).join(" ")+"|"+s[i];const v=cnt.get(k)||{n:0,g:[]};v.n++;v.g.push(g);cnt.set(k,v)}});
-  const cand=[...cnt.entries()].filter(([k,v])=>v.n>=3).sort((a,b)=>b[1].n-a[1].n).slice(0,24);
+/* 엔진 점검: 세 판 이상 둔 내 수 중 손해가 큰 수 (리포트에서도 씀) */
+async function repeatScan(games,color,onProg,alive){
+  const cnt=new Map();alive=alive||(()=>true);
+  games.filter(g=>g.me===color&&g._o).forEach(g=>{const s=g._o.san;for(let i=0;i<Math.min(s.length,20);i++){if((i%2===0?"w":"b")!==color)continue;const k=s.slice(0,i).join(" ")+"|"+s[i];const v=cnt.get(k)||{n:0,g:[]};v.n++;v.g.push(g);cnt.set(k,v)}});
+  const cand=[...cnt.entries()].filter(([k,v])=>v.n>=3).sort((a,b)=>b[1].n-a[1].n).slice(0,30);
   const found=[];
   for(let j=0;j<cand.length;j++){
-    out.innerHTML=`<p class="sub3">점검 중 ${j+1}/${cand.length}</p>`+list(found);
+    if(!alive())return null;if(onProg)onProg(j,cand.length,found);
     const [k,v]=cand[j],[ps,mv]=k.split("|"),path=ps?ps.split(" "):[];
     const c=fenOf(path),fen=c.fen(),turn=c.turn();
     const r=await OE.eval(fen,14);if(!r)continue;
-    const t=new Chess(fen),mo=t.move(mv);if(!mo)continue;
-    if(t.game_over())continue;
+    const t=new Chess(fen),mo=t.move(mv);if(!mo||t.game_over())continue;
     const r2=await OE.eval(t.fen(),13);if(!r2)continue;
     const b=turn==="w"?toWhite(r.sc,turn):-toWhite(r.sc,turn),a=turn==="w"?toWhite(r2.sc,t.turn()):-toWhite(r2.sc,t.turn()),loss=b-a;
     if(loss>=60&&r.best&&r.best.slice(0,4)!==mo.from+mo.to){
       const bb=new Chess(fen),bm=bb.move({from:r.best.slice(0,2),to:r.best.slice(2,4),promotion:r.best[4]||"q"});
-      found.push({path,mv,n:v.n,score:rec(v.g),loss,best:bm?bm.san:r.best});
+      let nm="";for(let q=path.length+1;q>=0&&!nm;q--){const x=Openings.at(fenOf(path.concat(mv).slice(0,q)).fen());if(x&&x.name)nm=x.name}
+      found.push({color,path,mv,n:v.n,rec:rec(v.g),loss,best:bm?bm.san:r.best,after:a,name:nm,ids:v.g.map(g=>g.id)});
     }
   }
-  out.innerHTML=found.length?list(found):'<p class="sub3">크게 손해 보는 수는 없었어요.</p>';btn.disabled=false;
-  function list(f){return f.sort((x,y)=>y.loss*y.n-x.loss*x.n).map(x=>`<div class="row" data-spath="${esc(x.path.join(" "))}"><span class="n">${esc(pathText(x.path))} <b>${esc(num(x.path.length,x.mv))}</b><em>${x.n}판 · 손해 ${(x.loss/100).toFixed(1)} · 최선 ${esc(x.best)}</em></span>${window.wdlBar(x.score.w,x.score.d,x.score.l)}<span class="pct">${pct(x.score)}</span></div>`).join("")}
+  return found.sort((x,y)=>y.loss*y.n-x.loss*x.n);
+}
+window.RepeatScan=repeatScan;window.oPath=pathText;window.oNum=num;
+async function scan(){
+  const out=$("#oScanOut"),btn=$("#oScan");btn.disabled=true;
+  const found=await repeatScan(O.list,O.color,(j,n,f)=>{out.innerHTML=`<p class="sub3">점검 중 ${j+1}/${n}</p>`+list(f)});
+  out.innerHTML=found&&found.length?list(found):'<p class="sub3">크게 손해 보는 수는 없었어요.</p>';btn.disabled=false;
+  function list(f){return f.map(x=>`<div class="row" data-spath="${esc(x.path.join(" "))}"><span class="n">${esc(pathText(x.path))} <b>${esc(num(x.path.length,x.mv))}</b><em>${x.n}판 · 손해 ${(x.loss/100).toFixed(1)} · 최선 ${esc(x.best)}</em></span>${window.wdlBar(x.rec.w,x.rec.d,x.rec.l)}<span class="pct">${pct(x.rec)}</span></div>`).join("")}
 }
 }
