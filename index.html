@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>한 수 - 내 체스 약점 찾기</title>
-<meta name="description" content="체스닷컴 닉네임을 넣으면 최근 게임으로 고칠 점과 연습할 것을 알려 줍니다. 무료, 횟수 제한 없음.">
+<title>한 수</title>
+<meta name="description" content="체스닷컴 닉네임으로 전적, 약점, 오프닝 확인">
 <script>
 /* 예전 퍼즐 주소(index.html#p3, #rush 등)는 퍼즐 페이지로 */
 (function(){var h=location.hash;if(/^#(p\d+|daily|rated|theme|rush|mine|list|play)$/.test(h))location.replace("puzzle.html"+h)})();
@@ -49,6 +49,10 @@
 .how2 li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;width:34px;height:34px;border-radius:50%;background:var(--acc);color:var(--accink);display:grid;place-items:center;font-weight:700}
 .how2 b{display:block}.how2 span{color:var(--muted);font-size:15px}
 .sec h2{max-width:1240px;margin:0 auto}
+.hero{padding-top:clamp(56px,10vw,120px)!important;padding-bottom:clamp(48px,8vw,96px)!important}
+.hero h1{margin:0 0 28px!important;font-size:clamp(36px,5.4vw,64px)!important;line-height:1.12!important}
+.hero .hs{max-width:560px}
+.hero .hrec{margin-top:12px}
 </style>
 <link rel="stylesheet" href="css/paper.css">
 </head>
@@ -61,39 +65,16 @@
 </header>
 <main>
 <section class="band hero">
-  <div class="hgrid">
-    <div>
-      <h1>내 체스 약점 찾기</h1>
-      <p class="lead">체스닷컴 닉네임을 넣으면 최근 게임을 보고 고칠 점과 연습할 것을 알려 줘요. 무료이고 횟수 제한이 없어요.</p>
-      <form class="hs" id="hf"><input id="hq" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button>진단</button></form>
-      <div class="hrec" id="hrec"></div>
-      <p class="hnote">게임 기록은 체스닷컴 공개 데이터에서 가져오고, 분석은 내 브라우저 안에서만 해요.</p>
-    </div>
-    <div class="demo" aria-label="리포트 예시">
-      <div class="dh"><b>고칠 점</b><span>예시</span></div>
-      <div class="fd"><i>1</i><div><b>시간에 쫓기면 블런더가 3배</b><small>남은 시간 20초 아래에서 둔 수의 12%가 실수·블런더</small><br><em>러시로 빠른 판단 연습</em></div></div>
-      <div class="fd"><i>2</i><div><b>흑으로 카로칸 디펜스 점수 38%</b><small>최근 3개월 13판 · 평소 점수 54%</small><br><em>이 오프닝 연습하기</em></div></div>
-      <div class="fd"><i>3</i><div><b>엔드게임 정확도가 가장 낮아요</b><small>오프닝 81 · 미들게임 74 · 엔드게임 63</small><br><em>엔드게임 퍼즐 풀기</em></div></div>
-      <div class="fd ok"><i>✓</i><div><b>백으로 이탈리안 게임은 강해요</b><small>21판 · 점수 67%</small></div></div>
-    </div>
-  </div>
+  <h1>닉네임을 검색해서<br>약점을 찾아보세요</h1>
+  <form class="hs" id="hf"><input id="hq" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button>검색</button></form>
+  <div class="hrec" id="hrec"></div>
 </section>
 <section class="band sec">
-  <h2>이렇게 써요</h2>
-  <ol class="how2">
-    <li><b>닉네임 입력</b><span>최근 3개월 게임을 바로 불러와요.</span></li>
-    <li><b>빠른 진단</b><span>오프닝, 시간 관리, 상대별 성적에서 약한 곳을 찾아요.</span></li>
-    <li><b>엔진 진단</b><span>최근 판을 엔진으로 분석해서 실수가 나오는 국면을 찾아요.</span></li>
-    <li><b>연습</b><span>약점마다 맞는 퍼즐과 오프닝 연습으로 바로 이어져요.</span></li>
-  </ol>
-</section>
-<section class="band sec" style="padding-top:0">
-  <h2 style="margin-bottom:18px">그 밖에</h2>
   <div class="feat">
-    <a href="puzzle.html#daily"><b>오늘의 퍼즐</b><span>매일 하나, 추천·테마·러시도 있어요.</span></a>
-    <a href="opening.html"><b>오프닝</b><span>마스터 수 통계, 검색, 내 레퍼토리 저장과 연습</span></a>
-    <a href="analysis.html"><b>분석</b><span>PGN·FEN·리체스 링크를 붙여 넣고 엔진 분석</span></a>
-    <a href="play.html"><b>대국</b><span>스톡피시와 레벨 1~10으로 두기</span></a>
+    <a href="puzzle.html"><b>퍼즐</b><span>오늘의 퍼즐, 테마, 러시</span></a>
+    <a href="opening.html"><b>오프닝</b><span>마스터 통계, 레퍼토리 연습</span></a>
+    <a href="analysis.html"><b>분석</b><span>PGN, FEN 붙여넣기</span></a>
+    <a href="play.html"><b>대국</b><span>스톡피시 레벨 1~10</span></a>
   </div>
 </section>
 </main>
