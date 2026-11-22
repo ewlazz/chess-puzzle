@@ -404,6 +404,9 @@ function dailySolved(){
 /* 내 실수 퍼즐 (분석에서 저장) */
 function myList(){try{return JSON.parse(localStorage.getItem("hansu-mypuz")||"[]")}catch(e){return []}}
 function saveMy(l){try{localStorage.setItem("hansu-mypuz",JSON.stringify(l))}catch(e){}}
+/* 내 실수: 안 푼 것 중에서 무작위, 이전은 본 순서대로 되돌아감 */
+let MH=[];
+function pickMine(ex){const L=myList();if(!L.length)return 0;let c=L.map((p,i)=>i).filter(i=>!L[i].solved&&i!==ex);if(!c.length)c=L.map((p,i)=>i).filter(i=>i!==ex);if(!c.length)return 0;return c[Math.floor(Math.random()*c.length)]}
 function loadMine(i){
   const L=myList();if(!L.length){clearTimeout(timer);phase="done";$("#pnum").textContent="0 / 0";$("#plevel").hidden=true;$("#psrc").hidden=true;$("#ptitle").textContent="내 실수";$("#tgoal").textContent="";setStatus("","아직 없어요. 전적이나 분석에서 게임을 분석하고 실수를 저장하세요.");$("#bHint").disabled=$("#bShow").disabled=true;stats();renderList();return}
   mi=(i+L.length)%L.length;start(L[mi],{num:`${mi+1} / ${L.length}`,status:L[mi].solved?"푼 퍼즐":""});renderList();
@@ -417,7 +420,7 @@ function setMode(m,noLoad){
   try{if(m!=="basic")history.replaceState(null,"","#"+m)}catch(e){}
   stats();
   if(noLoad)return;
-  if(m==="basic")load(cur);else if(m==="daily")loadDaily();else if(m==="mine")loadMine(mi);else if(m==="rush"){clearTimeout(timer);phase="done";rushBar();renderList()}else nextRated();
+  if(m==="basic")load(cur);else if(m==="daily")loadDaily();else if(m==="mine"){MH=[];loadMine(pickMine(-1))}else if(m==="rush"){clearTimeout(timer);phase="done";rushBar();renderList()}else nextRated();
 }
 $("#modes").onclick=e=>{const b=e.target.closest("button");if(b)setMode(b.dataset.m)};
 $("#themeSel").onchange=()=>{try{localStorage.setItem("hansu-theme",$("#themeSel").value)}catch(e){}if(mode==="theme")nextRated()};
@@ -743,8 +746,8 @@ $("#bAna").onclick=()=>{if(!CP)return;const t=new Chess(P().fen),mv=g.history();
   const pgn=`[SetUp "1"]\n[FEN "${P().fen}"]\n[White "${orient==="w"?"나":"상대"}"]\n[Black "${orient==="b"?"나":"상대"}"]\n\n`+mv.join(" ");
   window.open(`analysis.html?pgn=${encodeURIComponent(pgn)}&me=${orient}&ply=0&t=${encodeURIComponent(P().title||"퍼즐")}`,"_blank")};
 $("#bReset").onclick=()=>{if(mode==="basic")load(cur);else if(mode!=="rush"){const r=CP._rated;start(CP,lastInfo);CP._rated=r}};
-$("#bPrev").onclick=()=>{if(mode==="basic")load(cur-1);else if(mode==="mine")loadMine(mi-1)};
-$("#bNext").onclick=()=>{if(mode==="basic")load(cur+1);else if(mode==="mine")loadMine(mi+1);else if((mode==="rated"||mode==="theme"||mode==="weak"))nextRated()};
+$("#bPrev").onclick=()=>{if(mode==="basic")load(cur-1);else if(mode==="mine"&&MH.length)loadMine(MH.pop())};
+$("#bNext").onclick=()=>{if(mode==="basic")load(cur+1);else if(mode==="mine"){MH.push(mi);loadMine(pickMine(mi))}else if((mode==="rated"||mode==="theme"||mode==="weak"))nextRated()};
 function mini(p){
   const t=new Chess(p.fen),o=t.turn();
   return order(o).map(sq=>{const q=t.get(sq);return `<div class="${isDark(sq)?"d":""}">${q?`<i class="pc ${q.color}${q.type}"></i>`:""}</div>`}).join("");
@@ -763,7 +766,7 @@ function renderList(){
 document.querySelectorAll("#fchips .chip").forEach(b=>b.onclick=()=>{filter=b.dataset.f;document.querySelectorAll("#fchips .chip").forEach(x=>x.setAttribute("aria-pressed",x===b));renderList()});
 $("#plist").addEventListener("click",e=>{
   const d=e.target.closest("[data-del]");if(d){e.preventDefault();e.stopPropagation();const L=myList();L.splice(+d.dataset.del,1);saveMy(L);if(mi>=L.length)mi=0;loadMine(mi);return}
-  const a=e.target.closest("[data-mi]");if(a){e.preventDefault();loadMine(+a.dataset.mi);document.getElementById("play").scrollIntoView()}
+  const a=e.target.closest("[data-mi]");if(a){e.preventDefault();MH.push(mi);loadMine(+a.dataset.mi);document.getElementById("play").scrollIntoView()}
 });
 const fromHash=()=>{
   const h=location.hash.slice(1);
