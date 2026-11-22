@@ -61,6 +61,7 @@
     var nav=document.querySelector(".nav nav");if(!nav||document.getElementById("setb"))return;
     var me=ME.get(),sl=nav.querySelector('a[href="stats.html"]');if(me&&sl)sl.href="stats.html?user="+encodeURIComponent(me);
     acct(nav);
+    var hh=function(){var h=document.querySelector("header");if(h)document.documentElement.style.setProperty("--hh",h.offsetHeight+"px")};hh();addEventListener("resize",hh);
     var b=document.createElement("button");b.id="setb";b.className="setb";b.type="button";b.setAttribute("aria-label","보드 색");b.setAttribute("aria-expanded","false");
     b.innerHTML='<span class="sw"><i></i><i></i><i></i><i></i></span>';nav.appendChild(b);
     var p=document.createElement("div");p.className="setp";p.hidden=true;

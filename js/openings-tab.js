@@ -56,12 +56,11 @@ function draw(){
   if(!O.list.length){$("#pOpen").innerHTML='<p class="empty">게임이 없어요.</p>';return}
   let h=`<div class="oseg"><div class="chips" id="oCol"><button class="chip" data-v="w" aria-pressed="${O.color==="w"}">백</button><button class="chip" data-v="b" aria-pressed="${O.color==="b"}">흑</button></div><span class="range">${L.length}판</span></div>`;
   if(!L.length){$("#pOpen").innerHTML=h+'<p class="empty">이 색으로 둔 게임이 없어요.</p>';bindCol();return}
-  h+=`<div class="sgrid">${firstCard(L)}${devCard(L)}${famCard(L)}</div>`;
+  h+=`<div class="sgrid">${firstCard(L)}${devCard(L)}<div class="sc full"><h3>변화별 성적</h3><div id="oTreeV">${window.OpenTree?OpenTree.html(O.list,O.color):""}</div></div></div>`;
   h+=`<div class="sc full otree"><h3>레퍼토리 트리</h3><div class="crumb" id="oCrumb"></div>
     <div class="ogrid"><div class="obw"><div class="ob8" id="ob8"></div><p class="oname" id="oName"></p><p class="oeng" id="oEng"></p></div>
     <div class="otw"><div class="scroll"><table class="ot" id="oTab"></table></div><h4>이 수순으로 둔 게임</h4><div id="oGames"></div></div></div></div>`;
-  h+=`<div class="sc full"><h3>고칠 만한 수</h3><button class="ab oscan" id="oScan">엔진으로 점검</button><div id="oScanOut"></div></div>`;
-  $("#pOpen").innerHTML=h;bindCol();
+  $("#pOpen").innerHTML=h;bindCol();if(window.OpenTree&&$("#oTreeV"))OpenTree.bind($("#oTreeV"),O.list);
   $("#pOpen").onclick=onClick;
   drawTree();
 }

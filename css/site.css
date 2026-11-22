@@ -358,3 +358,53 @@ header{position:sticky}
 #rOm .hb .lo{color:#5C54D6;font-weight:800}
 #rOm .hb{max-width:620px;grid-template-columns:minmax(0,180px) minmax(0,1fr) 44px}
 .ract.pri3{background:#5C54D6!important;color:#EFF0F6!important}
+/* 숫자 블록 */
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;margin:16px 0 8px}
+@media(max-width:640px){.kpis{grid-template-columns:minmax(0,1fr);gap:20px}}
+.kp{min-width:0}
+.kph{display:flex;align-items:baseline;gap:10px}
+.kph b{font-family:"Inter","Pretendard",sans-serif;font-variation-settings:"opsz" 32;font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.kph span{font-size:14px;color:#505A82;font-weight:600}
+.kpbar{position:relative;height:8px;background:#D5D9E8;border-radius:2px;margin:12px 0 6px}
+.kpbar i{position:absolute;left:0;top:0;bottom:0;background:#5C54D6;border-radius:2px}
+.kpbar u{position:absolute;top:-4px;bottom:-4px;width:2px;background:#242942;margin-left:-1px}
+.kpc{font-size:13px;color:#505A82}
+.kpc em,.kph em{font-style:normal;font-weight:800}.kpc em.up{color:#5C54D6}.kpc em.dn{color:#242942}
+.ebt{display:flex;height:8px;gap:2px;margin:12px 0 8px;border-radius:2px;overflow:hidden;background:#D5D9E8}
+.ebt i{display:block;height:100%}
+.eb1{background:#242942}.eb2{background:#5C54D6}.eb3{background:#6A80B4}.eb4{background:#C4C9DC}
+.ebl{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:#505A82}
+.ebl i{display:inline-block;width:8px;height:8px;border-radius:1px;margin-right:5px;vertical-align:0}
+.rnums{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+@media(max-width:640px){.rnums{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+.gm{display:flex;gap:18px;font-size:14px;color:#505A82;margin-top:10px}.gm b{color:#242942;font-family:"Inter","Pretendard",sans-serif;font-weight:800;margin-left:4px}
+.hsub{font-style:normal;font-weight:500;font-size:13px;color:#505A82;margin-left:6px}
+/* 리포트 구조 */
+.rsec .rprog{display:none}
+.rprogbar{position:relative;margin:14px 0 0;padding:8px 0 10px;font-size:13px;font-weight:600;color:#5C54D6}
+.rprogbar i{position:absolute;left:0;bottom:0;height:3px;background:#5C54D6;transition:width .4s}
+.rprogbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:#D5D9E8;z-index:-1}
+.todo-h{margin:26px 0 10px!important;font-size:20px!important}
+.todos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:760px){.todos{grid-template-columns:minmax(0,1fr)}}
+.todo{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;padding:16px;border:1px solid #C4C9DC;border-radius:4px;color:#242942;text-decoration:none}
+.todo:hover{border-color:#5C54D6}
+.todo i{grid-row:1/3;font-style:normal;font-family:"Inter","Pretendard",sans-serif;font-variation-settings:"opsz" 32;font-size:28px;font-weight:800;color:#5C54D6;line-height:1}
+.todo b{font-size:16px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.todo small{font-size:13px;color:#505A82}
+.rnav{position:sticky;top:var(--hh,57px);z-index:6;background:#EFF0F6;display:flex;gap:4px 16px;align-items:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:12px 0;margin-top:22px;border-bottom:1px solid #C4C9DC}
+.rnav::-webkit-scrollbar{display:none}
+.rnav a{color:#505A82;text-decoration:none;font-size:14px;font-weight:700;white-space:nowrap}
+.rnav a:hover{color:#242942}
+.rnav .lnk{margin-left:auto;white-space:nowrap;font-size:13px}
+details.rsec{padding:0;border-top:0;border-bottom:1px solid #C4C9DC;scroll-margin-top:calc(var(--hh,57px) + 52px)}
+details.rsec>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:20px 0}
+details.rsec>summary::-webkit-details-marker{display:none}
+details.rsec>summary .rh{margin:0!important;display:flex;align-items:center;gap:10px}
+details.rsec>summary .rh::before{content:"+";font-weight:600;color:#6A80B4;width:16px;font-size:22px}
+details.rsec[open]>summary .rh::before{content:"−"}
+.rsum{font-size:14px;color:#505A82;font-weight:600}
+.rbody{padding:0 0 24px}
+.h4b{margin-top:28px!important;padding-top:16px;border-top:1px solid #D5D9E8}
+.lnk{border:0;background:none;padding:0;font:inherit;color:#505A82;text-decoration:underline;cursor:pointer}
+.rnav .lnk{font-size:13px;font-weight:600}

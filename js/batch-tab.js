@@ -70,9 +70,10 @@ function out(L){
   const worst=R.flatMap(x=>x.r.worst.map(w=>({g:x.g,w}))).sort((a,b)=>b.w.loss-a.w.loss).slice(0,8);
   const pz=R.flatMap(x=>x.r.pz||[]);
   el.innerHTML=`<div class="sgrid">
-    <div class="sc"><h3>요약</h3><div class="big"><div><b>${R.length}</b><small>분석한 판</small></div><div><b>${f1(mean(R.map(x=>x.r.acc)))}</b><small>내 평균 정확도</small></div><div><b>${f1(mean(R.map(x=>x.r.opAcc)))}</b><small>상대 평균</small></div></div>
-      <div class="big" style="margin-top:12px"><div><b>${per("blunder").toFixed(1)}</b><small>판당 블런더</small></div><div><b>${per("mistake").toFixed(1)}</b><small>판당 실수</small></div><div><b>${per("inaccuracy").toFixed(1)}</b><small>판당 부정확</small></div></div>
-      <div class="big" style="margin-top:12px"><div><b>${R.reduce((s,x)=>s+(x.r.cnt.brilliant||0),0)}</b><small>탁월</small></div><div><b>${R.reduce((s,x)=>s+(x.r.cnt.great||0),0)}</b><small>유일</small></div><div><b>${R.reduce((s,x)=>s+(x.r.cnt.miss||0),0)}</b><small>놓침</small></div></div></div>
+    <div class="sc"><h3>요약 <em class="hsub">최근 ${R.length}판</em></h3>
+      ${KPI.acc(mean(R.map(x=>x.r.acc)),mean(R.map(x=>x.r.opAcc)))}
+      <div style="margin-top:22px">${KPI.err({blunder:per("blunder"),mistake:per("mistake"),inaccuracy:per("inaccuracy"),miss:per("miss")})}</div>
+      <div class="gm"><span>탁월<b>${R.reduce((s,x)=>s+(x.r.cnt.brilliant||0),0)}</b></span><span>유일<b>${R.reduce((s,x)=>s+(x.r.cnt.great||0),0)}</b></span></div></div>
     <div class="sc"><h3>국면별 정확도</h3>${bar("오프닝",wph("o"))}${bar("미들게임",wph("m"))}${bar("엔드게임",wph("e"))}
       <h3 style="margin-top:16px">결과별 정확도</h3>${bar("이긴 판",accW)}${bar("진 판",accL)}</div>
     <div class="sc"><h3>시간에 쫓길 때</h3>${pn+nn?`${bar("여유 있을 때",na)}${bar("쫓길 때",pa)}<p class="sub3" style="margin-top:10px">실수·블런더 비율: 여유 있을 때 ${nn?(nb/nn*100).toFixed(1):"–"}% · 쫓길 때 ${pn?(pb/pn*100).toFixed(1):"–"}%<br>남은 시간이 10% 또는 20초 아래면 쫓길 때로 셌어요.</p>`:`<p class="empty">시간 기록이 있는 판이 없어요.</p>`}</div>
