@@ -1,4 +1,4 @@
-/* 엔드게임 연습: 주제마다 무작위 시작 자리를 리체스 테이블베이스로 골라 두고, 상대는 테이블베이스 최선 수(가장 오래 버티는 수)로 둠.
+/* 엔드게임 연습: 주제마다 무작위 시작 자리를 리체스 테이블베이스로 골라 두고, 상대는 스톡피시 최고 레벨로 둠. 내 수 판정은 테이블베이스.
    내 수가 이기던 자리를 비기게(또는 비기던 자리를 지게) 만들면 바로 알려 주고 무르기를 권함. 별: 힌트·무르기 없이 3개, 쓰면 줄어듦 */
 {
 const F="abcdefgh",TB="https://tablebase.lichess.ovh/standard?fen=";
@@ -64,6 +64,14 @@ function fits(x,j){if(!j||!j.moves)return false;const win=j.moves.filter(m=>m.ca
 async function makePos(x,tok){let calls=0;for(let t=0;t<400;t++){if(tok!==TOK)return null;const P=randPos(x);if(!P||kAdj(P))continue;const fen=fenOf(P);if(!legal(fen))continue;
   if(++calls>40)break;const j=await tb(fen);if(fits(x,j))return fen}return null}
 
+/* 상대: 스톡피시 19 (레벨 20, 수마다 약 1초) */
+const E={w:null,ready:null,cb:null,
+  init(){if(this.ready)return this.ready;this.ready=new Promise((res,rej)=>{try{this.w=new Worker("engine/stockfish-19-lite-single.js")}catch(e){rej(e);return}this.w.onerror=rej;let ok=false;
+    this.w.onmessage=e=>{const l=String(e.data);if(l==="uciok"){this.w.postMessage("setoption name Hash value 64");this.w.postMessage("setoption name Skill Level value 20");this.w.postMessage("isready")}else if(l==="readyok"){if(!ok){ok=true;res()}}else if(l.startsWith("bestmove")&&this.cb){const c=this.cb;this.cb=null;c(l.split(" ")[1])}};
+    this.w.postMessage("uci")});return this.ready},
+  move(fen){return this.init().then(()=>new Promise(res=>{this.cb=res;this.w.postMessage("position fen "+fen);this.w.postMessage("go movetime 1000")}))}
+};
+if(LS)E.init().catch(()=>{});
 /* 판 */
 let pq=[],g=null,orient="w",start="",TOK=0,phase="idle",usedHelp=0,myMoves=0,sel=null,drag=null,floatEl=null,hov=null,hint=null,lastM=null,anim=null,hist=[];
 const bEl=$("#eb8"),sqEl=s=>bEl.querySelector(`[data-sq="${s}"]`);
@@ -112,9 +120,11 @@ async function after(m){/* 내 수 뒤 판정 */
   if(x.goal==="draw"){if(j.category==="win"){slip("이 수로 지는 자리가 됐어요.");return}if(myMoves>=x.hold){finish(true);return}}
   else{if(j.category!=="loss"){slip(j.category==="draw"||j.category==="blessed-loss"?"이 수로 무승부가 됐어요.":"이 수로 지는 자리가 됐어요.");return}
     if(x.goal==="promote"&&m.flags.includes("p")){finish(true);return}}
-  /* 상대 수: 테이블베이스 최선 (가장 오래 버팀) */
-  await new Promise(r=>setTimeout(r,380));const tok=TOK;const best=j.moves&&j.moves[0];if(!best||tok!==TOK||!g)return;
-  const u=best.uci,r=g.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});if(!r){phase="play";render();return}
+  /* 상대 수: 스톡피시 최고 레벨. 엔진이 안 되면 테이블베이스 최선 수 */
+  const tok=TOK,t0=performance.now();let u=null;try{u=await E.move(g.fen())}catch(e){}
+  if(tok!==TOK||!g)return;if(!u||u==="(none)"){const best=j.moves&&j.moves[0];if(!best){phase="play";render();return}u=best.uci}
+  await new Promise(r=>setTimeout(r,Math.max(0,350-(performance.now()-t0))));if(tok!==TOK||!g)return;
+  const r=g.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});if(!r){phase="play";render();return}
   lastM=r;anim=r;play(snd(r,true));phase="play";
   if(g.in_checkmate()){render();slip("메이트당했어요.");return}
   if(g.in_stalemate()||g.insufficient_material()){if(x.goal==="draw")finish(true);else{render();slip("무승부가 됐어요.")}return}
