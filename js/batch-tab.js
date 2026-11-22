@@ -2,7 +2,7 @@
 {
 const RL={win:"승",loss:"패",draw:"무"};
 const B={n:20,running:false,user:null,res:{}};
-const key=()=>"hansu-batch-"+S.user;
+const key=()=>"hansu-batch-"+(S.site==="li"?"li:":"")+S.user;
 function loadRes(){if(B.user===S.user)return;B.user=S.user;try{B.res=JSON.parse(localStorage.getItem(key())||"{}")}catch(e){B.res={}}autoPz(Object.values(B.res).flatMap(r=>r.pz||[]))}
 function saveRes(){try{localStorage.setItem(key(),JSON.stringify(B.res))}catch(e){/* 가득 차면 오래된 것부터 지움 */const ids=Object.keys(B.res).sort((a,b)=>B.res[a].end-B.res[b].end);ids.slice(0,Math.ceil(ids.length/3)).forEach(i=>delete B.res[i]);try{localStorage.setItem(key(),JSON.stringify(B.res))}catch(_){}}}
 const C=window.calAcc||(v=>v);
@@ -11,7 +11,7 @@ const turnOf=f=>f.split(" ")[1];
 const mat=f=>{let v=0;for(const ch of f.split(" ")[0]){const t=ch.toLowerCase();if(t==="n"||t==="b")v+=3;else if(t==="r")v+=5;else if(t==="q")v+=9}return v};
 const gacc=a=>{if(!a.length)return null;const mean=a.reduce((x,y)=>x+y,0)/a.length,harm=a.length/a.reduce((x,y)=>x+1/Math.max(y,5),0);return +((mean+harm)/2).toFixed(1)};
 /* 등록한 내 계정이면 분석하면서 나온 실수 장면을 실전 퍼즐에 바로 넣음 */
-function autoPz(pz){try{const me=window.ME&&ME.get();if(!me||!pz||!pz.length||me.toLowerCase()!==S.user)return;
+function autoPz(pz){try{const me=window.ME&&ME.get();if(!me||!pz||!pz.length||S.site==="li"||me.toLowerCase()!==S.user)return;
   const M=JSON.parse(localStorage.getItem("hansu-mypuz")||"[]"),ids=new Set(M.map(x=>x.id));pz.forEach(p=>{if(!ids.has(p.id))M.push(p)});localStorage.setItem("hansu-mypuz",JSON.stringify(M))}catch(e){}}
 function summarize(X,g){
   const me=g.me,ph={o:[],m:[],e:[]},pr={p:[],n:[],pb:0,nb:0},cnt={},worst=[],accMe=[],accOp=[];
@@ -81,7 +81,7 @@ function out(L){
       <h3 style="margin-top:16px">결과별 정확도</h3>${bar("이긴 판",accW)}${bar("진 판",accL)}</div>
     <div class="sc"><h3>시간에 쫓길 때</h3>${pn+nn?`${bar("여유 있을 때",na)}${bar("쫓길 때",pa)}<p class="sub3" style="margin-top:10px">실수·블런더 비율: 여유 있을 때 ${nn?(nb/nn*100).toFixed(1):"–"}% · 쫓길 때 ${pn?(pb/pn*100).toFixed(1):"–"}%<br>남은 시간이 10% 또는 20초 아래면 쫓길 때로 셌어요.</p>`:`<p class="empty">시간 기록이 있는 판이 없어요.</p>`}</div>
     <div class="sc full"><h3>정확도 추이</h3><div class="fig" id="bfig" style="height:200px"><svg id="bsvg"></svg></div></div>
-    <div class="sc full"><h3>큰 실수</h3>${worst.map((x,i)=>{const n=Math.floor(x.w.k/2)+1,dots=x.w.k%2===0?".":"...";return `<div class="og"><span class="res ${x.g.res}">${RL[x.g.res]||"–"}</span><span class="on">vs ${esc(x.g.op.name)} · <b>${n}${dots} ${esc(x.w.san)}</b> <em>${x.w.c==="blunder"?"블런더":x.w.c==="miss"?"놓침":"실수"} · 승률 −${x.w.loss}%</em></span><span class="od">${new Date(x.g.end*1000).getMonth()+1}.${new Date(x.g.end*1000).getDate()}</span><button class="ab" data-w="${i}">보기</button></div>`}).join("")||'<p class="empty">없음</p>'}
+    <div class="sc full"><h3>큰 실수</h3>${worst.map((x,i)=>{const n=Math.floor(x.w.k/2)+1,dots=x.w.k%2===0?".":"...";return `<div class="og"><span class="res ${x.g.res}">${RL[x.g.res]||"–"}</span><span class="on">vs ${esc(x.g.op.name)} · <b>${n}${dots} ${esc(x.w.san)}</b> <em>${x.w.c==="blunder"?"블런더":x.w.c==="miss"?"놓침":"실수"} · 승률 −${x.w.loss}%p</em></span><span class="od">${new Date(x.g.end*1000).getMonth()+1}.${new Date(x.g.end*1000).getDate()}</span><button class="ab" data-w="${i}">보기</button></div>`}).join("")||'<p class="empty">없음</p>'}
       ${pz.length?`<button class="bgo" id="bPz" style="margin-top:12px">실수 ${pz.length}개 퍼즐로 저장</button>`:""}</div>
   </div>`;
   el.onclick=e=>{

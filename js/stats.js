@@ -1,7 +1,7 @@
 /* 전적: 체스닷컴 공개 API에서 프로필·레이팅·최근 3개월 게임을 받아 목록과 통계를 그림 */
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
-var S={user:null,profile:null,stats:null,games:[],tc:"all",res:"all",col:"all",tab:(new URL(location.href).searchParams.get("tab")||"report"),shown:50,per:3,arch:null,cache:{},gid:null,scr:new URL(location.href).searchParams.get("tab")==="report"};
+var S={site:(new URL(location.href).searchParams.get("site")==="li"?"li":"cc"),user:null,profile:null,stats:null,games:[],tc:"all",res:"all",col:"all",tab:(new URL(location.href).searchParams.get("tab")||"report"),shown:50,per:3,arch:null,cache:{},gid:null,scr:new URL(location.href).searchParams.get("tab")==="report"};
 {
 const API="https://api.chess.com/pub/";
 const TC={bullet:"불릿",blitz:"블리츠",rapid:"래피드",daily:"데일리"};
@@ -44,6 +44,29 @@ function norm(g,user){
     my:{name:my.username,rating:my.rating},op:{name:op.username,rating:op.rating},
     open:o.name,fam:o.fam,acc:g.accuracies?{me:g.accuracies[me==="w"?"white":"black"],op:g.accuracies[me==="w"?"black":"white"]}:null,setup:g.initial_setup};
 }
+/* 리체스: 공개 API (프로필, 게임 NDJSON) */
+const LIS={bullet:"bullet",blitz:"blitz",rapid:"rapid",classical:"rapid",correspondence:"daily",ultraBullet:"bullet"};
+const LHOW={mate:"메이트",resign:"기권",outoftime:"시간",timeout:"탈주",stalemate:"스테일메이트",draw:"합의",cheat:"부정",variantEnd:"규칙"};
+function normLi(g,user){
+  const W=g.players.white,B=g.players.black,wn=(W.user&&W.user.name||"").toLowerCase(),me=wn===user?"w":"b",my=me==="w"?W:B,op=me==="w"?B:W;
+  const abort=g.status==="aborted"||g.status==="noStart";
+  const res=abort?"abort":!g.winner?"draw":(g.winner==="white")===(me==="w")?"win":"loss";
+  const on=g.opening&&g.opening.name||"",fam=on.split(":")[0].trim();
+  const cl=g.clock?`${g.clock.initial}+${g.clock.increment}`:g.daysPerTurn?`1/${g.daysPerTurn*86400}`:"";
+  return {id:"li-"+g.id,url:"https://lichess.org/"+g.id+(me==="b"?"/black":""),linkText:"리체스에서 보기",pgn:g.pgn,eco:"",term:g.status,tc:cl,tclass:LIS[g.speed]||g.speed,rated:g.rated,rules:g.variant==="standard"?"chess":g.variant,end:Math.round((g.lastMoveAt||g.createdAt)/1000),me,res,
+    how:abort?"중단":LHOW[g.status]||g.status,my:{name:(my.user&&my.user.name)||"익명",rating:my.rating||""},op:{name:(op.user&&op.user.name)||(op.aiLevel?"Stockfish "+op.aiLevel:"익명"),rating:op.rating||""},
+    open:on,fam,acc:my.analysis&&op.analysis&&my.analysis.accuracy!=null?{me:my.analysis.accuracy,op:op.analysis.accuracy}:null};
+}
+async function liGames(user,since,t){
+  const u=`https://lichess.org/api/games/user/${encodeURIComponent(user)}?pgnInJson=true&clocks=true&opening=true&accuracy=true&perfType=ultraBullet,bullet,blitz,rapid,classical,correspondence${since?"&since="+since:"&max=3000"}`;
+  const r=await fetch(u,{headers:{Accept:"application/x-ndjson"}});if(!r.ok)throw new Error("network");
+  const rd=r.body.getReader(),dec=new TextDecoder();let buf="",out=[];
+  for(;;){const {done,value}=await rd.read();if(done)break;if(t!==token){try{rd.cancel()}catch(e){}return null}
+    buf+=dec.decode(value,{stream:true});const ls=buf.split("\n");buf=ls.pop();
+    for(const l of ls){if(!l.trim())continue;try{const g=JSON.parse(l);out.push(normLi(g,user))}catch(e){}}msg(`게임 불러오는 중 ${out.length}판`)}
+  if(buf.trim()){try{out.push(normLi(JSON.parse(buf),user))}catch(e){}}
+  return out;
+}
 /* 내 계정으로 등록한 닉네임은 지난 달 기록을 브라우저에 저장해 두고 다시 받지 않음 */
 const GC={db:null,
   open(){if(this.db)return this.db;this.db=new Promise(res=>{try{const r=indexedDB.open("hansu",1);r.onupgradeneeded=()=>r.result.createObjectStore("months");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}});return this.db},
@@ -51,11 +74,16 @@ const GC={db:null,
   async put(k,v){const d=await this.open();if(!d)return;try{d.transaction("months","readwrite").objectStore("months").put(v,k)}catch(e){}},
   async drop(user){const d=await this.open();if(!d)return;try{const st=d.transaction("months","readwrite").objectStore("months");st.openCursor().onsuccess=e=>{const c=e.target.result;if(!c)return;if(String(c.key).startsWith(user+"|"))c.delete();c.continue()}}catch(e){}}
 };
-const isMe=()=>!!S.user&&(window.ME&&ME.get().toLowerCase())===S.user;
+const isMe=()=>S.site==="cc"&&!!S.user&&(window.ME&&ME.get().toLowerCase())===S.user;
 const liveMonth=u=>{const d=new Date();return u.endsWith(d.getFullYear()+"/"+pad(d.getMonth()+1))};
 /* 기간: 최근 N개월(0이면 전체) 월별 기록을 차례로 받고, 받은 달은 다시 받지 않음 */
 const PER={3:"최근 3개월",12:"최근 1년",0:"전체"};
 async function loadGames(t){
+  if(S.site==="li"){const k="li|"+S.per;
+    if(!S.cache[k]){const now=new Date(),since=S.per?new Date(now.getFullYear(),now.getMonth()-S.per+1,1).getTime():0;const L=await liGames(S.user,since,t).catch(()=>null);if(t!==token)return false;if(!L){msg("불러오지 못했어요.");return false}S.cache[k]=L}
+    S.games=S.cache[k].slice().sort((a,b)=>b.end-a.end);S.shown=50;msg(S.games.length?"":`${PER[S.per]} 동안 둔 게임이 없어요.`);
+    $("#range").textContent=`${S.games.length}판`;$("#main").classList.add("on");renderFilters();renderAll();
+    if(S.scr){S.scr=false;setTimeout(()=>$("#main").scrollIntoView({behavior:"smooth"}),150)}return true}
   const now=new Date(),n=S.per||1e4;
   const keys=S.per?[...Array(S.per).keys()].map(i=>{const d=new Date(now.getFullYear(),now.getMonth()-i,1);return d.getFullYear()+"/"+pad(d.getMonth()+1)}):null;
   const urls=S.arch.filter(u=>!keys||keys.some(k=>u.endsWith(k)));
@@ -73,23 +101,36 @@ async function loadGames(t){
   if(S.scr){S.scr=false;setTimeout(()=>$("#main").scrollIntoView({behavior:"smooth"}),150)}
   return true;
 }
-$("#fPer").onclick=async e=>{const b=e.target.closest("button");if(!b||!S.arch)return;S.per=+b.dataset.v;document.querySelectorAll("#fPer button").forEach(x=>x.setAttribute("aria-pressed",x===b));await loadGames(token)};
+$("#fPer").onclick=async e=>{const b=e.target.closest("button");if(!b||(!S.arch&&S.site!=="li"))return;S.per=+b.dataset.v;document.querySelectorAll("#fPer button").forEach(x=>x.setAttribute("aria-pressed",x===b));await loadGames(token)};
 /* 최근 검색 */
 function recentList(){try{return JSON.parse(localStorage.getItem("hansu-recent")||"[]")}catch(e){return []}}
-function pushRecent(u){const l=[u].concat(recentList().filter(x=>x.toLowerCase()!==u.toLowerCase())).slice(0,6);try{localStorage.setItem("hansu-recent",JSON.stringify(l))}catch(e){}renderRecent()}
-function renderRecent(){$("#recent").innerHTML=recentList().map(u=>`<button type="button" data-u="${esc(u)}">${esc(u)}</button>`).join("")}
-$("#recent").onclick=e=>{const b=e.target.closest("button");if(b){$("#q").value=b.dataset.u;search(b.dataset.u)}};
+function pushRecent(u){pushRecentRaw((S.site==="li"?"li:":"")+u)}
+function pushRecentRaw(u){const l=[u].concat(recentList().filter(x=>x.toLowerCase()!==u.toLowerCase())).slice(0,6);try{localStorage.setItem("hansu-recent",JSON.stringify(l))}catch(e){}renderRecent()}
+function renderRecent(){$("#recent").innerHTML=recentList().map(u=>{const li=u.startsWith("li:"),n=li?u.slice(3):u;return `<button type="button" data-u="${esc(u)}">${li?'<img class="sico" src="https://lichess1.org/assets/logo/lichess-favicon-64.png" alt="리체스" width="14" height="14">':""}${esc(n)}</button>`}).join("")}
+$("#recent").onclick=e=>{const b=e.target.closest("button");if(b){const u=b.dataset.u,li=u.startsWith("li:");setSite(li?"li":"cc");$("#q").value=li?u.slice(3):u;search($("#q").value)}};
+function setSite(x){S.site=x;document.querySelectorAll("#site button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===x));const q=$("#q");q.placeholder=x==="li"?"리체스 닉네임":"체스닷컴 닉네임";q.setAttribute("aria-label",q.placeholder)}
+$("#site").onclick=e=>{const b=e.target.closest("[data-s]");if(b){setSite(b.dataset.s);$("#q").focus()}};
+setSite(S.site);
 $("#form").onsubmit=e=>{e.preventDefault();const u=$("#q").value.trim();if(u)search(u)};
 let token=0;
 async function search(name,gid){
   const t=++token,user=name.toLowerCase();
   msg("불러오는 중…");$("#prof").classList.remove("on");$("#rates").classList.remove("on");$("#main").classList.remove("on");
+  document.querySelector('#main .tab[data-tab="vs"]').hidden=S.site==="li";if(S.site==="li"&&S.tab==="vs")S.tab="report";
+  if(S.site==="li"){try{
+    const r=await fetch("https://lichess.org/api/user/"+encodeURIComponent(user));if(t!==token)return;if(r.status===404){msg("없는 닉네임이에요.");return}if(!r.ok)throw 0;const p=await r.json();
+    S.user=user;S.profile=p;S.stats=null;S.games=[];S.shown=50;S.arch=null;S.cache={};
+    renderProfileLi();pushRecent(p.username||name);
+    try{const u=new URL(location.href);u.searchParams.set("user",p.username||name);u.searchParams.set("site","li");u.searchParams.delete("game");history.replaceState(null,"",u)}catch(e){}
+    if(!await loadGames(t))return;
+    if(gid){const g=S.games.find(x=>x.id===gid);if(g)window.openAnalysis(g)}
+  }catch(e){if(t===token)msg("불러오지 못했어요. 잠시 후 다시 해 보세요.")}return}
   try{
     const prof=await get(API+"player/"+encodeURIComponent(user));if(t!==token)return;
     const st=await get(API+"player/"+encodeURIComponent(user)+"/stats").catch(()=>({}));if(t!==token)return;
     S.user=user;S.profile=prof;S.stats=st;S.games=[];S.shown=50;S.arch=null;S.cache={};
     renderProfile();pushRecent(prof.username||name);
-    try{const p=new URL(location.href);p.searchParams.set("user",prof.username||name);p.searchParams.delete("game");history.replaceState(null,"",p)}catch(e){}
+    try{const p=new URL(location.href);p.searchParams.set("user",prof.username||name);p.searchParams.delete("site");p.searchParams.delete("game");history.replaceState(null,"",p)}catch(e){}
     const ar=await get(API+"player/"+encodeURIComponent(user)+"/games/archives");if(t!==token)return;
     S.arch=ar.archives||[];
     if(!await loadGames(t))return;
@@ -104,15 +145,32 @@ function renderProfile(){
     <div class="sub">${p.name?`<span>${esc(p.name)}</span>`:""}${cn?`<span>${esc(cn)}</span>`:""}<span>가입 ${ymd(new Date(p.joined*1000))}</span><span>접속 ${ago(p.last_online)}</span>${p.followers?`<span>팔로워 ${p.followers.toLocaleString()}</span>`:""}</div></div>
     <div class="pacts"><button type="button" class="ract" id="meBtn">${isMe()?"내 계정 등록됨 · 해제":"내 계정으로 등록"}</button><a class="ext" href="${esc(p.url)}" target="_blank" rel="noopener">체스닷컴 프로필</a></div>`;
   $("#prof").classList.add("on");
+  /* 첫 화면에서 검색해서 왔고 아직 등록한 계정이 없으면: 내 계정인지 바로 묻기 */
+  const fromHome=new URL(location.href).searchParams.get("from")==="home";
+  if(fromHome&&window.ME&&!ME.get()&&!sessionStorage.getItem("hansu-askme")){
+    $("#prof").insertAdjacentHTML("beforeend",`<div class="askme" id="askme"><span>내 계정이에요?</span><button type="button" class="ract pri3" id="askY">네, 등록</button><button type="button" class="lnk" id="askN">아니요</button></div>`);
+    $("#askY").onclick=()=>{$("#meBtn").click();$("#askme").remove()};$("#askN").onclick=()=>{try{sessionStorage.setItem("hansu-askme","1")}catch(e){}$("#askme").remove()}}
   $("#meBtn").onclick=()=>{if(isMe()){ME.clear();GC.drop(S.user)}else{ME.set(S.profile.username||S.user);Object.keys(S.cache).forEach(u=>GC.put(S.user+"|"+u,S.cache[u]))}
     const sl=document.querySelector('.nav nav a[href^="stats.html"]');if(sl)sl.href=ME.get()?"stats.html?user="+encodeURIComponent(ME.get()):"stats.html";
     $("#meBtn").textContent=isMe()?"내 계정 등록됨 · 해제":"내 계정으로 등록"};
   const st=S.stats||{},keys=[["chess_bullet","불릿"],["chess_blitz","블리츠"],["chess_rapid","래피드"],["chess_daily","데일리"]];
-  let h=keys.map(([k,l])=>{const s=st[k];const ic=tcIcon(k.slice(6));if(!s||!s.last)return `<div class="rc off"><small>${ic}${l}</small><b>–</b><div class="best">기록 없음</div></div>`;
+  let h=keys.map(([k,l])=>{const s=st[k];const ic=tcIcon(k.slice(6));if(!s||!s.last)return "";
     const r=s.record||{win:0,draw:0,loss:0};return `<div class="rc"><small>${ic}${l}</small><b>${s.last.rating}</b><div class="best">최고 ${s.best?s.best.rating:"–"}</div>${wdl(r.win,r.draw,r.loss)}<div class="nums">${r.win.toLocaleString()}승 ${r.draw.toLocaleString()}무 ${r.loss.toLocaleString()}패</div></div>`}).join("");
   const tac=st.tactics&&st.tactics.highest,pr=st.puzzle_rush&&st.puzzle_rush.best;
-  h+=`<div class="rc${tac?"":" off"}"><small>퍼즐</small><b>${tac?tac.rating:"–"}</b><div class="best">최고 기록</div></div>`;
-  h+=`<div class="rc${pr?"":" off"}"><small>퍼즐 러시</small><b>${pr?pr.score:"–"}</b><div class="best">최고 점수</div></div>`;
+  if(tac)h+=`<div class="rc"><small>퍼즐</small><b>${tac.rating}</b><div class="best">최고 기록</div></div>`;
+  if(pr)h+=`<div class="rc"><small>퍼즐 러시</small><b>${pr.score}</b><div class="best">최고 점수</div></div>`;
+  $("#rates").innerHTML=h;$("#rates").classList.add("on");
+}
+function renderProfileLi(){
+  const p=S.profile,pf=p.profile||{},cc=pf.flag||pf.country||"";let cn=cc;try{cn=cc?new Intl.DisplayNames(["ko"],{type:"region"}).of(cc.split("-")[0])||cc:""}catch(e){}
+  $("#prof").innerHTML=`<img alt=""><div><div class="nm">${p.title?`<span class="ttl">${esc(p.title)}</span>`:""}${esc(p.username)}</div>
+    <div class="sub">${pf.realName?`<span>${esc(pf.realName)}</span>`:""}${cn?`<span>${esc(cn)}</span>`:""}<span>가입 ${ymd(new Date(p.createdAt))}</span><span>접속 ${ago(Math.round((p.seenAt||Date.now())/1000))}</span>${p.count?`<span>${p.count.all.toLocaleString()}판</span>`:""}</div></div>
+    <div class="pacts"><a class="ext" href="${esc(p.url||"https://lichess.org/@/"+p.username)}" target="_blank" rel="noopener">리체스 프로필</a></div>`;
+  $("#prof").classList.add("on");
+  const P=p.perfs||{},keys=[["bullet","불릿","bullet"],["blitz","블리츠","blitz"],["rapid","래피드","rapid"],["classical","클래식","rapid"],["correspondence","통신","daily"]];
+  let h=keys.filter(([k])=>P[k]&&P[k].games).map(([k,l,ic])=>{const s=P[k];return `<div class="rc"><small>${tcIcon(ic)}${l}</small><b>${s.rating}${s.prov?"?":""}</b><div class="best">${s.games.toLocaleString()}판${s.prog?` · ${s.prog>0?"+":""}${s.prog}`:""}</div></div>`}).join("");
+  if(P.puzzle&&P.puzzle.games)h+=`<div class="rc"><small>퍼즐</small><b>${P.puzzle.rating}</b><div class="best">${P.puzzle.games.toLocaleString()}개</div></div>`;
+  if(P.storm&&P.storm.score)h+=`<div class="rc"><small>퍼즐 스톰</small><b>${P.storm.score}</b><div class="best">최고 점수</div></div>`;
   $("#rates").innerHTML=h;$("#rates").classList.add("on");
 }
 function wdl(w,d,l){const n=w+d+l||1;return `<div class="wdl"><i class="w" style="width:${w/n*100}%"></i><i class="d" style="width:${d/n*100}%"></i><i class="l" style="width:${l/n*100}%"></i></div>`}

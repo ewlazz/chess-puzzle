@@ -16,3 +16,9 @@ window.KPI={
       +'<div class="ebt">'+k.map(function(x){return p[x[0]]?'<i class="'+x[2]+'" style="flex:'+p[x[0]]+'"></i>':''}).join('')+'</div>'
       +'<div class="ebl">'+k.map(function(x){return '<span><i class="'+x[2]+'"></i>'+x[1]+' '+(p[x[0]]||0).toFixed(1)+'</span>'}).join('')+(p.miss!=null?'<span><i class="eb4"></i>놓침 '+p.miss.toFixed(1)+'</span>':'')+'</div></div>'}
 };
+/* 작은 보드 (리포트 목록용) */
+window.miniBoard=function(fen,orient,hl){var F="abcdefgh",rows=fen.split(" ")[0].split("/"),B={};
+  rows.forEach(function(r,i){var f=0;for(var ch of r){if(/\d/.test(ch))f+=+ch;else{B[F[f]+(8-i)]=(ch===ch.toUpperCase()?"w":"b")+ch.toLowerCase();f++}}});
+  var h="";for(var i=0;i<64;i++){var r=orient==="b"?(i>>3)+1:8-(i>>3),f=orient==="b"?7-(i&7):i&7,sq=F[f]+r,d=(r+f)%2===1;
+    h+='<div class="'+(d?"l":"d")+(hl&&hl.indexOf(sq)>=0?" h":"")+'">'+(B[sq]?'<i class="pc '+B[sq]+'"></i>':"")+'</div>'}
+  return '<div class="mbd" aria-hidden="true">'+h+'</div>'};

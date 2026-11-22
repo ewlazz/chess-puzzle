@@ -158,15 +158,21 @@ function varPanel(c,v){
 /* 2. 자꾸 두는 수 */
 const ev=v=>v==null?"–":Math.abs(v)>=9000?(v>0?"메이트":"메이트 당함"):(v>0?"+":v<0?"−":"")+Math.abs(v/100).toFixed(1);
 function lineHtml(path,m){const a=path.concat(m);return a.map((x,i)=>{const t=(i%2===0?`${i/2+1}. `:"")+x;return i===a.length-1?`<b>${esc(i%2===1&&i===a.length-1?`${(i-1)/2+1}... ${x}`:t)}</b>`:esc(t)}).join(" ").replace(/(\d+\. \S+) <b>(\d+)\.\.\. /,"$1 <b>")}
+const fenAfter=a=>{const c=new Chess();for(const m of a)c.move(m);return c};
+function lineBox(path,m){const a=path.concat(m),n=a.length,from=Math.max(0,n-3);
+  const tok=(x,i)=>(i%2===0?`${i/2+1}. `:i===from?`${(i-1)/2+1}... `:"")+x;
+  const sh=a.map((x,i)=>i<from?null:(i===n-1?`<b>${esc(tok(x,i))}</b>`:esc(tok(x,i)))).filter(Boolean).join(" ");
+  return `<span class="short">${from?"… ":""}${sh}</span><span class="full">${lineHtml(path,m)}</span>`}
+const pp=v=>`승률 −${Math.max(0,Math.round(v))}%p`;
+const wpc=cp=>cp==null?50:Math.abs(cp)>=9000?(cp>0?100:0):50+50*(2/(1+Math.exp(-0.00368208*cp))-1);
 function scanBody(){
   const S2=AUTO.scan;
   if(!S2)return `<p class="rprog">${esc(AUTO.txt||"곧 시작해요")}</p>`;
   const f=S2.found;
-  const items=f.map((x,i)=>{const at=x.path.length;
-    return `<div class="rbad"><div class="rbt"><span class="rcol2">${CN[x.color]}</span> ${x.name?esc(ko(x.name))+" · ":""}<b>${esc(window.oNum(at,x.mv))}</b></div>
-      <div class="rbd">${x.n}번 둠 · 이 수 두면 <b class="bad">${ev(x.after)}</b> · ${esc(x.best)} 두면 <b>${ev(x.bestEv)}</b> · 이 수 두고 ${recTxt(x.rec)}</div>
-      <div class="rbl">${lineHtml(x.path,x.mv)}</div>
-      <div class="racts"><a class="ract" href="opening.html?line=${encodeURIComponent(x.path.join(","))}">보드에서 보기</a><button class="ract" data-badg="${i}">게임 ${x.n}판</button></div><div class="rgames" id="rbg${i}" hidden></div></div>`}).join("");
+  const items=f.map((x,i)=>{const at=x.path.length,c=fenAfter(x.path),mv=c.move(x.mv),mvs=window.oNum?oNum(at,x.mv):x.mv;
+    return `<div class="ritem" data-sq="${i}">${miniBoard(c.fen(),x.color,mv?[mv.from,mv.to]:null)}<div class="rt1"><span class="rcol2">${CN[x.color]}</span>${x.name?esc(ko(x.name).split(",")[0]):""} <em>${x.n}번 둠 · ${recTxt(x.rec)}</em></div>
+      <div class="rt2"><b class="bad">${esc(mvs)}</b> · ${pp(wpc(x.bestEv)-wpc(x.after))} · 최선 <b class="gd">${esc(x.best)}</b></div><div class="rt3" data-full>${lineBox(x.path,x.mv)}</div>
+      <span class="rgo">연습<button class="lnk sub" data-badg="${i}">게임 ${x.n}판</button></span></div><div class="rgames" id="rbg${i}" hidden></div>`}).join("");
   return (S2.done?"":`<p class="rprog">${esc(AUTO.txt)}</p>`)+(items||(S2.done?'<p class="empty">없음</p>':""));
 }
 /* 3. 시간 */
@@ -240,10 +246,9 @@ function omBody(){
   return `${base!=null?`<p class="rline">분석한 ${R.length}판의 오프닝 정확도 <b>${base.toFixed(1)}</b></p>`:""}
     ${fam.slice(0,6).map(x=>`<div class="hb"><span>${esc(ko(x.f))} <em>${x.n}판</em></span>${bar(x.acc)}<span${base!=null&&x.acc<base-5?' class="lo"':""}>${x.acc.toFixed(1)}</span></div>`).join("")}
     <h4>흔들린 수 ${L.length?`<em>${L.length}개</em>`:""}</h4>
-    ${L.length?L.map((e,i)=>`<div class="omr"><div><span class="rcol2">${CN[e.c]}</span>${esc(nm(e))}${e.n>1?` <em>${e.n}번</em>`:""}</div>
-      <div class="rbd"><b class="bad">${esc(window.oNum?oNum(e.o.k,e.o.san):e.o.san)}</b> · 최선 <b>${esc(e.o.best)}</b> · −${e.loss}%</div>
-      <div class="rbl">${lineHtml(e.o.path,e.o.san)}</div>
-      <div class="racts"><button class="ract" data-oq="${i}">연습</button><button class="ract" data-og="${i}">게임</button></div></div>`).join("")
+    ${L.length?L.map((e,i)=>{const c=fenAfter(e.o.path),mv=c.move(e.o.san);return `<div class="ritem" data-oq="${i}">${miniBoard(c.fen(),e.c,mv?[mv.from,mv.to]:null)}<div class="rt1"><span class="rcol2">${CN[e.c]}</span>${esc(nm(e))}${e.n>1?` <em>${e.n}번</em>`:""}</div>
+      <div class="rt2"><b class="bad">${esc(window.oNum?oNum(e.o.k,e.o.san):e.o.san)}</b> · ${pp(e.loss)} · 최선 <b class="gd">${esc(e.o.best)}</b></div><div class="rt3" data-full>${lineBox(e.o.path,e.o.san)}</div>
+      <span class="rgo">연습<button class="lnk sub" data-og="${i}">게임</button></span></div>`}).join("")
       +`<div class="racts" style="margin-top:12px"><button class="ract pri3" data-oq="all">전부 연습</button></div>`:'<p class="empty">없음</p>'}`;
 }
 function blownHtml(R){
@@ -252,7 +257,8 @@ function blownHtml(R){
   if(!V.length)return "";
   return `<div class="rnums"><div><b>${hi.length?P(hw.length/hi.length):"–"}</b><small>유리했던 판 마무리<br>${hw.length}/${hi.length}판</small></div><div><b>${lo.length?P(ls.length/lo.length):"–"}</b><small>불리했던 판 버팀<br>${ls.length}/${lo.length}판</small></div></div>
     <h4>이길 판 놓친 판 ${B.length?`<em>${B.length}판</em>`:""}</h4>${B.length?B.slice(0,6).map((x,i)=>{const b=x.r.blown,no=Math.floor(b.k/2)+1;
-      return `<div class="og bw"><span class="res ${x.g.res}">${RL[x.g.res]||"–"}</span><span class="on">vs ${esc(x.g.op.name)} · 승률 ${b.w}%에서 <b>${no}${b.k%2?"...":"."} ${esc(b.san)}</b></span><button class="ab" data-bw="${i}">게임</button><a class="ab pri2" href="play.html?fen=${encodeURIComponent(b.fen)}&me=${x.g.me}&lvl=8&t=${encodeURIComponent("다시 이겨 보기 · 엔진 레벨 9")}">다시 두기</a></div>`}).join(""):'<p class="empty">분석한 판 중엔 없어요.</p>'}`;
+      const href=`play.html?fen=${encodeURIComponent(b.fen)}&me=${x.g.me}&lvl=8&t=${encodeURIComponent("다시 이겨 보기 · 엔진 레벨 9")}`;
+      return `<div class="ritem" data-href="${href}">${miniBoard(b.fen,x.g.me)}<div class="rt1"><span class="res ${x.g.res}" style="display:inline-grid;width:22px;height:22px;font-size:12px;margin-right:6px">${RL[x.g.res]||"–"}</span>vs ${esc(x.g.op.name)}</div><div class="rt2">승률 <b>${b.w}%</b> 자리에서 <b class="bad">${no}${b.k%2?"...":"."} ${esc(b.san)}</b></div><div class="rt3"></div><span class="rgo">다시 두기<button class="lnk sub" data-bw="${i}">게임</button></span></div>`}).join(""):'<p class="empty">분석한 판 중엔 없어요.</p>'}`;
 }
 function pressTxt(){
   const el=$("#rPress");if(!el||!window.BatchAPI)return;const R=BatchAPI.results(LIST.slice(0,AUTO.n||ENGN));
@@ -271,7 +277,7 @@ function upd(){put($("#rScan"),scanBody(),"scan");put($("#rEngB"),engBody(),"eng
 async function auto(L,tok){
   const sig=S.user+"|"+L.length+"|"+(L[0]&&L[0].id);
   if(AUTO.sig!==sig){AUTO.sig=sig;AUTO.scan=null;AUTO.n=ENGN;
-    try{const c=JSON.parse(localStorage.getItem("hansu-scan2-"+S.user)||"null");if(c&&c.sig===sig)AUTO.scan={found:c.found,done:true}}catch(e){}}
+    try{const c=JSON.parse(localStorage.getItem("hansu-scan2-"+(S.site==="li"?"li:":"")+S.user)||"null");if(c&&c.sig===sig)AUTO.scan={found:c.found,done:true}}catch(e){}}
   const alive=()=>tok===AUTO.tok;AUTO.active=true;try{await run()}finally{if(tok===AUTO.tok)AUTO.active=false}
   async function run(){
   if(!AUTO.scan||!AUTO.scan.done){
@@ -281,7 +287,7 @@ async function auto(L,tok){
       if(!alive()||!f)return;all.push(...f);
     }
     AUTO.scan={found:all.sort((x,y)=>y.loss*y.n-x.loss*x.n).slice(0,12),done:true};AUTO.txt="";
-    try{localStorage.setItem("hansu-scan2-"+S.user,JSON.stringify({sig,found:AUTO.scan.found}))}catch(e){}
+    try{localStorage.setItem("hansu-scan2-"+(S.site==="li"?"li:":"")+S.user,JSON.stringify({sig,found:AUTO.scan.found}))}catch(e){}
     upd();
   }
   if(!alive())return;
@@ -338,6 +344,10 @@ function draw(L){
   el.querySelectorAll("details.rsec").forEach(d=>d.addEventListener("toggle",()=>{const id=d.id.slice(2);d.open?OPEN.add(id):OPEN.delete(id)}));
   pressTxt();fillStudy(RT);
   el.onclick=async e=>{
+    const ft=e.target.closest("[data-full]");if(ft&&!e.target.closest("button")){ft.closest(".ritem").classList.toggle("open");return}
+    const sub=e.target.closest(".ritem .lnk");
+    const it=!sub&&e.target.closest(".ritem");if(it){if(it.dataset.href){location.href=it.dataset.href;return}
+      if(it.dataset.sq!=null){const x=AUTO.scan.found[+it.dataset.sq];try{localStorage.setItem("hansu-oquiz",JSON.stringify([{c:x.color,path:x.path,best:x.best,san:x.mv,name:x.name||""}]))}catch(_){}location.href="opening.html?oquiz=1";return}}
     const go=e.target.closest("[data-go]");if(go){e.preventDefault();const d=document.getElementById("s-"+go.dataset.go);if(d){d.open=true;OPEN.add(go.dataset.go);d.scrollIntoView({behavior:"smooth",block:"start"})}return}
     if(e.target.id==="rAll"){const all=[...el.querySelectorAll("details.rsec")],op=!all.every(d=>d.open);all.forEach(d=>d.open=op);e.target.textContent=op?"모두 접기":"모두 펼치기";return}
     const tb=e.target.closest("[data-tab]");if(tb&&el.contains(tb)){window.showTab&&window.showTab(tb.dataset.tab);document.getElementById("main")?.scrollIntoView({behavior:"smooth"});return}

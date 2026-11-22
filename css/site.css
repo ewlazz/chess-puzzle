@@ -408,3 +408,27 @@ details.rsec[open]>summary .rh::before{content:"−"}
 .h4b{margin-top:28px!important;padding-top:16px;border-top:1px solid #D5D9E8}
 .lnk{border:0;background:none;padding:0;font:inherit;color:#505A82;text-decoration:underline;cursor:pointer}
 .rnav .lnk{font-size:13px;font-weight:600}
+.site{display:flex;gap:4px;margin-bottom:8px}
+.site button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border:1px solid #C4C9DC;border-radius:3px;background:transparent;color:#242942;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.site button[aria-pressed=true]{border-color:#242942;background:#242942;color:#EFF0F6}
+.site .sico{width:18px;height:18px;border-radius:2px}
+.recent .sico,.hrec .sico{width:14px;height:14px;vertical-align:-2px;margin-right:4px;border-radius:2px}
+/* 작은 보드 + 줄 */
+.mbd{display:grid;grid-template-columns:repeat(8,1fr);width:76px;height:76px;flex:none;border:1px solid #C4C9DC}
+.mbd div{position:relative;background:var(--lsq)}.mbd div.d{background:var(--dsq)}.mbd div.h{box-shadow:inset 0 0 0 40px #5C54D640}
+.mbd .pc{position:absolute;inset:0;background-size:100%;background-repeat:no-repeat}
+.ritem{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:12px 8px;margin:0 -8px;border-bottom:1px solid #D5D9E8;cursor:pointer;border-radius:3px}
+.ritem:hover{background:#D5D9E8}
+.ritem .mbd{grid-row:1/4}
+.ritem .rt1{font-size:15px;font-weight:700;min-width:0}
+.ritem .rt1 em{font-style:normal;font-weight:500;color:#505A82;font-size:13px;margin-left:4px}
+.ritem .rt2{font-size:14px;color:#242942}.ritem .rt2 b{font-family:"Inter","Pretendard",sans-serif}
+.ritem .rt2 .bad{color:#242942}.ritem .rt2 .gd{color:#5C54D6}
+.ritem .rt3{font-size:13px;color:#505A82;font-family:"Inter","Pretendard",sans-serif;cursor:pointer}
+.ritem .rt3 .full{display:none}.ritem.open .rt3 .full{display:inline}.ritem.open .rt3 .short{display:none}
+.ritem .rgo{grid-column:3;grid-row:1/4;align-self:center;font-size:14px;font-weight:800;color:#5C54D6;white-space:nowrap}
+.ritem .sub{margin-left:10px;font-size:13px;font-weight:600}
+@media(max-width:640px){.ritem{grid-template-columns:64px minmax(0,1fr)}.mbd{width:64px;height:64px}.ritem .rgo{grid-column:2;grid-row:auto;justify-self:start}}
+.askme{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:12px 14px;border:1px solid #5C54D6;border-radius:4px;font-weight:700}
+.askme span{margin-right:auto}
+.hero .site{margin-bottom:10px}

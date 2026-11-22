@@ -82,6 +82,7 @@
   <div class="hg">
     <div>
       <h1>전적 검색</h1>
+      <div class="site" id="hsite"><button type="button" data-s="cc" aria-pressed="true"><img class="sico" src="https://www.chess.com/bundles/web/favicons/favicon-32x32.png" alt="" width="18" height="18">체스닷컴</button><button type="button" data-s="li" aria-pressed="false"><img class="sico" src="https://lichess1.org/assets/logo/lichess-favicon-64.png" alt="" width="18" height="18">리체스</button></div>
       <form class="hs" id="hf"><input id="hq" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button>검색</button></form>
       <div class="hrow"><span id="hrl">많이 찾는 닉네임</span><div class="hrec" id="hrec"></div></div>
     </div>
@@ -109,7 +110,9 @@
 </footer>
 <script>
 {
-  const go=u=>{u=u.trim();if(u)location.href="stats.html?user="+encodeURIComponent(u)+"&tab=report"};
+  let site="cc";
+  const go=u=>{u=u.trim();if(u)location.href="stats.html?user="+encodeURIComponent(u)+(site==="li"?"&site=li":"")+"&tab=report&from=home"};
+  const st=document.getElementById("hsite");if(st)st.onclick=e=>{const b=e.target.closest("[data-s]");if(!b)return;site=b.dataset.s;st.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));const q=document.getElementById("hq");q.placeholder=site==="li"?"리체스 닉네임":"체스닷컴 닉네임";q.focus()};
   document.getElementById("hf").onsubmit=e=>{e.preventDefault();go(document.getElementById("hq").value)};
   let r=[];try{r=JSON.parse(localStorage.getItem("hansu-recent")||"[]")}catch(e){}
 
@@ -118,7 +121,7 @@
   if(me){r=[me].concat(r.filter(x=>x.toLowerCase()!==me.toLowerCase())).slice(0,5);document.getElementById("hrl").textContent="내 계정"}
   else if(!r.length){r=pop}else{document.getElementById("hrl").textContent="최근 검색"}
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  document.getElementById("hrec").innerHTML=r.map((u,i)=>`<a${me&&!i?' class="me"':""} href="stats.html?user=${encodeURIComponent(u)}&tab=report">${esc(u)}</a>`).join("");
+  document.getElementById("hrec").innerHTML=r.map((u,i)=>{const li=u.startsWith("li:"),n=li?u.slice(3):u;return `<a${me&&!i?' class="me"':""} href="stats.html?user=${encodeURIComponent(n)}${li?"&site=li":""}&tab=report">${li?'<img class="sico" src="https://lichess1.org/assets/logo/lichess-favicon-64.png" alt="리체스" width="14" height="14"> ':""}${esc(n)}</a>`}).join("");
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
