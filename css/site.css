@@ -254,3 +254,4 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 header{position:sticky}
 .mline span:last-child{white-space:normal;overflow-wrap:anywhere}.gr{overflow:hidden}
 .ahead b{flex:1;min-width:0}.ahead a,.ahead .x{flex:none}.ahead .x{margin-left:0}@media(max-width:520px){.ahead a{font-size:12px}.ahead b{font-size:15px}}
+.olink{font-size:13px;color:var(--muted);margin-left:6px;white-space:nowrap}

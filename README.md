@@ -13,6 +13,10 @@
 - **분석** (`analysis.html`)
   - PGN·FEN·리체스 링크 붙여넣기, 보드 에디터(`?fen=`)
   - 엔진 라인 3개, 변화수 두기, 수 분류·정확도, 오프닝 이름, 실수 퍼즐로 저장
+- **오프닝** (`opening.html?line=e4,c5`)
+  - 이름·ECO 검색, 오프닝 목록(갈래별 변화), 수마다 오프닝 이름
+  - 수 통계(리체스 마스터 DB: 판수·승무패·평균 레이팅), 대표 게임, 엔진 평가
+  - 연습: 지금 위치부터 상대는 마스터들이 많이 둔 수로 두고, 내가 정석을 벗어나면 알려 줌
 - **대국** (`play.html`)
   - Stockfish 레벨 1~10, 시간 제한, 프리무브, 무르기, 끝나면 분석
 
@@ -28,6 +32,7 @@
 | `analysis.html`, `js/editor.js` | 붙여넣기·에디터 |
 | `js/analysis.js` | 분석 화면 (전적·분석·대국에서 공용) |
 | `play.html`, `js/play.js` | 엔진 대국 |
+| `opening.html`, `js/opening.js` | 오프닝 페이지 |
 | `js/openings.js`, `data/openings.json` | 오프닝 이름·정석 판별 |
 | `js/theme.js`, `manifest.json`, `sw.js` | 보드 색, 홈 화면 앱 |
 | `css/site.css`, `pieces.css` | 공통 스타일, 기물 그림 |
@@ -46,7 +51,7 @@
 ## 출처
 
 - [Chess.com 공개 API](https://www.chess.com/news/view/published-data-api)
-- [Lichess API](https://lichess.org/api) (퍼즐, 게임 내보내기)
+- [Lichess API](https://lichess.org/api) (퍼즐, 게임 내보내기, 마스터 오프닝 탐색기)
 - [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings) (CC0)
 - [Stockfish.js](https://github.com/nmrugg/stockfish.js) 19 lite (GPLv3, `engine/COPYING.txt`)
 - [chess.js](https://github.com/jhlywa/chess.js) 0.10.3 (BSD-2-Clause)

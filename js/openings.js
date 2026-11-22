@@ -16,5 +16,5 @@ window.Openings=(function(){
   /* 이름의 큰 갈래: "Sicilian Defense: Najdorf Variation" → "Sicilian Defense" */
   const family=n=>(n||"").split(":")[0].trim();
   load();
-  return {load,at,line,family,ready:()=>!!D};
+  return {load,at,line,family,ready:()=>!!D,names:()=>D?D.n:[]};
 })();

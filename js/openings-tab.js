@@ -102,7 +102,7 @@ function drawTree(){
   const c=fenOf(p),fen=c.fen(),hist=c.history({verbose:true}),last=hist[hist.length-1];
   drawBoard(c,last);
   const op=Openings.at(fen)||null;let nm=null;for(let k=p.length;k>=0&&!nm;k--){const a=Openings.at(fenOf(p.slice(0,k)).fen());if(a&&a.name)nm=a}
-  $("#oName").textContent=nm?`${nm.eco} · ${nm.name}${op?"":" (정석 밖)"}`:"";
+  $("#oName").innerHTML=(nm?`${esc(nm.eco)} · ${esc(nm.name)}${op?"":" (정석 밖)"}`:"")+` <a class="olink" href="opening.html?line=${encodeURIComponent(p.join(","))}">오프닝 페이지에서 보기</a>`;
   const ch=group(G,g=>g._o.san[i]);
   const tot=ch.reduce((s,[k,a])=>s+a.length,0)||1;
   $("#oTab").innerHTML=ch.length?`<thead><tr><th>${isMine?"내 수":"상대 수"}</th><th>판</th><th></th><th>점수</th><th>퍼포먼스</th><th>평균 상대</th><th>엔진</th></tr></thead><tbody>`+ch.map(([k,a],j)=>{const r=rec(a);
