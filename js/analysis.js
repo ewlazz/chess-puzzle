@@ -311,7 +311,7 @@ function summary(){
   const side=c=>{const idx=[];A.moves.forEach((m,k)=>{if(turnOf(A.fens[k])===c&&A.cls[k])idx.push(k)});
     if(!idx.length)return null;const accs=idx.map(k=>A.acc[k]);
     const mean=accs.reduce((a,b)=>a+b,0)/accs.length,harm=accs.length/accs.reduce((a,b)=>a+1/Math.max(b,5),0);
-    const cnt={};ORDER.forEach(o=>cnt[o]=0);idx.forEach(k=>cnt[A.cls[k]]++);return {acc:(mean+harm)/2,cnt}};
+    const cnt={};ORDER.forEach(o=>cnt[o]=0);idx.forEach(k=>cnt[A.cls[k]]++);const raw=(mean+harm)/2;return {acc:window.calAcc?calAcc(raw):raw,raw,cnt}};
   const S2={w:side("w"),b:side("b")},gm=A.game,nm=c=>esc(gm.me===c?gm.my.name:gm.op.name),ca=c=>gm.acc?(gm.me===c?gm.acc.me:gm.acc.op):null;
   $("#acc2").innerHTML=["w","b"].map(c=>`<div><small>${c==="w"?"백":"흑"} · ${nm(c)}</small><b>${S2[c]?S2[c].acc.toFixed(1):"–"}</b><small>정확도${ca(c)!=null?` · 체스닷컴 ${ca(c).toFixed(1)}`:""}</small></div>`).join("");
   $("#cls").innerHTML=`<tr><td></td><td>백</td><td>흑</td></tr>`+ORDER.map(o=>`<tr><td>${clIco(o,"dot")}${CL[o].l}</td><td>${S2.w?S2.w.cnt[o]:"–"}</td><td>${S2.b?S2.b.cnt[o]:"–"}</td></tr>`).join("");

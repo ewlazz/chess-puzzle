@@ -52,14 +52,16 @@ function varPanel(c,v){
     <div class="rgames">${G.slice(0,10).map(gameRow).join("")}</div>${G.length>10?`<button class="more" data-morevar="${esc(c+"|"+v)}">${G.length-10}판 더 보기</button>`:""}`;
 }
 /* 2. 자꾸 두는 수 */
+const ev=v=>v==null?"–":Math.abs(v)>=9000?(v>0?"메이트":"메이트 당함"):(v>0?"+":v<0?"−":"")+Math.abs(v/100).toFixed(1);
+function lineHtml(path,m){const a=path.concat(m);return a.map((x,i)=>{const t=(i%2===0?`${i/2+1}. `:"")+x;return i===a.length-1?`<b>${esc(i%2===1&&i===a.length-1?`${(i-1)/2+1}... ${x}`:t)}</b>`:esc(t)}).join(" ").replace(/(\d+\. \S+) <b>(\d+)\.\.\. /,"$1 <b>")}
 function scanBody(){
   const S2=AUTO.scan;
   if(!S2)return `<p class="rprog">${esc(AUTO.txt||"곧 시작해요")}</p>`;
   const f=S2.found;
   const items=f.map((x,i)=>{const at=x.path.length;
     return `<div class="rbad"><div class="rbt"><span class="rcol2">${CN[x.color]}</span> ${x.name?esc(ko(x.name))+" · ":""}<b>${esc(window.oNum(at,x.mv))}</b></div>
-      <div class="rbd">${x.n}번 둠 · 평가 ${(-x.loss/100).toFixed(1)} · 여기선 <b>${esc(x.best)}</b>가 최선 · 이 수 두고 ${recTxt(x.rec)}</div>
-      <div class="rbl">${esc(window.oPath(x.path))} <b>${esc(window.oNum(at,x.mv))}</b></div>
+      <div class="rbd">${x.n}번 둠 · 이 수 두면 <b class="bad">${ev(x.after)}</b> · ${esc(x.best)} 두면 <b>${ev(x.bestEv)}</b> · 이 수 두고 ${recTxt(x.rec)}</div>
+      <div class="rbl">${lineHtml(x.path,x.mv)}</div>
       <div class="racts"><a class="ract" href="opening.html?line=${encodeURIComponent(x.path.join(","))}">보드에서 보기</a><button class="ract" data-badg="${i}">게임 ${x.n}판</button></div><div class="rgames" id="rbg${i}" hidden></div></div>`}).join("");
   return (S2.done?"":`<p class="rprog">${esc(AUTO.txt)}</p>`)+(items||(S2.done?'<p class="empty">세 번 이상 둔 수 중에서 크게 손해 보는 수는 없어요.</p>':""));
 }
@@ -74,13 +76,13 @@ function timeSec(L){
 /* 4. 상대·흐름 */
 function oppSec(L){
   const d=g=>g.op.rating-g.my.rating,base=rec(L).s;
-  const up=rec(L.filter(g=>d(g)>=100)),eq=rec(L.filter(g=>Math.abs(d(g))<100)),dn=rec(L.filter(g=>d(g)<=-100));
+  const up=rec(L.filter(g=>d(g)>=50)),eq=rec(L.filter(g=>Math.abs(d(g))<50)),dn=rec(L.filter(g=>d(g)<=-50));
   const A=L.slice().sort((a,b)=>a.end-b.end),aw=[],al=[];
   for(let i=1;i<A.length;i++){const p=A[i-1],g=A[i];if(g.tclass!==p.tclass||g.tclass==="daily"||g.end-p.end>1800)continue;if(p.res==="win")aw.push(g);else if(p.res==="loss")al.push(g)}
   const hrs=[["새벽 0~6시",0,6],["오전 6~12시",6,12],["오후 12~18시",12,18],["저녁 18~24시",18,24]];
   const op=x=>Object.assign({},flag(x,base));
   return `<section class="rsec"><h3 class="rh">상대와 흐름</h3>
-    <h4>상대 레이팅</h4>${up.n?line("나보다 100 이상 높음",up,op(up)):""}${eq.n?line("비슷함",eq,op(eq)):""}${dn.n?line("나보다 100 이상 낮음",dn,op(dn)):""}
+    <h4>상대 레이팅</h4>${up.n?line("나보다 50 이상 높음",up,op(up)):""}${eq.n?line("비슷함",eq,op(eq)):""}${dn.n?line("나보다 50 이상 낮음",dn,op(dn)):""}
     <h4>바로 앞 판 결과 (30분 안에 이어서 둔 판)</h4>${aw.length?line("이긴 다음 판",rec(aw),op(rec(aw))):""}${al.length?line("진 다음 판",rec(al),op(rec(al))):""}${!aw.length&&!al.length?'<p class="empty">이어서 둔 판이 없어요.</p>':""}
     <h4>시간대</h4>${hrs.map(([l,a,b])=>{const r=rec(L.filter(g=>{const x=new Date(g.end*1000).getHours();return x>=a&&x<b}));return r.n?line(l,r,op(r)):""}).join("")}</section>`;
 }
@@ -149,7 +151,7 @@ function draw(L){
   const rt=Object.keys(TC).map(k=>{const a=L.filter(g=>g.tclass===k&&g.rated).sort((x,y)=>x.end-y.end);if(a.length<5)return "";const d=a[a.length-1].my.rating-a[0].my.rating;return `<span>${window.tcIcon(k)}${a[a.length-1].my.rating} <em class="${d>=0?"up":"dn"}">${d>=0?"+":""}${d}</em></span>`}).join("");
   el.innerHTML=`<div class="rhead"><div><b>${esc(p.username||S.user)}</b><small>${L.length}판 · ${recTxt(R)} · 승률 ${P(R.s)}</small></div><div class="rrt">${rt}</div><button class="ract" id="rShare">링크 복사</button></div>
     ${openSec(L)}
-    <section class="rsec"><h3 class="rh">자꾸 두는 안 좋은 수</h3><p class="rsub">세 번 이상 둔 내 수 중에서 엔진이 0.6 이상 손해라고 보는 수</p><div id="rScan">${scanBody()}</div></section>
+    <section class="rsec"><h3 class="rh">자꾸 두는 안 좋은 수</h3><p class="rsub">세 번 이상 둔 내 수 중에서 엔진이 0.6 이상 손해라고 보는 수. 평가는 내 쪽 기준이에요.</p><div id="rScan">${scanBody()}</div></section>
     <div class="rcols">${timeSec(L)}${oppSec(L)}</div>
     <section class="rsec"><h3 class="rh">엔진 진단</h3><div id="rEngB">${engBody()}</div></section>`;
   pressTxt();

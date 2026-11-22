@@ -5,6 +5,8 @@ const B={n:20,running:false,user:null,res:{}};
 const key=()=>"hansu-batch-"+S.user;
 function loadRes(){if(B.user===S.user)return;B.user=S.user;try{B.res=JSON.parse(localStorage.getItem(key())||"{}")}catch(e){B.res={}}}
 function saveRes(){try{localStorage.setItem(key(),JSON.stringify(B.res))}catch(e){/* 가득 차면 오래된 것부터 지움 */const ids=Object.keys(B.res).sort((a,b)=>B.res[a].end-B.res[b].end);ids.slice(0,Math.ceil(ids.length/3)).forEach(i=>delete B.res[i]);try{localStorage.setItem(key(),JSON.stringify(B.res))}catch(_){}}}
+const C=window.calAcc||(v=>v);
+function calR(r){const cp=a=>[a[0]==null?null:C(a[0]),a[1]];return Object.assign({},r,{acc:C(r.acc),opAcc:C(r.opAcc),ph:{o:cp(r.ph.o),m:cp(r.ph.m),e:cp(r.ph.e)},pr:Object.assign({},r.pr,{p:cp(r.pr.p),n:cp(r.pr.n)})})}
 const turnOf=f=>f.split(" ")[1];
 const mat=f=>{let v=0;for(const ch of f.split(" ")[0]){const t=ch.toLowerCase();if(t==="n"||t==="b")v+=3;else if(t==="r")v+=5;else if(t==="q")v+=9}return v};
 const gacc=a=>{if(!a.length)return null;const mean=a.reduce((x,y)=>x+y,0)/a.length,harm=a.length/a.reduce((x,y)=>x+1/Math.max(y,5),0);return +((mean+harm)/2).toFixed(1)};
@@ -44,7 +46,7 @@ async function run(L){
 }
 function out(L){
   const el=$("#bOut");if(!el)return;
-  const R=L.slice(0,B.n).map(g=>B.res[g.id]?{g,r:B.res[g.id]}:null).filter(Boolean);
+  const R=L.slice(0,B.n).map(g=>B.res[g.id]?{g,r:calR(B.res[g.id])}:null).filter(Boolean);
   if(!R.length){el.innerHTML=`<p class="empty">아직 분석한 판이 없어요.</p>`;return}
   const mean=a=>{a=a.filter(x=>x!=null);return a.length?(a.reduce((x,y)=>x+y,0)/a.length):null};
   const f1=v=>v==null?"–":v.toFixed(1);
@@ -81,7 +83,7 @@ function out(L){
 }
 /* 리포트에서 쓰는 API */
 window.BatchAPI={
-  results(list){loadRes();return list.map(g=>B.res[g.id]?{g,r:B.res[g.id]}:null).filter(Boolean)},
+  results(list){loadRes();return list.map(g=>B.res[g.id]?{g,r:calR(B.res[g.id])}:null).filter(Boolean)},
   running:()=>B.running,
   stop(){B.running=false},
   async ensure(games,onProg){

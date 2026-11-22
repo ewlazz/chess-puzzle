@@ -163,7 +163,7 @@ async function repeatScan(games,color,onProg,alive){
     if(loss>=60&&r.best&&r.best.slice(0,4)!==mo.from+mo.to){
       const bb=new Chess(fen),bm=bb.move({from:r.best.slice(0,2),to:r.best.slice(2,4),promotion:r.best[4]||"q"});
       let nm="";for(let q=path.length+1;q>=0&&!nm;q--){const x=Openings.at(fenOf(path.concat(mv).slice(0,q)).fen());if(x&&x.name)nm=x.name}
-      found.push({color,path,mv,n:v.n,rec:rec(v.g),loss,best:bm?bm.san:r.best,after:a,name:nm,ids:v.g.map(g=>g.id)});
+      found.push({color,path,mv,n:v.n,rec:rec(v.g),loss,best:bm?bm.san:r.best,after:a,bestEv:b,name:nm,ids:v.g.map(g=>g.id)});
     }
   }
   return found.sort((x,y)=>y.loss*y.n-x.loss*x.n);
