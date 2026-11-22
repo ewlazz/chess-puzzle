@@ -1,0 +1,113 @@
+/* 종이톤 디자인
+   배경 #EFF0F6 · 글자 #242942 · 보조 #505A82, #6A80B4 · 선 #C4C9DC · 패널 #D5D9E8 · 강조 #5C54D6
+   그라데이션·그림자·알약 모양·장식 아이콘 없음. 왼쪽 정렬, 얇은 선과 단색 패널 */
+:root,:root[data-theme=dark],:root[data-theme=light]{color-scheme:light!important;--bg:#EFF0F6!important;--ink:#242942!important;--band:#EFF0F6!important;--card:#EFF0F6!important;--soft:#D5D9E8!important;--line:#C4C9DC!important;--muted:#505A82!important;--acc:#5C54D6!important;--accink:#EFF0F6!important;--good:#5C54D6!important;--bad:#242942!important;--win:#5C54D6!important;--loss:#242942!important;--draw:#C4C9DC!important}
+body{background:#EFF0F6!important;color:#242942!important;font-family:"Pretendard",system-ui,sans-serif!important;letter-spacing:-.01em}
+h1,h2,h3,.logo{font-family:"Pretendard",sans-serif!important;font-weight:900!important;letter-spacing:-.03em}
+h1{font-size:clamp(34px,4.4vw,52px)!important;line-height:1.1!important}
+h2{font-size:clamp(24px,3vw,32px)!important}
+.card h3,.rov h3,.oname2,.rh{font-weight:900!important}
+/* 숫자: Inter Display 크고 굵게 */
+.rc b,.big b,.stats b,.acc2 b,.rcard>i,.fd i,.rov h3{font-family:"Inter","Pretendard",sans-serif!important;font-variation-settings:"opsz" 32;font-weight:800!important;letter-spacing:-.02em;font-feature-settings:"tnum"}
+.clk,.rrt,.pct,.xt td,.ft td,.ot td,.vst td,.htab td,.hb span:last-child,#pnum,#plevel,.rt,.bprog,.rprog{font-family:"Inter","Pretendard",sans-serif!important;font-feature-settings:"tnum"}
+.rc b{font-size:40px!important}
+.big div b{font-size:34px!important}
+/* 머리글 */
+header{background:#EFF0F6!important;color:#242942!important;border-bottom:1px solid #C4C9DC!important}
+.logo{font-size:22px!important;color:#242942!important}
+.logo span{display:none!important}
+.nav nav a{color:#505A82!important;background:none!important;border-radius:0!important;padding:10px 6px!important;border-bottom:2px solid transparent!important}
+.nav nav a:hover{color:#242942!important}
+.nav nav a[aria-current]{color:#242942!important;border-bottom-color:#5C54D6!important}
+.nav nav{gap:10px!important}
+/* 예전 어두운 띠 → 종이 */
+.top,.play,.hero,.pband,.ob,.band.play{background:#EFF0F6!important;color:#242942!important}
+.play .head p,.hero .lead,.hnote,.prof .sub,.top .msg{color:#505A82!important}
+.prof a.ext{color:#505A82!important}
+footer{background:#EFF0F6!important;color:#505A82!important;border-top:1px solid #C4C9DC}
+main>section+section{border-top:1px solid #C4C9DC}
+/* 그림자·그라데이션·회전 없애기 */
+*{text-shadow:none!important}
+.card,.rc,.sc,.pz,.rcard,.opanel,.pside,.demo,.gr,.rhead,.ri,.boardbox,.wood,.ebox,.setp,.ores,.promo div,.apromo>div,.feat a,.mlist,.lines,.pmv,.otree{box-shadow:none!important}
+.boardbox,.wood,.ebox{background:none!important;padding:0!important;border:1px solid #C4C9DC!important;border-radius:2px!important}
+.demo{transform:none!important}
+.pc.float,.pc.drag,.badge,.mi{filter:none!important;box-shadow:none!important}
+.sq.chk::after,.s8.chk::before{background:none!important;box-shadow:inset 0 0 0 4px #5C54D6!important}
+.pz:hover{transform:none!important}
+/* 모서리: 알약 모양 대신 작은 각 */
+.chip,.tab,.tag,.tg,.ract,.modes button,.seg button,.engt,.ostar,.bkt,.rtag,.recent button,.hrec a,.lv button,.crumb button,.oline button,.snd,.ab,.btn,.pbtn,.sbtn,.go,.bgo,.rb,.mkp,.more,.search input,.search button,.hs input,.hs button,.vsf input,.vsf button,.osearch input,.fen,.tsel,.rm,.paste textarea,.obar button,.ctl button,.acts button,.sws button,.promo button,.apromo button,.status,.cur,.prm,.reng,.rov .rbs button,.stats div,.acc2 div,.res,.mv,.vm,.lm button,.lmv button,.x,.pz,.mini,.ttl,.ores,.setp,.rbox,.clk,.pill,.wdb{border-radius:3px!important}
+.card,.rc,.sc,.rcard,.opanel,.pside,.demo,.gr,.rhead,.ri,.feat a,.lines,.mlist,.pmv,.otree,.ores{border-radius:4px!important}
+.wdl{border-radius:0!important;height:6px!important}
+.tg2 a,.vl button{border-radius:0!important}
+/* 카드: 종이 위 얇은 선 */
+.card,.rc,.sc,.pz,.rcard,.opanel,.pside,.demo,.gr,.rhead,.ri,.feat a{background:#EFF0F6!important;border:1px solid #C4C9DC!important;color:#242942!important}
+.rc.off{opacity:.45!important}
+.reng,.status,.cur,.prm,.stats div,.acc2 div{background:#D5D9E8!important;color:#242942!important}
+.status{border-left:3px solid #505A82!important}
+.status.good,.status.win{border-left-color:#5C54D6!important;color:#5C54D6!important}
+.status.wrong{border-left-color:#242942!important;color:#242942!important}
+.status.hint{border-left-color:#6A80B4!important}
+/* 버튼 */
+.btn.main,.pbtn,.go,.bgo,.rb,.mkp,.search button,.hs button,.vsf button,.rov .rbs button,.rbox .acts .pri{background:#5C54D6!important;color:#EFF0F6!important;border:0!important}
+.btn,.more,.ab,.obar button,.ctl button,.acts button,.sbtn{background:#EFF0F6!important;border:1px solid #C4C9DC!important;color:#242942!important}
+.btn:hover,.more:hover,.ab:hover,.obar button:hover,.ctl button:hover,.acts button:hover,.sbtn:hover{border-color:#242942!important;background:#EFF0F6!important;color:#242942!important}
+.chip,.tab,.seg button,.modes button,.lv button,.engt,.recent button,.hrec a,.ostar,.snd,.crumb button,.oline button{background:transparent!important;border:1px solid #C4C9DC!important;color:#242942!important}
+.chip[aria-pressed=true],.tab[aria-selected=true],.seg button[aria-pressed=true],.modes button[aria-selected=true],.lv button[aria-pressed=true],.engt[aria-pressed=true],.ostar.on,.crumb button:last-child,.oline button.on,.mv.on,.vm.on{background:#242942!important;border-color:#242942!important;color:#EFF0F6!important}
+.ract{background:transparent!important;border:1px solid #5C54D6!important;color:#5C54D6!important}
+.ract:hover{background:#5C54D6!important;color:#EFF0F6!important}
+.top .tab{color:#242942!important}
+/* 입력 */
+.search input,.hs input,.vsf input,.osearch input,.fen,.tsel,.rm,.paste textarea{background:#EFF0F6!important;color:#242942!important;border:1px solid #C4C9DC!important}
+.search input:focus,.hs input:focus,.vsf input:focus,.osearch input:focus,.fen:focus,.tsel:focus,.rm:focus,.paste textarea:focus{border-color:#5C54D6!important;outline:none!important}
+:focus-visible{outline:2px solid #5C54D6!important}
+/* 태그·배지 */
+.tag,.bkt,.rtag,.tg{background:none!important;border:1px solid #C4C9DC!important;color:#505A82!important}
+.tg.good{color:#5C54D6!important;border-color:#5C54D6!important}
+.tg.bad{color:#242942!important;border-color:#242942!important}
+.ttl{background:#5C54D6!important;color:#EFF0F6!important}
+.res.win{background:#5C54D6!important;color:#EFF0F6!important}.res.loss{background:#242942!important;color:#EFF0F6!important}.res.draw{background:#C4C9DC!important;color:#242942!important}
+/* 왼쪽 정렬 */
+.stats,.stats div,.acc2 div,.rov,.rov>div,.promo div,.rbox,.note{text-align:left!important}
+.rov{place-items:center!important;background:#EFF0F6f2!important;color:#242942!important}
+.rov>div{max-width:360px}
+.rov p{color:#505A82!important}
+.promo,.apromo{background:#EFF0F6e6!important}
+/* 리포트 번호 */
+.rcard>i{background:none!important;color:#5C54D6!important;font-style:normal;font-size:30px!important;width:auto!important;height:auto!important;display:block!important;line-height:1!important;place-items:initial!important}
+.rcard.ok>i{display:none!important}
+.rcard.ok{grid-template-columns:minmax(0,1fr)!important}
+.fd i{background:none!important;color:#5C54D6!important;font-size:24px;width:auto!important;height:auto!important;display:block!important;line-height:1.1}
+.fd.ok i{display:none!important}
+.fd.ok{grid-template-columns:minmax(0,1fr)!important}
+.fd em{background:none!important;color:#5C54D6!important;padding:0!important;border-radius:0!important}
+/* 설정 패널 */
+.setp{background:#EFF0F6!important;color:#242942!important;border:1px solid #C4C9DC!important}
+.sws button{background:#EFF0F6!important;border-color:#C4C9DC!important;color:#242942!important}
+.sws button[aria-pressed=true]{border-color:#5C54D6!important;box-shadow:none!important;outline:2px solid #5C54D6}
+.sw{box-shadow:none!important;border:1px solid #C4C9DC}
+.setb:hover{background:#D5D9E8!important}
+/* 러시 실수 표시 */
+.rush .x{background:none!important;border:1px solid #C4C9DC;color:#C4C9DC!important;border-radius:2px!important}
+.rush .x.on{background:#242942!important;border-color:#242942;color:#EFF0F6!important}
+.rush .rt{color:#242942}
+/* 기타 */
+.ores button.on,.ores button:hover,.xt tbody tr:hover td,.mv:hover,.vm:hover{background:#D5D9E8!important}
+.vrow{background:#D5D9E8!important}
+.mrow>span{background:#EFF0F6!important}
+.ahead{background:#EFF0F6!important;color:#242942!important;border-bottom:1px solid #C4C9DC}
+.ahead a{color:#505A82!important}
+.ahead .x{border:1px solid #C4C9DC!important;color:#242942!important;border-radius:3px!important;font-size:14px!important;padding:0 10px!important}
+.ana{background:#EFF0F6!important}
+.pl i{border-color:#505A82!important}
+.prof img{border-radius:4px!important;background:#D5D9E8!important}
+.gfig,.evb{border-radius:2px!important}
+.clk,.pband .clk{background:#D5D9E8!important;color:#242942!important}
+.clk.run,.pband .clk.run{background:#242942!important;color:#EFF0F6!important}
+.clk.low,.pband .clk.low{background:#5C54D6!important;color:#EFF0F6!important}
+.how2 li::before{background:none!important;color:#5C54D6!important;font-family:"Inter","Pretendard",sans-serif;font-variation-settings:"opsz" 32;font-size:26px;font-weight:800;width:auto!important;height:auto!important;display:block!important;line-height:1}
+.how2 li{padding-left:36px!important}
+.rbox{background:#D5D9E8!important}
+.pside,.opanel{background:#EFF0F6!important}
+.mini{border:1px solid #C4C9DC}
+.ef,.dot{box-shadow:none!important}
+.rov .rbs small{background:none!important;color:#EFF0F6!important;opacity:.8}

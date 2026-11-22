@@ -37,7 +37,7 @@ function render(){
   drawArrows();
 }
 let topArrows=[];
-function drawArrows(){let s="";(DR.on?[]:topArrows).forEach(a=>{s+=arrow(a.from,a.to,"#5f9e3a",a.w)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
+function drawArrows(){let s="";(DR.on?[]:topArrows).forEach(a=>{s+=arrow(a.from,a.to,"#5C54D6",a.w)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
 /* 저장 (내 오프닝) */
 const mvText=a=>a.map((x,i)=>i%2===0?`${i/2+1}. ${x}`:x).join(" ");
 function reps(){try{return JSON.parse(localStorage.getItem("hansu-rep")||"[]")}catch(e){return []}}
@@ -48,7 +48,7 @@ function toggleSave(){const L=reps(),i=savedIdx();if(i>=0)L.splice(i,1);else{con
 $("#oName").onclick=e=>{if(e.target.closest("#oStar"))toggleSave()};
 function saved(){
   const L=reps(),el=$("#tSaved");
-  if(!L.length){el.innerHTML='<p class="cnt">아직 없어요. 보드에서 수순을 만든 뒤 이름 옆 ☆ 저장을 누르세요. 저장할 때 보드 방향(백/흑)이 레퍼토리 색이 돼요.</p>';return}
+  if(!L.length){el.innerHTML='<p class="cnt">아직 없어요. 보드에서 수순을 만든 뒤 이름 옆 저장을 누르세요. 저장할 때 보드 방향(백/흑)이 레퍼토리 색이 돼요.</p>';return}
   el.innerHTML=["w","b"].map(c=>{const G=L.map((r,i)=>[r,i]).filter(([r])=>r.color===c);if(!G.length)return "";
     return `<div class="rg"><div class="rgh"><h3>${c==="w"?"백":"흑"} 레퍼토리 <span class="cnt">${G.length}</span></h3><button class="chip" data-drill="${c}">전부 연습</button></div>`+
       G.map(([r,i])=>`<div class="ri"><button class="rl" data-open="${i}"><b>${esc(Openings.ko(r.name)||r.name||"이름 없는 수순")}</b><small>${esc(mvText(r.moves))}</small></button><input class="rm" data-memo="${i}" value="${esc(r.memo||"")}" placeholder="메모" aria-label="메모"><div class="ra"><button class="chip" data-col="${i}">${r.color==="w"?"백":"흑"}으로 저장됨</button><button class="chip" data-copy="${i}">PGN 복사</button><button class="chip" data-del="${i}">삭제</button></div></div>`).join("")+"</div>"}).join("");
@@ -69,7 +69,7 @@ function info(){
   for(let i=fens.length-1;i>=0&&!nm;i--){const a=Openings.at(fens[i]);if(a&&a.name)nm=a}
   const x=cache.get(fens[fens.length-1]),xn=x&&x.opening;
   const inBook=!!Openings.at(fens[fens.length-1])||idx===0;
-  const sv=savedIdx()>=0,star=idx?`<button class="ostar${sv?" on":""}" id="oStar" aria-label="${sv?"저장 취소":"저장"}">${sv?"★ 저장됨":"☆ 저장"}</button>`:"";
+  const sv=savedIdx()>=0,star=idx?`<button class="ostar${sv?" on":""}" id="oStar" aria-label="${sv?"저장 취소":"저장"}">${sv?"저장됨":"저장"}</button>`:"";
   const nmH=(n,e,extra)=>{const k=Openings.ko(n);return `<span class="ont">${esc(k||n)}${star}</span><small>${k?esc(n)+" · ":""}${esc(e)}${extra||""}</small>`};
   $("#oName").innerHTML=idx===0?"시작 위치<small>수를 두거나 오프닝을 검색하세요</small>":nm?nmH(nm.name,nm.eco,inBook?"":" · 정석 밖"):xn?nmH(xn.name,xn.eco):`<span class="ont">정석 밖${star}</span><small>이름 붙은 수순을 벗어났어요</small>`;
   $("#oLine").innerHTML=line.length?line.map((s,i)=>`${i%2===0?`<em>${i/2+1}.</em>`:""}<button data-i="${i+1}" class="${i+1===idx?"on":""}">${esc(s)}</button>`).join(""):"";
@@ -238,7 +238,7 @@ function tryMove(from,to){
     $("#opromoRow").onclick=e=>{const b=e.target.closest("button");if(!b)return;box.classList.remove("on");userMove(from,to,b.dataset.t)};return true}
   userMove(from,to);return true;
 }
-const COLS={n:["#ffaa00","#eb6150"],s:["#9fcf3f","#9fcf3f"],c:["#f8553f","#ffaa00"],a:["#48c1f9","#48c1f9"]};
+const COLS={n:["#5C54D6","#6A80B4"],s:["#505A82","#505A82"],c:["#242942","#5C54D6"],a:["#6A80B4","#6A80B4"]};
 const modK=e=>e.shiftKey?"s":(e.ctrlKey||e.metaKey)?"c":e.altKey?"a":"n";
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 bEl.addEventListener("contextmenu",e=>e.preventDefault());

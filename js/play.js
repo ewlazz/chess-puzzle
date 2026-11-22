@@ -151,7 +151,7 @@ $("#aBack").onclick=()=>{
   render();save();
 };
 /* 조작 */
-const COLS={n:["#ffaa00","#eb6150"],s:["#9fcf3f","#9fcf3f"],c:["#f8553f","#ffaa00"],a:["#48c1f9","#48c1f9"]};
+const COLS={n:["#5C54D6","#6A80B4"],s:["#505A82","#505A82"],c:["#242942","#5C54D6"],a:["#6A80B4","#6A80B4"]};
 const modK=e=>e.shiftKey?"s":(e.ctrlKey||e.metaKey)?"c":e.altKey?"a":"n";
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 bEl.addEventListener("contextmenu",e=>e.preventDefault());

@@ -1,5 +1,5 @@
 /* 오프라인용: 온라인이면 항상 새로 받고(받은 건 저장), 끊기면 저장해 둔 것으로 */
-const C="hansu-v1";
+const C="hansu-v2";
 self.addEventListener("install",()=>self.skipWaiting());
 self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));
 self.addEventListener("fetch",e=>{

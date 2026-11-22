@@ -54,7 +54,7 @@ $("#toEdit").onclick=()=>{const t=$("#pgn").value.trim();if(t&&isFen(t))load(ful
 /* 에디터 */
 let B={},turn="w",orient="w",tool="wp",drag=null,floatEl=null;
 const TOOLS=["wk","wq","wr","wb","wn","wp","x","bk","bq","br","bb","bn","bp"];
-$("#pal").innerHTML=TOOLS.map(t=>t==="x"?`<button data-t="x" aria-label="지우개" aria-pressed="false"><span class="er">×</span></button>`:`<button data-t="${t}" aria-label="${t}" aria-pressed="${t===tool}"><i class="pc ${t}"></i></button>`).join("");
+$("#pal").innerHTML=TOOLS.map(t=>t==="x"?`<button data-t="x" aria-label="지우개" aria-pressed="false"><span class="er">지우개</span></button>`:`<button data-t="${t}" aria-label="${t}" aria-pressed="${t===tool}"><i class="pc ${t}"></i></button>`).join("");
 $("#pal").onclick=e=>{const b=e.target.closest("button");if(!b)return;tool=b.dataset.t;document.querySelectorAll("#pal button").forEach(x=>x.setAttribute("aria-pressed",x===b))};
 function load(f){
   B={};const p=f.split(" "),rows=p[0].split("/");

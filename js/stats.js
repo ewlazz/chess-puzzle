@@ -189,8 +189,8 @@ function ratingChart(svg,pts){
   const grid=[lo+pad,(lo+hi)/2,hi-pad].map(v=>Math.round(v));
   const f=t=>{const z=new Date(t*1000);return `${z.getMonth()+1}.${z.getDate()}`};
   svg.innerHTML=grid.map(v=>`<line x1="${L}" x2="${W-Rr}" y1="${y(v)}" y2="${y(v)}" stroke="currentColor" stroke-opacity=".12"/>${W<520?"":`<text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="currentColor" fill-opacity=".6">${v}</text>`}`).join("")
-   +`<path d="${d} L${x(pts.length-1)},${H-B} L${L},${H-B}Z" fill="#ff6a3d" fill-opacity=".12"/><path d="${d}" fill="none" stroke="#ff6a3d" stroke-width="2.2" stroke-linejoin="round"/>`
-   +`<circle cx="${x(pts.length-1)}" cy="${y(ys[ys.length-1])}" r="4" fill="#ff6a3d"/>`
+   +`<path d="${d} L${x(pts.length-1)},${H-B} L${L},${H-B}Z" fill="#5C54D6" fill-opacity=".12"/><path d="${d}" fill="none" stroke="#5C54D6" stroke-width="2.2" stroke-linejoin="round"/>`
+   +`<circle cx="${x(pts.length-1)}" cy="${y(ys[ys.length-1])}" r="4" fill="#5C54D6"/>`
    +`<text x="${L}" y="${H-6}" font-size="12" fill="currentColor" fill-opacity=".6">${f(pts[0].end)}</text><text x="${W-Rr}" y="${H-6}" text-anchor="end" font-size="12" fill="currentColor" fill-opacity=".6">${f(pts[pts.length-1].end)} · ${ys[ys.length-1]}</text>`;
 }
 renderRecent();

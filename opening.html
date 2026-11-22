@@ -5,18 +5,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>오프닝 - 한 수</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,500..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="pieces.css">
 <link rel="stylesheet" href="css/site.css">
 <style>
-.ob{background:var(--band);color:#f3f7f8}
+.ob{background:var(--band);color:#242942}
 .ob h1{font-size:clamp(32px,4.6vw,48px);margin-bottom:16px}
 .ogrid2{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:clamp(18px,3vw,32px);align-items:start;max-width:1240px;margin:0 auto}
 @media(max-width:980px){.ogrid2{grid-template-columns:minmax(0,560px);justify-content:center}}
 .wood{padding:clamp(6px,1.2vw,12px);background:linear-gradient(160deg,#6b4428,#4a2c18);border-radius:14px;box-shadow:0 24px 50px -20px #000a}
 .obar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
-.obar button{min-height:44px;border-radius:10px;border:1px solid #ffffff33;background:transparent;color:#fff;font-weight:700;font-size:16px}
-.obar button:hover{background:#ffffff14}
+.obar button{min-height:44px;border-radius:3px;border:1px solid #C4C9DC;background:transparent;color:#242942;font-weight:700;font-size:15px}
+.obar button:hover{background:#D5D9E8}
 .opanel{background:var(--card);color:var(--ink);border-radius:14px;padding:18px;display:grid;gap:14px}
 .osearch{position:relative}
 .osearch input{width:100%;min-height:46px;border-radius:10px;border:1px solid var(--line);padding:0 14px;font-size:16px;background:var(--card);color:var(--ink)}
@@ -42,7 +43,7 @@
 .bkt{display:inline-block;margin-left:4px;font-size:11px;padding:0 6px;border-radius:99px;background:var(--soft);color:var(--muted);font-weight:700}
 .wdb{display:flex;height:16px;border-radius:4px;overflow:hidden;min-width:110px;font-size:10px;font-weight:700;line-height:16px}
 .wdb i{display:block;font-style:normal;text-align:center;overflow:hidden}
-.wdb .w{background:#f2f2f2;color:#222}.wdb .d{background:#9aa5aa;color:#fff}.wdb .l{background:#2b2b2b;color:#fff}
+.wdb .w{background:#EFF0F6;color:#242942;box-shadow:inset 0 0 0 1px #C4C9DC}.wdb .d{background:#C4C9DC;color:#242942}.wdb .l{background:#242942;color:#EFF0F6}
 .tg2{font-size:14px}
 .tg2 a{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);text-decoration:none}
 .tg2 a:hover{color:var(--acc)}
@@ -57,7 +58,7 @@
 .pr{display:grid;gap:10px}
 .prm{border-radius:10px;padding:12px;background:var(--soft);font-weight:500;min-height:46px}
 .prm.good{color:var(--win)}.prm.bad{color:var(--loss)}
-.s8.pre::after{content:"";position:absolute;inset:0;background:#d2343e8c}
+.s8.pre::after{content:"";position:absolute;inset:0;background:#6A80B48c}
 .cnt{color:var(--muted);font-size:13px}
 .ont{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ostar{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:3px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
@@ -70,11 +71,12 @@
 .rm{min-height:38px;border-radius:8px;border:1px solid var(--line);padding:0 10px;font-size:14px;background:var(--card);color:var(--ink)}
 .ra{display:flex;flex-wrap:wrap;gap:6px}.ra .chip{min-height:32px;font-size:13px}
 </style>
+<link rel="stylesheet" href="css/paper.css">
 </head>
 <body>
 <header>
   <div class="nav">
-    <a class="logo" href="index.html"><span>♞</span>한 수</a>
+    <a class="logo" href="index.html">한 수</a>
     <nav aria-label="메뉴"><a href="puzzle.html">퍼즐</a><a href="stats.html">전적</a><a href="analysis.html">분석</a><a href="opening.html" aria-current="page">오프닝</a><a href="play.html">대국</a></nav>
   </div>
 </header>
@@ -84,7 +86,7 @@
     <div>
       <h1>오프닝</h1>
       <div class="wood"><div class="aboard"><div class="ab8" id="ob8" aria-label="오프닝 보드"></div><svg class="amarks" id="omarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="opromo"><div id="opromoRow"></div></div></div></div>
-      <div class="obar"><button id="bStart" aria-label="처음">⏮</button><button id="bBack" aria-label="뒤로">◀</button><button id="bFwd" aria-label="앞으로">▶</button><button id="bFlip" aria-label="뒤집기">⇅</button></div>
+      <div class="obar"><button id="bStart" aria-label="처음">처음</button><button id="bBack" aria-label="뒤로">이전</button><button id="bFwd" aria-label="앞으로">다음</button><button id="bFlip" aria-label="뒤집기">뒤집기</button></div>
     </div>
     <div class="opanel">
       <div class="osearch"><input id="oq" placeholder="오프닝 이름이나 ECO 코드 (예: Sicilian, B90)" autocomplete="off" spellcheck="false" aria-label="오프닝 검색"><div class="ores" id="ores" hidden></div></div>
@@ -108,6 +110,7 @@
   </div>
 </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/common.js"></script>
 <script src="js/openings.js"></script>
 <script src="js/opening.js"></script>

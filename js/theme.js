@@ -1,8 +1,8 @@
 /* 보드 색 설정 (모든 페이지), 홈 화면 앱용 서비스 워커 등록 */
 (function(){
-  var T={wood:["#f0d9b5","#b58863","나무"],green:["#eeeed2","#769656","초록"],blue:["#dee3e6","#8ca2ad","파랑"],gray:["#e6e6e6","#a2a2a2","회색"],purple:["#eee4f4","#9a7fba","보라"],coral:["#f6e5dc","#d88c6c","코랄"]};
-  var cur="wood";try{cur=localStorage.getItem("hansu-board")||"wood"}catch(e){}
-  function apply(k){var t=T[k]||T.wood,s=document.documentElement.style;s.setProperty("--lsq",t[0]);s.setProperty("--dsq",t[1])}
+  var T={paper:["#D5D9E8","#6A80B4","기본"],wood:["#f0d9b5","#b58863","나무"],green:["#eeeed2","#769656","초록"],blue:["#dee3e6","#8ca2ad","파랑"],gray:["#e6e6e6","#a2a2a2","회색"],purple:["#eee4f4","#9a7fba","보라"],coral:["#f6e5dc","#d88c6c","코랄"]};
+  var cur="paper";try{cur=localStorage.getItem("hansu-board")||"paper"}catch(e){}
+  function apply(k){var t=T[k]||T.paper,s=document.documentElement.style;s.setProperty("--lsq",t[0]);s.setProperty("--dsq",t[1])}
   apply(cur);
   function ui(){
     var nav=document.querySelector(".nav nav");if(!nav||document.getElementById("setb"))return;

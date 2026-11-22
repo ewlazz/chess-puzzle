@@ -1,6 +1,6 @@
 /* 한 판 분석: 수순 재생, 엔진 라인, 변화수 두기, 수 분류·정확도 */
 {
-if(!document.getElementById("ana"))document.body.insertAdjacentHTML("beforeend",'<div class="ana" id="ana" role="dialog" aria-label="게임 분석"> <div class="ahead"><b id="aTitle"></b><a id="aLink" href="#" target="_blank" rel="noopener">체스닷컴에서 보기</a><button class="x" id="aClose" aria-label="닫기">×</button></div> <div class="alay"> <div> <div class="who" id="wTop"></div> <div class="bwrap2"> <div class="evb" id="evb"><i id="evbW"></i><span id="evbT"></span></div> <div class="aboard"><div class="ab8" id="ab8" role="grid" aria-label="분석 보드"></div><svg class="amarks" id="amarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="apromo"><div id="apromoRow"></div></div></div> </div> <div class="who" id="wBot"></div> <div class="ctl"><button id="cFirst" aria-label="처음">⏮</button><button id="cPrev" aria-label="이전">◀</button><button id="cNext" aria-label="다음">▶</button><button id="cLast" aria-label="마지막">⏭</button><button id="cFlip" aria-label="보드 뒤집기">⇅</button></div> <div class="gfig" id="gfig"><svg id="gsvg"></svg></div> </div> <div class="side"> <div><div class="prog"><i id="prog"></i></div><p class="ast" id="ast"></p></div> <div class="acc2" id="acc2"></div> <div class="lines"><div class="lh"><button class="engt" id="engT" aria-pressed="true">엔진</button><span id="ldep"></span></div><div id="lbody"></div></div> <div class="cur" id="cur"></div> <div class="mlist" id="mlist"></div> <table class="cls" id="cls"></table> </div> </div> </div>');
+if(!document.getElementById("ana"))document.body.insertAdjacentHTML("beforeend",'<div class="ana" id="ana" role="dialog" aria-label="게임 분석"> <div class="ahead"><b id="aTitle"></b><a id="aLink" href="#" target="_blank" rel="noopener">체스닷컴에서 보기</a><button class="x" id="aClose" aria-label="닫기">닫기</button></div> <div class="alay"> <div> <div class="who" id="wTop"></div> <div class="bwrap2"> <div class="evb" id="evb"><i id="evbW"></i><span id="evbT"></span></div> <div class="aboard"><div class="ab8" id="ab8" role="grid" aria-label="분석 보드"></div><svg class="amarks" id="amarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="apromo"><div id="apromoRow"></div></div></div> </div> <div class="who" id="wBot"></div> <div class="ctl"><button id="cFirst" aria-label="처음">처음</button><button id="cPrev" aria-label="이전">이전</button><button id="cNext" aria-label="다음">다음</button><button id="cLast" aria-label="마지막">끝</button><button id="cFlip" aria-label="보드 뒤집기">뒤집기</button></div> <div class="gfig" id="gfig"><svg id="gsvg"></svg></div> </div> <div class="side"> <div><div class="prog"><i id="prog"></i></div><p class="ast" id="ast"></p></div> <div class="acc2" id="acc2"></div> <div class="lines"><div class="lh"><button class="engt" id="engT" aria-pressed="true">엔진</button><span id="ldep"></span></div><div id="lbody"></div></div> <div class="cur" id="cur"></div> <div class="mlist" id="mlist"></div> <table class="cls" id="cls"></table> </div> </div> </div>');
 const F="abcdefgh",ENG="engine/stockfish-19-lite-single.js";
 const CL={
   brilliant:{l:"브릴리언트",i:"brilliant",c:"#1bada6"},great:{l:"그레이트",i:"great_find",c:"#1bada6"},
@@ -133,7 +133,7 @@ function drawBoard(){
     return `<div class="${cls}" data-sq="${sq}">${mk}${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===sq?" ghost":""}"></i>`:""}${bd}${dot}</div>`;
   }).join("");
   let ar="";
-  if(cl&&["inaccuracy","mistake","miss","blunder","good","excellent"].includes(cl)&&A.best[N.i-1]){const b=A.best[N.i-1];ar+=arrow(b.slice(0,2),b.slice(2,4),"#5f9e3a")}
+  if(cl&&["inaccuracy","mistake","miss","blunder","good","excellent"].includes(cl)&&A.best[N.i-1]){const b=A.best[N.i-1];ar+=arrow(b.slice(0,2),b.slice(2,4),"#5C54D6")}
   marks.forEach((col,k)=>{const [a,b]=k.split("-");ar+=arrow(a,b,col)});
   $("#amarks").innerHTML=ar;
   const top=A.orient==="w"?"b":"w",bot=A.orient,ply=N.v?V.base:N.i;
@@ -190,7 +190,7 @@ function drawAll(){drawBoard();drawEval();drawInfo();moveList();graph()}
 function vrow(){
   let n=+V.fens[0].split(" ")[5],side=turnOf(V.fens[0]),h="";
   V.moves.forEach((m,j)=>{const num=side==="w"?`<em>${n}.</em> `:(j===0?`<em>${n}...</em> `:"");h+=`${num}<button class="vm${N.v&&N.i===j+1?" on":""}" data-v="${j+1}">${m.san}</button> `;if(side==="b")n++;side=side==="w"?"b":"w"});
-  return `<div class="vrow">${h}<button class="vx" aria-label="지우기">×</button></div>`;
+  return `<div class="vrow">${h}<button class="vx" aria-label="지우기">지우기</button></div>`;
 }
 function moveList(){
   const rows=Math.ceil(A.moves.length/2),vAt=V?Math.min(Math.floor(V.base/2),Math.max(rows-1,0)):-1;
@@ -267,7 +267,7 @@ function tryUser(from,to){
 const bEl=$("#ab8");
 function sqAt(x,y){const b=bEl.getBoundingClientRect(),c=Math.floor((x-b.left)/b.width*8),r=Math.floor((y-b.top)/b.height*8);if(c<0||c>7||r<0||r>7)return null;return F[A.orient==="w"?c:7-c]+(A.orient==="w"?8-r:r+1)}
 const sqEl=sq=>bEl.querySelector(`[data-sq="${sq}"]`);
-const COLS={n:["#ffaa00","#eb6150"],s:["#9fcf3f","#9fcf3f"],c:["#f8553f","#ffaa00"],a:["#48c1f9","#48c1f9"]};
+const COLS={n:["#5C54D6","#6A80B4"],s:["#505A82","#505A82"],c:["#242942","#5C54D6"],a:["#6A80B4","#6A80B4"]};
 const modK=e=>e.shiftKey?"s":(e.ctrlKey||e.metaKey)?"c":e.altKey?"a":"n";
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 bEl.addEventListener("contextmenu",e=>e.preventDefault());
@@ -323,7 +323,7 @@ function graph(){
   d+=` L${x(end).toFixed(1)},${H}Z`;
   let dots="";A.cls.forEach((c,k)=>{if(["inaccuracy","mistake","miss","blunder","brilliant","great"].includes(c))dots+=`<circle cx="${x(k+1)}" cy="${y(winPct(A.ev[k+1]))}" r="${c==="inaccuracy"?2.5:3.5}" fill="${CL[c].c}"/>`});
   const px=x(N.v?V.base:N.i);
-  svg.innerHTML=`<path d="${d}" fill="#f2f2f2"/><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="#888" stroke-opacity=".5"/>${dots}<line x1="${px}" x2="${px}" y1="0" y2="${H}" stroke="#ff6a3d" stroke-width="2"/>`;
+  svg.innerHTML=`<path d="${d}" fill="#EFF0F6"/><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="#6A80B4" stroke-opacity=".6"/>${dots}<line x1="${px}" x2="${px}" y1="0" y2="${H}" stroke="#5C54D6" stroke-width="2"/>`;
 }
 /* 분류 */
 function sac(k,X){X=X||A;

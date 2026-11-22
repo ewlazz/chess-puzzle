@@ -75,7 +75,7 @@ function out(L){
   const svg=$("#bsvg"),draw=()=>{const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;const pts=R.slice().reverse();if(pts.length<2){svg.innerHTML="";return}
     const x=i=>30+(W-40)*i/(pts.length-1),y=v=>10+(H-30)*(1-(v-40)/60),ln=k=>pts.map((p,i)=>p.r[k]==null?"":`${i&&pts[i-1].r[k]!=null?"L":"M"}${x(i).toFixed(1)},${y(Math.max(40,p.r[k])).toFixed(1)}`).join("");
     svg.innerHTML=[50,70,90].map(v=>`<line x1="30" x2="${W-10}" y1="${y(v)}" y2="${y(v)}" stroke="currentColor" stroke-opacity=".12"/><text x="24" y="${y(v)+4}" text-anchor="end" font-size="11" fill="currentColor" fill-opacity=".6">${v}</text>`).join("")
-      +`<path d="${ln("opAcc")}" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="4 3"/><path d="${ln("acc")}" fill="none" stroke="#ff6a3d" stroke-width="2.2"/>`
+      +`<path d="${ln("opAcc")}" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="4 3"/><path d="${ln("acc")}" fill="none" stroke="#5C54D6" stroke-width="2.2"/>`
       +pts.map((p,i)=>p.r.acc==null?"":`<circle cx="${x(i)}" cy="${y(Math.max(40,p.r.acc))}" r="3.5" fill="${p.r.res==="win"?"var(--win)":p.r.res==="loss"?"var(--loss)":"var(--draw)"}"/>`).join("")};
   draw();if(window.__bro)window.__bro.disconnect();window.__bro=new ResizeObserver(draw);window.__bro.observe($("#bfig"));
 }

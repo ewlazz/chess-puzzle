@@ -5,20 +5,21 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>분석 - 한 수</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,500..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="pieces.css">
 <link rel="stylesheet" href="css/site.css">
 <style>
 .top .tabs{margin-bottom:16px}
-.top .tab{background:transparent;color:#d4e2e6;border-color:#ffffff33}
-.top .tab[aria-selected=true]{background:#fff;color:#122027;border-color:#fff}
+.top .tab{background:transparent;color:#505A82;border-color:#C4C9DC}
+.top .tab[aria-selected=true]{background:#fff;color:#242942;border-color:#fff}
 .paste{display:grid;gap:10px;max-width:760px}
-.paste textarea{width:100%;min-height:180px;border-radius:12px;border:0;padding:14px 16px;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fff;color:#122027;resize:vertical}
+.paste textarea{width:100%;min-height:180px;border-radius:12px;border:0;padding:14px 16px;font:15px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fff;color:#242942;resize:vertical}
 .prow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pbtn{min-height:48px;padding:0 22px;border-radius:12px;border:0;background:var(--acc);color:var(--accink);font-weight:700}
-.sbtn{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid #ffffff40;background:transparent;color:#e7eef0;font-weight:500}
-.sbtn:hover{background:#ffffff14}
-.hint2{color:#b9ced4;font-size:14px;margin:0}
+.sbtn{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid #C4C9DC;background:transparent;color:#242942;font-weight:500}
+.sbtn:hover{background:#D5D9E8}
+.hint2{color:#505A82;font-size:14px;margin:0}
 /* editor */
 .ed{display:grid;grid-template-columns:minmax(0,520px) minmax(0,360px);gap:24px;align-items:start}
 @media(max-width:900px){.ed{grid-template-columns:minmax(0,520px)}}
@@ -26,30 +27,31 @@
 .eb8{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));aspect-ratio:1;border-radius:4px;overflow:hidden;touch-action:none;user-select:none}
 .eb8 .s8{cursor:pointer}
 .pal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:10px}
-.pal button{aspect-ratio:1;border-radius:10px;border:2px solid transparent;background:#ffffff1a;position:relative;padding:0}
-.pal button[aria-pressed=true]{border-color:var(--acc);background:#ffffff33}
+.pal button{aspect-ratio:1;border-radius:10px;border:2px solid transparent;background:#D5D9E8;position:relative;padding:0}
+.pal button[aria-pressed=true]{border-color:var(--acc);background:#C4C9DC}
 .pal .pc{position:absolute;inset:8%;background-size:100% 100%}
-.pal .er{color:#fff;font-size:20px;font-weight:700}
-.eside{display:grid;gap:14px;color:#e7eef0}
-.eside h3{margin:0 0 6px;font-size:15px;color:#b9ced4;font-weight:500}
+.pal .er{color:#242942;font-size:12px;font-weight:700}
+.eside{display:grid;gap:14px;color:#242942}
+.eside h3{margin:0 0 6px;font-size:15px;color:#505A82;font-weight:500}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{min-height:40px;padding:0 14px;border-radius:99px;border:1px solid #ffffff40;background:transparent;color:#e7eef0;font-weight:500}
-.seg button[aria-pressed=true]{background:#fff;color:#122027;border-color:#fff}
+.seg button{min-height:40px;padding:0 14px;border-radius:99px;border:1px solid #C4C9DC;background:transparent;color:#242942;font-weight:500}
+.seg button[aria-pressed=true]{background:#fff;color:#242942;border-color:#fff}
 .cks{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:15px}
 .cks label{display:flex;align-items:center;gap:8px;min-height:32px}
 .cks input{width:18px;height:18px;accent-color:var(--acc)}
-.fen{width:100%;min-height:44px;border-radius:10px;border:0;padding:0 12px;font:14px ui-monospace,Menlo,Consolas,monospace;background:#fff;color:#122027}
-.err{color:#ffd2c2;font-size:14px;min-height:1.4em;margin:0}
+.fen{width:100%;min-height:44px;border-radius:10px;border:0;padding:0 12px;font:14px ui-monospace,Menlo,Consolas,monospace;background:#fff;color:#242942}
+.err{color:#5C54D6;font-size:14px;min-height:1.4em;margin:0}
 </style>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0e3b4a">
+<meta name="theme-color" content="#EFF0F6">
 <link rel="apple-touch-icon" href="icons/app/apple-180.png">
 <script src="js/theme.js"></script>
+<link rel="stylesheet" href="css/paper.css">
 </head>
 <body>
 <header>
   <div class="nav">
-    <a class="logo" href="index.html"><span>♞</span>한 수</a>
+    <a class="logo" href="index.html">한 수</a>
     <nav aria-label="메뉴"><a href="puzzle.html">퍼즐</a><a href="stats.html">전적</a><a href="analysis.html" aria-current="page">분석</a><a href="opening.html">오프닝</a><a href="play.html">대국</a></nav>
   </div>
 </header>
