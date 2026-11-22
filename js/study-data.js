@@ -29,3 +29,9 @@ window.STUDY=[
    notes:{14:"폰을 안 먹고 d5로 받아쳐요.",15:"그냥 잡아요.",17:"캐슬링하고 e파일을 열 준비.",21:"e파일이 열려서 백이 좋아요(+1.6)."}}
  ]}
 ];
+/* 오프닝 갈래 트리의 뿌리. 가지는 리체스 오프닝 이름 데이터에서 자동으로 만듦 */
+window.OROOTS=[
+{id:"italian",ko:"이탈리안 게임",en:"Italian Game",moves:"e4 e5 Nf3 Nc6 Bc4",side:"w",one:"비숍을 c4로. f7을 겨누며 빠르게 개발하는 오래된 오프닝"},
+{id:"ruy",ko:"루이 로페즈",en:"Ruy Lopez",moves:"e4 e5 Nf3 Nc6 Bb5",side:"w",one:"비숍으로 c6 나이트를 눌러 e5를 압박하는 정통 오프닝"},
+{id:"sicilian",ko:"시실리안 디펜스",en:"Sicilian Defense",moves:"e4 c5",side:"b",one:"c5로 비대칭을 만들어 이기러 가는 흑의 대표 응수"}
+];
