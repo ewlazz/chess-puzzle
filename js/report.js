@@ -201,6 +201,26 @@ function weakHtml(R,wph,per){
   const W=T.slice(0,4).map(t=>({t}));try{localStorage.setItem("hansu-weak",JSON.stringify(W))}catch(e){}
   return `<h4>약점 퍼즐</h4><div class="racts">${W.map(x=>`<span class="rtag">${THK[x.t]||x.t}</span>`).join("")}<a class="ract" href="puzzle.html#weak">풀기</a></div>`;
 }
+/* 오프닝 실수: 분석한 판의 오프닝 구간 정확도와 흔들린 수 → 오프닝 페이지에서 정답 찾기 연습 */
+function omBody(){
+  if(!window.BatchAPI)return "";
+  const n=Math.min(AUTO.n||ENGN,LIST.length),R=BatchAPI.results(LIST.slice(0,n)).filter(x=>(x.r.v||0)>=3);
+  if(!R.length)return `<p class="rprog">${esc(AUTO.etxt||"엔진 진단 후에 나와요")}</p>`;
+  const all=[];let s0=0,c0=0;R.forEach(x=>{const [v,m]=x.r.ph.o;if(v!=null){s0+=v*m;c0+=m}});const base=c0?s0/c0:null;
+  const fam=group(R.map(x=>x),x=>famOf(x.g)).map(([f,a])=>{let s=0,c=0;a.forEach(x=>{const [v,m]=x.r.ph.o;if(v!=null){s+=v*m;c+=m}});return {f,n:a.length,acc:c?s/c:null}}).filter(x=>x.acc!=null).sort((a,b)=>a.acc-b.acc);
+  const M=new Map();R.forEach(x=>(x.r.om||[]).forEach(o=>{const k=x.g.me+"|"+o.path.join(" ")+"|"+o.san;const e=M.get(k)||{c:x.g.me,o,n:0,loss:0,gs:[]};e.n++;e.loss=Math.max(e.loss,o.loss);e.gs.push({g:x.g,k:o.k});M.set(k,e)}));
+  const L=[...M.values()].filter(e=>e.o.loss>=5||e.o.c!=="inaccuracy").sort((a,b)=>b.n-a.n||b.loss-a.loss).slice(0,8);AUTO.om=L;
+  const nm=e=>{const g=e.gs[0].g;return g._o&&g._o.name?ko(varOf(g)):""};
+  const bar=v=>`<span class="t"><i style="width:${v}%;background:var(--acc)"></i></span>`;
+  return `${base!=null?`<p class="rline">분석한 ${R.length}판의 오프닝 정확도 <b>${base.toFixed(1)}</b></p>`:""}
+    ${fam.slice(0,6).map(x=>`<div class="hb"><span>${esc(ko(x.f))} <em>${x.n}판</em></span>${bar(x.acc)}<span${base!=null&&x.acc<base-5?' class="lo"':""}>${x.acc.toFixed(1)}</span></div>`).join("")}
+    <h4>흔들린 수 ${L.length?`<em>${L.length}개</em>`:""}</h4>
+    ${L.length?L.map((e,i)=>`<div class="omr"><div><span class="rcol2">${CN[e.c]}</span>${esc(nm(e))}${e.n>1?` <em>${e.n}번</em>`:""}</div>
+      <div class="rbd"><b class="bad">${esc(window.oNum?oNum(e.o.k,e.o.san):e.o.san)}</b> · 최선 <b>${esc(e.o.best)}</b> · −${e.loss}%</div>
+      <div class="rbl">${lineHtml(e.o.path,e.o.san)}</div>
+      <div class="racts"><button class="ract" data-oq="${i}">연습</button><button class="ract" data-og="${i}">게임</button></div></div>`).join("")
+      +`<div class="racts" style="margin-top:12px"><button class="ract pri3" data-oq="all">전부 연습</button></div>`:'<p class="empty">없음</p>'}`;
+}
 function blownHtml(R){
   const V=R.filter(x=>x.r.v),hi=V.filter(x=>x.r.high),hw=hi.filter(x=>x.g.res==="win"),lo=V.filter(x=>x.r.low),ls=lo.filter(x=>x.r.saved);
   const B=V.filter(x=>x.r.blown).sort((a,b)=>b.g.end-a.g.end);AUTO.blown=B;
@@ -214,7 +234,12 @@ function pressTxt(){
   let pn=0,nn=0,pb=0,nb=0;R.forEach(x=>{pn+=x.r.pr.p[1];nn+=x.r.pr.n[1];pb+=x.r.pr.pb;nb+=x.r.pr.nb});
   if(pn>=10&&nn>=10)el.innerHTML=`<b>${P(pb/pn)}</b><small>시간에 쫓길 때 실수<br>여유 있을 때 ${P(nb/nn)}</small>`;
 }
-function upd(){const a=$("#rScan"),b=$("#rEngB");if(a)a.innerHTML=scanBody();if(b)b.innerHTML=engBody();pressTxt()}
+/* 진행 글자만 바뀔 때는 버튼을 다시 그리지 않음 (누르는 중에 사라지지 않게) */
+const LAST={};
+function put(el,html,key){if(!el)return;const sig=html.replace(/<p class="rprog">[^<]*<\/p>/g,"");
+  if(LAST[key]===sig&&el.isConnected&&el.dataset.k===key){const ps=el.querySelectorAll(".rprog"),nw=[...html.matchAll(/<p class="rprog">([^<]*)<\/p>/g)].map(m=>m[1]);if(ps.length===nw.length){ps.forEach((p,i)=>p.innerHTML=nw[i]);return}}
+  LAST[key]=sig;el.dataset.k=key;el.innerHTML=html}
+function upd(){put($("#rScan"),scanBody(),"scan");put($("#rEngB"),engBody(),"eng");put($("#rOm"),omBody(),"om");pressTxt()}
 /* 자동 엔진: 자꾸 두는 수 → 최근 판 분석 */
 async function auto(L,tok){
   const sig=S.user+"|"+L.length+"|"+(L[0]&&L[0].id);
@@ -258,12 +283,16 @@ function draw(L){
     ${trendSec(L)}
     ${openSec(L)}
     ${studySec(L)}
+    <section class="rsec"><h3 class="rh">오프닝 실수</h3><div id="rOm">${omBody()}</div></section>
     <section class="rsec"><h3 class="rh">자꾸 두는 안 좋은 수</h3><div id="rScan">${scanBody()}</div></section>
     <div class="rcols">${timeSec(L)}${oppSec(L)}</div>
     <section class="rsec"><h3 class="rh">엔진 진단</h3><div id="rEngB">${engBody()}</div></section>`;
   pressTxt();fillStudy(RT);
   el.onclick=async e=>{
-    const b=e.target.closest("[data-per],[data-var],[data-morevar],[data-gid],[data-badg],[data-bw],[data-w],[data-save],[data-more],#rShare");if(!b)return;
+    const b=e.target.closest("[data-oq],[data-og],[data-per],[data-var],[data-morevar],[data-gid],[data-badg],[data-bw],[data-w],[data-save],[data-more],#rShare");if(!b)return;
+    if(b.dataset.oq){const L=b.dataset.oq==="all"?AUTO.om:[AUTO.om[+b.dataset.oq]];
+      try{localStorage.setItem("hansu-oquiz",JSON.stringify(L.map(e=>({c:e.c,path:e.o.path,best:e.o.best,san:e.o.san,name:(e.gs[0].g._o&&e.gs[0].g._o.name)||""}))))}catch(_){}location.href="opening.html?oquiz=1";return}
+    if(b.dataset.og){const e=AUTO.om[+b.dataset.og];if(e)window.openAnalysis(e.gs[0].g,e.gs[0].k+1);return}
     if(b.dataset.per){const c=document.querySelector(`#fPer [data-v="${b.dataset.per}"]`);if(c)c.click();return}
     if(b.dataset.var){const [c,...v]=b.dataset.var.split("|"),id="rx-"+b.dataset.var.replace(/[^\w가-힣]/g,"_"),x=document.getElementById(id);if(!x)return;
       if(x.hidden){x.innerHTML=varPanel(c,v.join("|"));x.hidden=false;b.classList.add("on")}else{x.hidden=true;b.classList.remove("on")}return}

@@ -27,7 +27,12 @@ function summarize(X,g){
   let saved=false;if(g.res!=="loss")for(let k=0;k<X.fens.length;k++){if(turnOf(X.fens[k])!==me||X.ev[k]==null)continue;const w=X.winPct(X.ev[k]),wm=me==="w"?w:100-w;if(wm<=15){saved=true;break}}
   let low=false;for(let k=0;k<X.fens.length;k++){if(turnOf(X.fens[k])!==me||X.ev[k]==null)continue;const w=X.winPct(X.ev[k]),wm=me==="w"?w:100-w;if(wm<=15){low=true;break}}
   let high=false;for(let k=0;k<X.fens.length;k++){if(turnOf(X.fens[k])!==me||X.ev[k]==null)continue;const w=X.winPct(X.ev[k]),wm=me==="w"?w:100-w;if(wm>=85){high=true;break}}
-  return {v:2,blown,saved,low,high,id:g.id,end:g.end,res:g.res,tclass:g.tclass,acc:gacc(accMe),opAcc:gacc(accOp),ph:{o:avg(ph.o),m:avg(ph.m),e:avg(ph.e)},pr:{p:avg(pr.p),n:avg(pr.n),pb:pr.pb,nb:pr.nb},cnt,worst:worst.sort((a,b)=>b.loss-a.loss).slice(0,3),pz:X.puzzles||[],moves:accMe.length};
+  /* 오프닝 실수: 24수(반수) 안의 내 부정확·실수·블런더, 그 자리 최선 수 */
+  const om=[];for(let k=0;k<Math.min(24,X.moves.length);k++){const c=X.cls[k];if(turnOf(X.fens[k])!==me||!["inaccuracy","mistake","blunder","miss"].includes(c))continue;
+    let best=null;try{const u=X.best[k];if(u){const t=new Chess(X.fens[k]),m=t.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});if(m)best=m.san}}catch(e){}
+    if(!best||best===X.moves[k].san)continue;const wb=X.winPct(X.ev[k]),wa=X.winPct(X.ev[k+1]);
+    om.push({k,san:X.moves[k].san,best,c,loss:Math.round(me==="w"?wb-wa:wa-wb),path:X.moves.slice(0,k).map(m=>m.san)})}
+  return {v:3,om,blown,saved,low,high,id:g.id,end:g.end,res:g.res,tclass:g.tclass,acc:gacc(accMe),opAcc:gacc(accOp),ph:{o:avg(ph.o),m:avg(ph.m),e:avg(ph.e)},pr:{p:avg(pr.p),n:avg(pr.n),pb:pr.pb,nb:pr.nb},cnt,worst:worst.sort((a,b)=>b.loss-a.loss).slice(0,3),pz:X.puzzles||[],moves:accMe.length};
 }
 window.renderBatch=function(list){
   loadRes();
@@ -40,7 +45,7 @@ window.renderBatch=function(list){
   out(L);
 };
 async function run(L){
-  const T=L.slice(0,B.n),todo=T.filter(g=>!B.res[g.id]||!B.res[g.id].v);B.running=true;$("#bGo").textContent="멈추기";
+  const T=L.slice(0,B.n),todo=T.filter(g=>!B.res[g.id]||(B.res[g.id].v||0)<3);B.running=true;$("#bGo").textContent="멈추기";
   for(let i=0;i<todo.length&&B.running;i++){
     const g=todo[i],pr=$("#bProg");
     const X=await window.batchAnalyse(g,"go depth 11 movetime 250",(a,b)=>{const p=$("#bProg");if(p)p.textContent=`${i+1}/${todo.length}판 · ${a}/${b}수`},()=>B.running);
@@ -93,7 +98,7 @@ window.BatchAPI={
   running:()=>B.running,
   stop(){B.running=false},
   async ensure(games,onProg){
-    loadRes();const todo=games.filter(g=>(!B.res[g.id]||!B.res[g.id].v)&&(!g.rules||g.rules==="chess"));B.running=true;
+    loadRes();const todo=games.filter(g=>(!B.res[g.id]||(B.res[g.id].v||0)<3)&&(!g.rules||g.rules==="chess"));B.running=true;
     for(let i=0;i<todo.length&&B.running;i++){
       const g=todo[i];const X=await window.batchAnalyse(g,"go depth 11 movetime 250",(a,b)=>{if(onProg)onProg(i,todo.length,a,b)},()=>B.running);
       if(!B.running)break;if(X){B.res[g.id]=summarize(X,g);saveRes()}

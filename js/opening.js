@@ -22,7 +22,8 @@ function arrow(from,to,color,w){
   const sw=w||.2,H=.44,W=.29,bx=tx-ux*H,by=ty-uy*H,j=p=>p.map(v=>+v.toFixed(3)).join(",");
   return `<g opacity=".8"><polyline points="${pts.slice(0,-1).concat([[bx+ux*.02,by+uy*.02]]).map(j).join(" ")}" fill="none" stroke="${color}" stroke-width="${sw}"/><polygon points="${[[tx,ty],[bx-uy*W,by+ux*W],[bx+uy*W,by-ux*W]].map(j).join(" ")}" fill="${color}"/></g>`;
 }
-const canMove=g=>!DR.on||(!DR.busy&&g.turn()===DR.color&&idx===line.length);
+let QZ=null;
+const canMove=g=>QZ&&QZ.on?(!QZ.busy&&g.turn()===QZ.list[QZ.i].c&&idx===line.length):(!DR.on||(!DR.busy&&g.turn()===DR.color&&idx===line.length));
 function render(){
   const g=game(),h=g.history({verbose:true}),last=h[h.length-1],legal=sel?g.moves({square:sel,verbose:true}).map(m=>m.to):[];
   let chk=null;if(g.in_check())for(const sq of order()){const p=g.get(sq);if(p&&p.type==="k"&&p.color===g.turn())chk=sq}
@@ -37,7 +38,7 @@ function render(){
   drawArrows();
 }
 let topArrows=[];
-function drawArrows(){let s="";(DR.on?[]:topArrows).forEach(a=>{s+=arrow(a.from,a.to,"#5C54D6",a.w)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
+function drawArrows(){let s="";(DR.on||(QZ&&QZ.on)?[]:topArrows).forEach(a=>{s+=arrow(a.from,a.to,"#5C54D6",a.w)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
 /* 저장 (내 오프닝) */
 const mvText=a=>a.map((x,i)=>i%2===0?`${i/2+1}. ${x}`:x).join(" ");
 function reps(){try{return JSON.parse(localStorage.getItem("hansu-rep")||"[]")}catch(e){return []}}
@@ -201,7 +202,7 @@ function show(l){
 }
 $("#oEng").onclick=e=>{const b=e.target.closest("[data-pv]");if(!b)return;const x=E.lines[+b.dataset.pv];if(!x)return;setLine(line.slice(0,idx).concat(x.san.slice(0,+b.dataset.k+1)))};
 let eT=0;function engine(){clearTimeout(eT);const fen=fenAt(),g=new Chess(fen);
-  if(DR&&DR.on){$("#oEng").innerHTML='<p class="cnt">연습 중 엔진 꺼짐</p>';if(E.searching){E.pending++;E.w.postMessage("stop");E.searching=false}return}
+  if((DR&&DR.on)||(QZ&&QZ.on)){$("#oEng").innerHTML='<p class="cnt">연습 중 엔진 꺼짐</p>';if(E.searching){E.pending++;E.w.postMessage("stop");E.searching=false}return}
   if(g.game_over()){$("#oEng").textContent=g.in_checkmate()?"체크메이트":"무승부";return}
   $("#oEng").innerHTML='<p class="cnt">엔진 계산 중…</p>';eT=setTimeout(()=>E.init().then(()=>{if(fenAt()===fen)E.go(fen)}).catch(()=>{$("#oEng").textContent=""}),150)}
 /* 연습: 받은 수순(prefix)이 있으면 그 순서대로, 끝나면 마스터 게임에서 많이 둔 수로 이어감 */
@@ -261,15 +262,32 @@ async function dCheck(m,fenBefore){
   if(ok){DR.hits++;dMsg(`좋아요, ${m.san}.`,"good");setTimeout(dStep,300)}
   else{DR.miss++;dMsg(`${m.san}은 정석 밖이에요.${pop.length?" 많이 두는 수: "+pop.join(", "):""}`,"bad");DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill()},1200)}
 }
+/* 오프닝 실수 연습: 리포트에서 넘긴 자리에서 더 좋은 수 찾기 */
+function qzLoad(){const q=QZ.list[QZ.i];DR.on=false;line=q.path.slice();idx=line.length;orient=q.c;sel=null;marks.clear();circ.clear();QZ.tries=0;QZ.busy=false;QZ.msg=`실전에선 ${q.san}`;QZ.cls="";showTab("drill");refresh();qzDraw()}
+function qzDraw(){const q=QZ.list[QZ.i],nm=q.name?(Openings.ko(q.name)||q.name):"";
+  $("#tDrill").innerHTML=QZ.done?`<div class="pr"><div class="prm good">끝 · 맞힘 ${QZ.hits} / ${QZ.list.length}</div><div class="racts"><button class="bgo" id="qzAgain">다시</button><button class="chip" id="qzStop">그만하기</button></div></div>`
+    :`<div class="pr"><p class="cnt" style="margin:0">오프닝 실수 ${QZ.i+1} / ${QZ.list.length}${nm?" · "+esc(nm):""}</p><div class="prm ${QZ.cls||""}">${esc(QZ.msg)}</div><p class="cnt" style="margin:0">맞힘 ${QZ.hits} · 틀림 ${QZ.miss}</p><div class="racts"><button class="chip" id="qzHint">힌트</button><button class="chip" id="qzSkip">넘기기</button><button class="chip" id="qzStop">그만하기</button></div></div>`}
+function qzNext(){if(QZ.i+1>=QZ.list.length){QZ.done=true;qzDraw();return}QZ.i++;qzLoad()}
+function qzHint(){const q=QZ.list[QZ.i],g=new Chess(fenAt()),m=g.move(q.best);if(!m)return;marks.clear();marks.set(m.from+"-"+m.to,"#5C54D6");drawArrows()}
+function qzCheck(m){const q=QZ.list[QZ.i];
+  if(m.san===q.best){QZ.hits++;QZ.msg=`맞아요, ${m.san}`;QZ.cls="good";QZ.busy=true;qzDraw();setTimeout(qzNext,900);return}
+  QZ.miss++;QZ.tries++;QZ.msg=m.san===q.san?`${m.san}는 실전에서 둔 수예요`:`${m.san} 말고`;QZ.cls="bad";QZ.busy=true;qzDraw();
+  setTimeout(()=>{idx--;line=line.slice(0,idx);QZ.busy=false;refresh();qzDraw();if(QZ.tries>=2)qzHint()},900)}
+$("#tDrill").addEventListener("click",e=>{if(!QZ)return;const id=e.target.id;
+  if(id==="qzHint"&&!QZ.busy){QZ.miss++;qzHint()}
+  else if(id==="qzSkip"&&!QZ.busy)qzNext();
+  else if(id==="qzAgain"){QZ.i=0;QZ.hits=0;QZ.miss=0;QZ.done=false;qzLoad()}
+  else if(id==="qzStop"){QZ.on=false;marks.clear();drill();refresh()}});
 /* 탭 */
 function showTab(t){tab=t;document.querySelectorAll(".otabs .tab").forEach(x=>x.setAttribute("aria-selected",x.dataset.t===t));
   $("#tEx").hidden=tab!=="ex";$("#tGames").hidden=tab!=="games";$("#tList").hidden=tab!=="list";$("#tDrill").hidden=tab!=="drill";$("#tSaved").hidden=tab!=="saved";
-  if(tab==="games")games();if(tab==="list")list();if(tab==="drill")drill();if(tab==="saved")saved()}
+  if(tab==="games")games();if(tab==="list")list();if(tab==="drill")(QZ&&QZ.on?qzDraw():drill());if(tab==="saved")saved()}
 document.querySelectorAll(".otabs .tab").forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 /* 보드 조작 */
 function userMove(from,to,pr){
   const fenBefore=fenAt(),g=game(),m=g.move({from,to,promotion:pr||"q"});sel=null;if(!m){render();return}
   play(snd(m,g));pushMove(m.san);marks.clear();circ.clear();refresh();
+  if(QZ&&QZ.on){qzCheck(m);return}
   if(DR.on){DR.busy=true;dCheck(m,fenBefore).then(()=>{if(DR.on&&DR.cls!=="bad")DR.busy=false})}
 }
 function tryMove(from,to){
@@ -324,6 +342,9 @@ Promise.all([Openings.load(),LI.ready]).then(()=>{if(LI.tok&&SRC==="m"&&LI.fresh
   const q=new URL(location.href).searchParams.get("line");
   const sp=new URL(location.href).searchParams,dr=sp.get("drill");
   if(q){const g=new Chess(),ok=[];for(const s of q.split(",")){if(!s)continue;const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}else refresh();
+  if(sp.get("oquiz")){let L=[];try{L=JSON.parse(localStorage.getItem("hansu-oquiz")||"[]")}catch(e){}
+    try{history.replaceState(null,"",location.pathname)}catch(e){}
+    if(L.length){QZ={on:true,list:L,i:0,hits:0,miss:0,done:false};qzLoad();return}}
   if(dr==="w"||dr==="b"){const pre=line.slice();DR={on:true,color:dr,hits:0,miss:0,busy:false,msg:"내 차례예요.",rep:null,prefix:pre};line=[];idx=0;orient=dr;showTab("drill");refresh();dStep()}
 });
 }

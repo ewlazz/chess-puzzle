@@ -345,3 +345,16 @@ header{position:sticky}
 .rnums em.up{font-style:normal;color:#5C54D6;font-weight:700}.rnums em.dn{font-style:normal;color:#242942;font-weight:700}
 .rnums small .tci{width:14px;height:14px}
 .pchal{margin:0 0 10px;font-weight:800;font-size:16px;color:#5C54D6}
+.rgsum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:4px 0 12px}
+.rgsum b{display:block;font-family:"Inter","Pretendard",sans-serif;font-variation-settings:"opsz" 32;font-size:24px;font-weight:800;letter-spacing:-.02em}
+.rgsum b.up{color:#5C54D6}.rgsum small{font-size:12px;color:#505A82}
+.rtip{position:absolute;pointer-events:none;background:#242942;color:#EFF0F6;border-radius:3px;padding:6px 10px;font-size:12px;white-space:nowrap;z-index:5}
+.rtip b{display:block;font-family:"Inter","Pretendard",sans-serif;font-size:16px;font-weight:800}
+#rsvg{touch-action:pan-y;cursor:crosshair}
+.omr{padding:12px 0;border-bottom:1px solid #D5D9E8;font-size:15px;font-weight:600}
+.omr em{font-style:normal;color:#505A82;font-weight:500;font-size:13px}
+.omr .rbd{font-weight:400}
+#rOm .hb em{font-style:normal;color:#6A80B4;font-size:12px;margin-left:4px}
+#rOm .hb .lo{color:#5C54D6;font-weight:800}
+#rOm .hb{max-width:620px;grid-template-columns:minmax(0,180px) minmax(0,1fr) 44px}
+.ract.pri3{background:#5C54D6!important;color:#EFF0F6!important}

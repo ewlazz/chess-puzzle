@@ -194,17 +194,33 @@ function renderStats(){
   if(window.__ro)window.__ro.disconnect();window.__ro=new ResizeObserver(()=>draw());window.__ro.observe($("#rfig"));
 }
 function ratingChart(svg,pts){
-  const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;
+  const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;const fig=svg.parentNode;
+  fig.parentNode.querySelectorAll(".rtip,.rgsum").forEach(e=>e.remove());
   if(pts.length<2){svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="currentColor" font-size="14">게임이 부족해요</text>`;return}
   const ys=pts.map(p=>p.my.rating),mn=Math.min(...ys),mx=Math.max(...ys),pad=(mx-mn)*.12+10,lo=mn-pad,hi=mx+pad;
   const L=W<520?8:44,Rr=12,T=14,B=26,x=i=>L+(W-L-Rr)*i/(pts.length-1),y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
   const d=pts.map((p,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(p.my.rating).toFixed(1)}`).join("");
   const grid=[lo+pad,(lo+hi)/2,hi-pad].map(v=>Math.round(v));
   const f=t=>{const z=new Date(t*1000);return `${z.getMonth()+1}.${z.getDate()}`};
+  const im=ys.lastIndexOf(mx),cur=ys[ys.length-1],dl=cur-ys[0];
   svg.innerHTML=grid.map(v=>`<line x1="${L}" x2="${W-Rr}" y1="${y(v)}" y2="${y(v)}" stroke="currentColor" stroke-opacity=".12"/>${W<520?"":`<text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="currentColor" fill-opacity=".6">${v}</text>`}`).join("")
    +`<path d="${d} L${x(pts.length-1)},${H-B} L${L},${H-B}Z" fill="#5C54D6" fill-opacity=".12"/><path d="${d}" fill="none" stroke="#5C54D6" stroke-width="2.2" stroke-linejoin="round"/>`
-   +`<circle cx="${x(pts.length-1)}" cy="${y(ys[ys.length-1])}" r="4" fill="#5C54D6"/>`
-   +`<text x="${L}" y="${H-6}" font-size="12" fill="currentColor" fill-opacity=".6">${f(pts[0].end)}</text><text x="${W-Rr}" y="${H-6}" text-anchor="end" font-size="12" fill="currentColor" fill-opacity=".6">${f(pts[pts.length-1].end)} · ${ys[ys.length-1]}</text>`;
+   +`<circle cx="${x(im)}" cy="${y(mx)}" r="4" fill="#242942"/><text x="${Math.min(W-Rr-30,Math.max(L+30,x(im)))}" y="${y(mx)-8}" text-anchor="middle" font-size="12" font-weight="700" fill="#242942">최고 ${mx}</text>`
+   +`<circle cx="${x(pts.length-1)}" cy="${y(cur)}" r="4" fill="#5C54D6"/>`
+   +`<text x="${L}" y="${H-6}" font-size="12" fill="currentColor" fill-opacity=".6">${f(pts[0].end)}</text><text x="${W-Rr}" y="${H-6}" text-anchor="end" font-size="12" fill="currentColor" fill-opacity=".6">${f(pts[pts.length-1].end)}</text>`
+   +`<g id="rgHov" visibility="hidden"><line y1="${T}" y2="${H-B}" stroke="#242942" stroke-opacity=".4" stroke-dasharray="3 3"/><circle r="5" fill="#EFF0F6" stroke="#5C54D6" stroke-width="2.5"/></g>`;
+  const sum=document.createElement("div");sum.className="rgsum";
+  sum.innerHTML=`<div><b>${cur}</b><small>현재</small></div><div><b>${mx}</b><small>최고 · ${f(pts[im].end)}</small></div><div><b>${mn}</b><small>최저</small></div><div><b class="${dl>=0?"up":"dn"}">${dl>=0?"+":""}${dl}</b><small>기간 변화</small></div>`;
+  fig.parentNode.insertBefore(sum,fig);
+  const tip=document.createElement("div");tip.className="rtip";tip.hidden=true;fig.appendChild(tip);
+  const RL={win:"승",loss:"패",draw:"무"};
+  const show=e=>{const r=svg.getBoundingClientRect(),px=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+    const i=Math.max(0,Math.min(pts.length-1,Math.round((px-L)/(W-L-Rr)*(pts.length-1)))),p=pts[i],cx=x(i),cy=y(p.my.rating),z=new Date(p.end*1000);
+    const g=svg.querySelector("#rgHov");g.setAttribute("visibility","visible");g.querySelector("line").setAttribute("x1",cx);g.querySelector("line").setAttribute("x2",cx);g.querySelector("circle").setAttribute("cx",cx);g.querySelector("circle").setAttribute("cy",cy);
+    tip.hidden=false;tip.innerHTML=`<b>${p.my.rating}</b><span>${z.getFullYear()}.${z.getMonth()+1}.${z.getDate()} · ${RL[p.res]||"–"} vs ${esc(p.op.name)} ${p.op.rating}</span>`;
+    const tw=tip.offsetWidth;tip.style.left=Math.max(0,Math.min(W-tw,cx-tw/2))+"px";tip.style.top=Math.max(0,cy-58)+"px"};
+  const hide=()=>{tip.hidden=true;const g=svg.querySelector("#rgHov");if(g)g.setAttribute("visibility","hidden")};
+  svg.onpointermove=show;svg.onpointerdown=show;svg.onpointerleave=e=>{if(e.pointerType==="mouse")hide()};
 }
 renderRecent();
 const q0=new URL(location.href).searchParams.get("user");
