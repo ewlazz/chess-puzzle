@@ -38,13 +38,40 @@ function render(){
 }
 let topArrows=[];
 function drawArrows(){let s="";(DR.on?[]:topArrows).forEach(a=>{s+=arrow(a.from,a.to,"#5f9e3a",a.w)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
+/* 저장 (내 오프닝) */
+const mvText=a=>a.map((x,i)=>i%2===0?`${i/2+1}. ${x}`:x).join(" ");
+function reps(){try{return JSON.parse(localStorage.getItem("hansu-rep")||"[]")}catch(e){return []}}
+function saveReps(l){try{localStorage.setItem("hansu-rep",JSON.stringify(l))}catch(e){}}
+function savedIdx(){const k=line.slice(0,idx).join(" ");return reps().findIndex(r=>r.moves.join(" ")===k)}
+function curName(){const g=new Chess(),fens=[g.fen()];for(let i=0;i<idx;i++){g.move(line[i]);fens.push(g.fen())}for(let i=fens.length-1;i>=0;i--){const a=Openings.at(fens[i]);if(a&&a.name)return a}const x=cache.get(fens[fens.length-1]);return x&&x.opening?x.opening:null}
+function toggleSave(){const L=reps(),i=savedIdx();if(i>=0)L.splice(i,1);else{const nm=curName();L.push({id:Date.now(),color:orient,moves:line.slice(0,idx),name:nm?nm.name:"",eco:nm?nm.eco:"",memo:""})}saveReps(L);info();if(tab==="saved")saved()}
+$("#oName").onclick=e=>{if(e.target.closest("#oStar"))toggleSave()};
+function saved(){
+  const L=reps(),el=$("#tSaved");
+  if(!L.length){el.innerHTML='<p class="cnt">아직 없어요. 보드에서 수순을 만든 뒤 이름 옆 ☆ 저장을 누르세요. 저장할 때 보드 방향(백/흑)이 레퍼토리 색이 돼요.</p>';return}
+  el.innerHTML=["w","b"].map(c=>{const G=L.map((r,i)=>[r,i]).filter(([r])=>r.color===c);if(!G.length)return "";
+    return `<div class="rg"><div class="rgh"><h3>${c==="w"?"백":"흑"} 레퍼토리 <span class="cnt">${G.length}</span></h3><button class="chip" data-drill="${c}">전부 연습</button></div>`+
+      G.map(([r,i])=>`<div class="ri"><button class="rl" data-open="${i}"><b>${esc(Openings.ko(r.name)||r.name||"이름 없는 수순")}</b><small>${esc(mvText(r.moves))}</small></button><input class="rm" data-memo="${i}" value="${esc(r.memo||"")}" placeholder="메모" aria-label="메모"><div class="ra"><button class="chip" data-col="${i}">${r.color==="w"?"백":"흑"}으로 저장됨</button><button class="chip" data-copy="${i}">PGN 복사</button><button class="chip" data-del="${i}">삭제</button></div></div>`).join("")+"</div>"}).join("");
+}
+$("#tSaved").addEventListener("click",async e=>{
+  const t=e.target.closest("[data-open],[data-del],[data-col],[data-copy],[data-drill]");if(!t)return;const L=reps();
+  if(t.dataset.open!=null){const r=L[+t.dataset.open];orient=r.color;setLine(r.moves);window.scrollTo({top:0,behavior:"smooth"});return}
+  if(t.dataset.del!=null){L.splice(+t.dataset.del,1);saveReps(L);saved();info();return}
+  if(t.dataset.col!=null){const r=L[+t.dataset.col];r.color=r.color==="w"?"b":"w";saveReps(L);saved();return}
+  if(t.dataset.copy!=null){const r=L[+t.dataset.copy];try{await navigator.clipboard.writeText(mvText(r.moves));t.textContent="복사함"}catch(_){t.textContent="복사 안 됨"}return}
+  if(t.dataset.drill){const R=L.filter(r=>r.color===t.dataset.drill&&r.moves.length).map(r=>r.moves);if(!R.length)return;
+    DR={on:true,color:t.dataset.drill,hits:0,miss:0,busy:false,msg:"",rep:R};line=[];idx=0;orient=DR.color;showTab("drill");refresh();dStep()}
+});
+$("#tSaved").addEventListener("change",e=>{const i=e.target.dataset.memo;if(i==null)return;const L=reps();if(L[+i]){L[+i].memo=e.target.value;saveReps(L)}});
 /* 이름·수순 */
 function info(){
   let nm=null;const fens=[];const g=new Chess();fens.push(g.fen());for(let i=0;i<idx;i++){g.move(line[i]);fens.push(g.fen())}
   for(let i=fens.length-1;i>=0&&!nm;i--){const a=Openings.at(fens[i]);if(a&&a.name)nm=a}
   const x=cache.get(fens[fens.length-1]),xn=x&&x.opening;
   const inBook=!!Openings.at(fens[fens.length-1])||idx===0;
-  $("#oName").innerHTML=idx===0?"시작 위치<small>수를 두거나 오프닝을 검색하세요</small>":nm?`${esc(nm.name)}<small>${esc(nm.eco)}${inBook?"":" · 정석 밖"}</small>`:xn?`${esc(xn.name)}<small>${esc(xn.eco)}</small>`:`정석 밖<small>이름 붙은 수순을 벗어났어요</small>`;
+  const sv=savedIdx()>=0,star=idx?`<button class="ostar${sv?" on":""}" id="oStar" aria-label="${sv?"저장 취소":"저장"}">${sv?"★ 저장됨":"☆ 저장"}</button>`:"";
+  const nmH=(n,e,extra)=>{const k=Openings.ko(n);return `<span class="ont">${esc(k||n)}${star}</span><small>${k?esc(n)+" · ":""}${esc(e)}${extra||""}</small>`};
+  $("#oName").innerHTML=idx===0?"시작 위치<small>수를 두거나 오프닝을 검색하세요</small>":nm?nmH(nm.name,nm.eco,inBook?"":" · 정석 밖"):xn?nmH(xn.name,xn.eco):`<span class="ont">정석 밖${star}</span><small>이름 붙은 수순을 벗어났어요</small>`;
   $("#oLine").innerHTML=line.length?line.map((s,i)=>`${i%2===0?`<em>${i/2+1}.</em>`:""}<button data-i="${i+1}" class="${i+1===idx?"on":""}">${esc(s)}</button>`).join(""):"";
   try{const u=new URL(location.href);if(line.length)u.searchParams.set("line",line.slice(0,idx).join(","));else u.searchParams.delete("line");history.replaceState(null,"",u)}catch(e){}
 }
@@ -72,8 +99,8 @@ function explore(){
     if(!x.moves||!x.moves.length){el.innerHTML=`<p class="cnt">마스터 게임에 이 포지션이 없어요.</p>`+bookMoves(fen);topArrows=[];drawArrows();return}
     const g=new Chess(fen);
     el.innerHTML=`<p class="cnt">마스터 게임 ${tot.toLocaleString()}판</p><div class="scroll"><table class="xt"><thead><tr><th>수</th><th>판</th><th>백 승 · 무 · 흑 승</th><th>평균</th><th>오프닝</th></tr></thead><tbody>`+
-      x.moves.map(m=>{const n=m.white+m.draws+m.black,t=new Chess(fen);t.move(m.san);const a=Openings.at(t.fen());const nm=a&&a.name?a.name:m.opening?m.opening.name:"";
-        return `<tr data-san="${esc(m.san)}"><td class="sn">${esc(m.san)}${a?'<span class="bk">정석</span>':""}</td><td>${n.toLocaleString()} <span class="cnt">${Math.round(n/tot*100)}%</span></td><td>${wdb(m.white,m.draws,m.black)}</td><td>${m.averageRating||""}</td><td class="nm">${esc(nm)}</td></tr>`}).join("")+`</tbody></table></div>`;
+      x.moves.map(m=>{const n=m.white+m.draws+m.black,t=new Chess(fen);t.move(m.san);const a=Openings.at(t.fen());const nm0=a&&a.name?a.name:m.opening?m.opening.name:"",nm=Openings.ko(nm0)||nm0;
+        return `<tr data-san="${esc(m.san)}"><td class="sn">${esc(m.san)}${a?'<span class="bkt">정석</span>':""}</td><td>${n.toLocaleString()} <span class="cnt">${Math.round(n/tot*100)}%</span></td><td>${wdb(m.white,m.draws,m.black)}</td><td>${m.averageRating||""}</td><td class="nm">${esc(nm)}</td></tr>`}).join("")+`</tbody></table></div>`;
     const mx=Math.max(...x.moves.map(m=>m.white+m.draws+m.black));
     topArrows=x.moves.slice(0,3).map(m=>{const n=m.white+m.draws+m.black;return {from:m.uci.slice(0,2),to:m.uci.slice(2,4),w:.08+.14*n/mx}}).filter(a=>n0(a));drawArrows();
   },cache.has(fen)?0:180);
@@ -81,7 +108,7 @@ function explore(){
 const n0=a=>a.from&&a.to;
 function bookMoves(fen){
   const g=new Chess(fen),out=[];
-  for(const m of g.moves({verbose:true})){const t=new Chess(fen);t.move(m);const a=Openings.at(t.fen());if(a)out.push({san:m.san,name:a.name||""})}
+  for(const m of g.moves({verbose:true})){const t=new Chess(fen);t.move(m);const a=Openings.at(t.fen());if(a)out.push({san:m.san,name:a.name?(Openings.ko(a.name)||a.name):""})}
   if(!out.length)return "";
   return `<p class="cnt" style="margin-top:10px">이름 붙은 정석 수</p><div class="scroll"><table class="xt"><tbody>${out.map(o=>`<tr data-san="${esc(o.san)}"><td class="sn">${esc(o.san)}</td><td class="nm">${esc(o.name)}</td></tr>`).join("")}</tbody></table></div>`;
 }
@@ -100,10 +127,10 @@ function list(){
   const el=$("#tList"),N=Openings.names();if(!N.length){el.innerHTML='<p class="cnt">불러오는 중…</p>';return}
   if(!famSel){
     const m=new Map();N.forEach(n=>{const f=Openings.family(n[1]);m.set(f,(m.get(f)||0)+1)});
-    el.innerHTML=`<div class="fam">${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([f,c])=>`<button data-f="${esc(f)}">${esc(f)}<em>변화 ${c}개</em></button>`).join("")}</div>`;
+    el.innerHTML=`<div class="fam">${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([f,c])=>{const k=Openings.ko(f);return `<button data-f="${esc(f)}">${esc(k||f)}<em>${k?esc(f)+" · ":""}변화 ${c}개</em></button>`}).join("")}</div>`;
   }else{
     const v=N.filter(n=>Openings.family(n[1])===famSel);
-    el.innerHTML=`<button class="chip" data-back="1">← 전체</button><h3 style="margin:12px 0 6px">${esc(famSel)}</h3><div class="vl">${v.map(n=>`<button data-pgn="${esc(n[2])}">${esc(n[1])}<em>${esc(n[0])} · ${esc(n[2].replace(/\d+\.\s*/g,"").split(" ").length)}수</em></button>`).join("")}</div>`;
+    el.innerHTML=`<button class="chip" data-back="1">← 전체</button><h3 style="margin:12px 0 6px">${esc(Openings.ko(famSel)||famSel)}</h3><div class="vl">${v.map(n=>`<button data-pgn="${esc(n[2])}"><span>${esc(Openings.ko(n[1])||n[1])}<small>${esc(n[2])}</small></span><em>${esc(n[0])}</em></button>`).join("")}</div>`;
   }
 }
 $("#tList").onclick=e=>{const t=e.target.closest("[data-f],[data-back],[data-pgn]");if(!t)return;
@@ -113,10 +140,17 @@ $("#tList").onclick=e=>{const t=e.target.closest("[data-f],[data-back],[data-pgn
 function loadPgn(p){const sans=(p||"").replace(/\d+\.(\.\.)?/g," ").trim().split(/\s+/).filter(Boolean);const g=new Chess(),ok=[];for(const s of sans){const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}
 /* 검색 */
 let hits=[];
+/* 이름(영어·한국어), ECO, 수순(e4 c5 / 1.e4 c5)으로 찾기 */
+const normQ=t=>t.toLowerCase().replace(/[\s'’\-\.:,]/g,"");
+const normMv=t=>t.replace(/\d+\.(\.\.)?/g," ").replace(/[+#!?]/g,"").trim().split(/\s+/).join(" ");
 $("#oq").addEventListener("input",()=>{
-  const q=$("#oq").value.trim().toLowerCase(),box=$("#ores");if(!q){box.hidden=true;return}
-  hits=Openings.names().filter(n=>n[1].toLowerCase().includes(q)||n[0].toLowerCase()===q).slice(0,40);
-  box.innerHTML=hits.length?hits.map((n,i)=>`<button data-i="${i}">${esc(n[1])}<em>${esc(n[0])}</em></button>`).join(""):'<button disabled>없어요</button>';box.hidden=false;
+  const raw=$("#oq").value.trim(),q=normQ(raw),box=$("#ores");if(!q){box.hidden=true;return}
+  const N=Openings.names();let mv=null;
+  {const g=new Chess(),ok=[];for(const t of normMv(raw).split(" ")){const m=t&&g.move(t,{sloppy:true});if(!m)break;ok.push(m.san)}if(ok.length&&ok.length===normMv(raw).split(" ").length)mv=ok}
+  if(mv){const k=mv.join(" ");hits=N.filter(n=>{const p=normMv(n[2]).replace(/[+#]/g,"");return p===k||p.startsWith(k+" ")}).sort((a,b)=>a[2].length-b[2].length).slice(0,40);hits.unshift(["수순",mv.map((s,i)=>i%2===0?`${i/2+1}. ${s}`:s).join(" ")+" 으로 가기",mv.map((s,i)=>i%2===0?`${i/2+1}. ${s}`:s).join(" ")])}
+  else{const e=raw.toUpperCase(),ws=raw.split(/\s+/).map(normQ).filter(Boolean);
+    hits=N.filter(n=>{if(n[0]===e)return true;const a=normQ(n[1]),b=normQ(Openings.ko(n[1]));return ws.every(w=>a.includes(w)||b.includes(w))}).sort((x,y)=>x[1].length-y[1].length||x[2].length-y[2].length).slice(0,40)}
+  box.innerHTML=hits.length?hits.map((n,i)=>{const k=Openings.ko(n[1]);return `<button data-i="${i}">${esc(k||n[1])}<em>${esc(n[0])}</em><small>${k?esc(n[1])+" · ":""}${esc(n[2])}</small></button>`}).join(""):'<button disabled>없어요</button>';box.hidden=false;
 });
 $("#oq").addEventListener("keydown",e=>{if(e.key==="Enter"&&hits[0]){pick(0);e.preventDefault()}else if(e.key==="Escape")$("#ores").hidden=true});
 $("#ores").onclick=e=>{const b=e.target.closest("[data-i]");if(b)pick(+b.dataset.i)};
@@ -146,18 +180,23 @@ function drill(){
   if(!DR.on){el.innerHTML=`<div class="pr"><p class="cnt" style="margin:0">지금 보드 위치부터 시작해요. 상대는 마스터 게임에서 많이 둔 수로 두고, 내가 정석을 벗어나면 알려 줘요.</p>
     <div class="seg" id="drC"><button class="chip" data-c="w" aria-pressed="${DR.color==="w"}">백으로</button><button class="chip" data-c="b" aria-pressed="${DR.color==="b"}">흑으로</button></div>
     <button class="bgo" id="drGo">연습 시작</button></div>`;return}
-  el.innerHTML=`<div class="pr"><div class="prm ${DR.cls||""}" id="drM">${DR.msg||""}</div><p class="cnt" style="margin:0">맞힘 ${DR.hits} · 벗어남 ${DR.miss}</p><button class="chip" id="drStop">그만하기</button></div>`;
+  el.innerHTML=`<div class="pr">${DR.rep?'<p class="cnt" style="margin:0">저장한 수순 연습</p>':""}<div class="prm ${DR.cls||""}" id="drM">${DR.msg||""}</div><p class="cnt" style="margin:0">맞힘 ${DR.hits} · ${DR.rep?"틀림":"벗어남"} ${DR.miss}</p><button class="chip" id="drStop">그만하기</button></div>`;
 }
 $("#tDrill").onclick=e=>{
   const c=e.target.closest("[data-c]");if(c){DR.color=c.dataset.c;drill();return}
-  if(e.target.id==="drGo"){DR={on:true,color:DR.color,hits:0,miss:0,busy:false,msg:"",start:idx};line=line.slice(0,idx);orient=DR.color;drill();render();dStep();return}
+  if(e.target.id==="drGo"){DR={on:true,color:DR.color,hits:0,miss:0,busy:false,msg:"",start:idx,rep:null};line=line.slice(0,idx);orient=DR.color;drill();render();dStep();return}
   if(e.target.id==="drStop"){DR.on=false;drill();render()}
 };
 const dMsg=(t,c)=>{DR.msg=t;DR.cls=c||"";drill()};
+const repCands=n=>{const k=line.slice(0,n);return DR.rep.filter(r=>r.length>n&&k.every((x,i)=>r[i]===x))};
 async function dStep(){
   if(!DR.on)return;const fen=fenAt(),g=new Chess(fen);
   if(g.game_over()){DR.on=false;dMsg("");drill();return}
+  if(DR.rep&&!repCands(idx).length){DR.on=false;DR.msg=`저장한 수순 끝까지 왔어요. 맞힘 ${DR.hits} · 틀림 ${DR.miss}`;render();el2();return}
   if(g.turn()===DR.color){if(!DR.msg)dMsg("내 차례예요.");render();return}
+  if(DR.rep){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
+    const C=repCands(idx),pk=C[Math.floor(Math.random()*C.length)][idx],m=g.move(pk);DR.busy=false;if(!m){DR.on=false;drill();return}
+    play(snd(m,g));pushMove(m.san);refresh();if(!repCands(idx).length){dStep();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
   DR.busy=true;render();
   let x;try{x=await fetchX(fen)}catch(e){DR.busy=false;dMsg("수 통계를 불러오지 못해서 멈췄어요.","bad");DR.on=false;drill();return}
   const ms=(x.moves||[]).filter(m=>m.white+m.draws+m.black>=3),tot=ms.reduce((s,m)=>s+m.white+m.draws+m.black,0);
@@ -166,8 +205,13 @@ async function dStep(){
   await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
   const m=g.move(pick.san);if(!m){DR.busy=false;DR.on=false;dMsg("");drill();return}play(snd(m,g));pushMove(m.san);DR.busy=false;refresh();dMsg(`상대: ${pick.san} · 내 차례예요.`);
 }
-function el2(){$("#tDrill").innerHTML=`<div class="pr"><div class="prm good">${esc(DR.msg)}</div><button class="bgo" id="drGo">다시 연습</button></div>`}
+function el2(){$("#tDrill").innerHTML=`<div class="pr"><div class="prm good">${esc(DR.msg)}</div>${DR.rep?`<button class="bgo" data-redo="${DR.color}">다시 연습</button>`:'<button class="bgo" id="drGo">다시 연습</button>'}</div>`}
+$("#tDrill").addEventListener("click",e=>{const r=e.target.closest("[data-redo]");if(!r)return;const R=reps().filter(x=>x.color===r.dataset.redo&&x.moves.length).map(x=>x.moves);if(!R.length)return;DR={on:true,color:r.dataset.redo,hits:0,miss:0,busy:false,msg:"",rep:R};line=[];idx=0;orient=DR.color;refresh();drill();dStep()});
 async function dCheck(m,fenBefore){
+  if(DR.rep){const exp=[...new Set(repCands(idx-1).map(r=>r[idx-1]))];
+    if(exp.includes(m.san)){DR.hits++;dMsg(`맞아요, ${m.san}.`,"good");setTimeout(dStep,300)}
+    else{DR.miss++;dMsg(`저장한 수는 ${exp.join(", ")}예요.`,"bad");DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill()},1300)}
+    return}
   let ok=!!Openings.at(fenAt()),pop=[];
   try{const x=await fetchX(fenBefore),tot=(x.moves||[]).reduce((s,y)=>s+y.white+y.draws+y.black,0);pop=(x.moves||[]).slice(0,3).map(y=>y.san);
     const me=(x.moves||[]).find(y=>y.san===m.san);if(me&&tot&&(me.white+me.draws+me.black)/tot>=.05)ok=true}catch(e){}
@@ -175,9 +219,10 @@ async function dCheck(m,fenBefore){
   else{DR.miss++;dMsg(`${m.san}은 정석 밖이에요.${pop.length?" 많이 두는 수: "+pop.join(", "):""}`,"bad");DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill()},1200)}
 }
 /* 탭 */
-document.querySelectorAll(".otabs .tab").forEach(b=>b.onclick=()=>{tab=b.dataset.t;document.querySelectorAll(".otabs .tab").forEach(x=>x.setAttribute("aria-selected",x===b));
-  $("#tEx").hidden=tab!=="ex";$("#tGames").hidden=tab!=="games";$("#tList").hidden=tab!=="list";$("#tDrill").hidden=tab!=="drill";
-  if(tab==="games")games();if(tab==="list")list();if(tab==="drill")drill()});
+function showTab(t){tab=t;document.querySelectorAll(".otabs .tab").forEach(x=>x.setAttribute("aria-selected",x.dataset.t===t));
+  $("#tEx").hidden=tab!=="ex";$("#tGames").hidden=tab!=="games";$("#tList").hidden=tab!=="list";$("#tDrill").hidden=tab!=="drill";$("#tSaved").hidden=tab!=="saved";
+  if(tab==="games")games();if(tab==="list")list();if(tab==="drill")drill();if(tab==="saved")saved()}
+document.querySelectorAll(".otabs .tab").forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 /* 보드 조작 */
 function userMove(from,to,pr){
   const fenBefore=fenAt(),g=game(),m=g.move({from,to,promotion:pr||"q"});sel=null;if(!m){render();return}

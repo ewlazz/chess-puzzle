@@ -60,8 +60,15 @@ function render(){
     return `<div class="${cls}" data-sq="${sq}">${mk}${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===sq?" ghost":""}"></i>`:""}${dot}</div>`;
   }).join("");
   let ar="";marks.forEach((col,k)=>{const [a,b]=k.split("-");ar+=arrow(a,b,col)});$("#pmarks").innerHTML=ar;
-  players();moveList();
+  players();moveList();openName();
 }
+function openName(){
+  const el=$("#popen");if(!el||!window.Openings||!Openings.ready())return;
+  const c=new Chess(),fens=[c.fen()];for(const m of g.history())(c.move(m),fens.push(c.fen()));
+  const ol=Openings.line(fens);if(!ol.name){el.innerHTML="";return}
+  const k=Openings.ko(ol.name);el.innerHTML=`${esc(k||ol.name)}<small>${k?esc(ol.name)+" · ":""}${esc(ol.eco)}${ol.book<fens.length-1?" · 정석 밖":""}</small>`;
+}
+if(window.Openings)Openings.load().then(()=>openName());
 const fmt=s=>{s=Math.max(0,s);const m=Math.floor(s/60),x=s-m*60;return s<20?`${m}:${x.toFixed(1).padStart(4,"0")}`:`${m}:${String(Math.floor(x)).padStart(2,"0")}`};
 function players(){
   const nm=c=>c===me?"나":`Stockfish <em>레벨 ${lvl+1}</em>`,ck=c=>base&&(on||result)?`<span class="clk${on&&g.turn()===c?" run":""}${clock[c]<20&&base?" low":""}">${fmt(clock[c])}</span>`:"";

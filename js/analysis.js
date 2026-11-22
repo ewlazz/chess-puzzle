@@ -151,7 +151,7 @@ function drawInfo(){
       const b=A.best[N.i-1];if(b&&!["best","brilliant","great","book","forced"].includes(cl)){const t=new Chess(A.fens[N.i-1]),bm=t.move(uciObj(b));if(bm)h+=`<p>최선 ${bm.san}</p>`}}
     else if(!N.v&&A.busy)h+=` <span style="color:var(--muted)">분석 중</span>`;
   }
-  const on=openName();if(on)h+=`<p class="opn">${esc(on.eco?on.eco+" · ":"")}${esc(on.name)}</p>`;
+  const on=openName();if(on){const k=Openings.ko(on.name);h+=`<p class="opn" title="${esc(on.name)}">${esc(on.eco?on.eco+" · ":"")}${esc(k||on.name)}</p>`}
   $("#cur").innerHTML=h;
 }
 /* 내 실수를 퍼즐로: 내가 둔 실수·놓침·블런더 장면에서 엔진 최선수(메이트면 메이트 수순)를 정답으로 */
@@ -217,7 +217,7 @@ function renderLines(){
     const c=new Chess(fen),parts=[];let n=+fen.split(" ")[5],side=t;
     for(let j=0;j<Math.min(ln.pv.length,14);j++){const m=c.move(uciObj(ln.pv[j]));if(!m)break;
       const num=side==="w"?`<em>${n}.</em>`:(j===0?`<em>${n}...</em>`:"");parts.push(`${num}<button data-l="${li}" data-k="${j}">${m.san}</button>`);if(side==="b")n++;side=side==="w"?"b":"w"}
-    return `<div class="ln"><span class="pill ${whiteCp(ln.score,t)>=0?"pw":"pb"}">${evalText(ln.score,t)}</span><span class="lm">${parts.join(" ")}</span></div>`;
+    return `<div class="ln"><span class="pill ${whiteCp(ln.score,t)>=0?"pw":"pb"}">${evalText(ln.score,t)}</span><span class="lmv">${parts.join(" ")}</span></div>`;
   }).join("");
   dep.textContent="깊이 "+L.depth;
 }

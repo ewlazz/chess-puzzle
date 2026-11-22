@@ -143,10 +143,10 @@ header{background:var(--band);color:#f3f7f8;position:sticky;top:0;z-index:20;bor
 .ln{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border-top:1px solid var(--line);font-size:14px;line-height:1.5}
 .pill{flex:none;min-width:50px;text-align:center;border-radius:6px;font-weight:800;font-size:13px;padding:1px 6px;font-variant-numeric:tabular-nums}
 .pill.pw{background:#f2f2f2;color:#222;border:1px solid #ccc}.pill.pb{background:#2b2b2b;color:#f2f2f2}
-.lm{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.lm em{font-style:normal;color:var(--muted)}
-.lm button{border:0;background:none;color:var(--ink);padding:0 1px;font:inherit;border-radius:4px}
-.lm button:hover{background:var(--acc);color:var(--accink)}
+.lmv{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.lmv em{font-style:normal;color:var(--muted)}
+.lmv button{border:0;background:none;color:var(--ink);padding:0 1px;font:inherit;border-radius:4px}
+.lmv button:hover{background:var(--acc);color:var(--accink)}
 .lempty{margin:0;padding:8px 10px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
 .vrow{grid-column:1/-1;padding:6px 10px 8px 48px;background:light-dark(#fff8f4,#1a2a2f);border-bottom:1px solid var(--line);font-size:14px;line-height:1.8}
 .vrow em{font-style:normal;color:var(--muted)}

@@ -36,6 +36,7 @@
 .pmv .mrow{grid-template-columns:40px 1fr 1fr}
 .pmv .mrow b{font-weight:500;padding:6px 8px}
 .pmv .mrow b.on{background:var(--acc);color:var(--accink)}
+.popen{margin:0;font-size:14px;font-weight:500}.popen small{display:block;color:var(--muted);font-weight:400;font-size:12px}
 .st2{font-size:14px;color:var(--muted);min-height:1.4em;margin:0}
 </style>
 <link rel="manifest" href="manifest.json">
@@ -71,6 +72,7 @@
         <div style="display:grid;gap:12px">
           <div class="rbox" id="result" hidden></div>
           <p class="st2" id="pst"></p>
+          <p class="popen" id="popen"></p>
           <div class="pmv" id="pmv"></div>
           <div class="acts"><button id="aBack">무르기</button><button id="aFlip">뒤집기</button><button id="aResign">기권</button></div>
         </div>
