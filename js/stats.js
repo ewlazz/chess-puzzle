@@ -44,6 +44,15 @@ function norm(g,user){
     my:{name:my.username,rating:my.rating},op:{name:op.username,rating:op.rating},
     open:o.name,fam:o.fam,acc:g.accuracies?{me:g.accuracies[me==="w"?"white":"black"],op:g.accuracies[me==="w"?"black":"white"]}:null,setup:g.initial_setup};
 }
+/* 내 계정으로 등록한 닉네임은 지난 달 기록을 브라우저에 저장해 두고 다시 받지 않음 */
+const GC={db:null,
+  open(){if(this.db)return this.db;this.db=new Promise(res=>{try{const r=indexedDB.open("hansu",1);r.onupgradeneeded=()=>r.result.createObjectStore("months");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null)}catch(e){res(null)}});return this.db},
+  async get(k){const d=await this.open();if(!d)return null;return new Promise(res=>{try{const r=d.transaction("months").objectStore("months").get(k);r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null)}catch(e){res(null)}})},
+  async put(k,v){const d=await this.open();if(!d)return;try{d.transaction("months","readwrite").objectStore("months").put(v,k)}catch(e){}},
+  async drop(user){const d=await this.open();if(!d)return;try{const st=d.transaction("months","readwrite").objectStore("months");st.openCursor().onsuccess=e=>{const c=e.target.result;if(!c)return;if(String(c.key).startsWith(user+"|"))c.delete();c.continue()}}catch(e){}}
+};
+const isMe=()=>!!S.user&&(window.ME&&ME.get().toLowerCase())===S.user;
+const liveMonth=u=>{const d=new Date();return u.endsWith(d.getFullYear()+"/"+pad(d.getMonth()+1))};
 /* 기간: 최근 N개월(0이면 전체) 월별 기록을 차례로 받고, 받은 달은 다시 받지 않음 */
 const PER={3:"최근 3개월",12:"최근 1년",0:"전체"};
 async function loadGames(t){
@@ -53,8 +62,9 @@ async function loadGames(t){
   const need=urls.filter(u=>!S.cache[u]);
   for(let i=0;i<need.length;i++){
     msg(`게임 불러오는 중 ${i+1}/${need.length}`);
+    if(isMe()&&!liveMonth(need[i])){const c=await GC.get(S.user+"|"+need[i]);if(t!==token)return false;if(c){S.cache[need[i]]=c;continue}}
     const m=await get(need[i]).catch(()=>null);if(t!==token)return false;
-    if(m)S.cache[need[i]]=(m.games||[]).filter(g=>g.white&&g.black).map(g=>norm(g,S.user));
+    if(m){S.cache[need[i]]=(m.games||[]).filter(g=>g.white&&g.black).map(g=>norm(g,S.user));if(isMe())GC.put(S.user+"|"+need[i],S.cache[need[i]])}
   }
   S.games=urls.flatMap(u=>S.cache[u]||[]).sort((a,b)=>b.end-a.end);S.shown=50;
   msg(S.games.length?"":`${PER[S.per]} 동안 둔 게임이 없어요.`);
@@ -92,8 +102,11 @@ function renderProfile(){
   $("#prof").innerHTML=`${p.avatar?`<img src="${esc(p.avatar)}" alt="">`:`<img alt="">`}
     <div><div class="nm">${p.title?`<span class="ttl">${esc(p.title)}</span>`:""}${esc(p.username)}</div>
     <div class="sub">${p.name?`<span>${esc(p.name)}</span>`:""}${cn?`<span>${esc(cn)}</span>`:""}<span>가입 ${ymd(new Date(p.joined*1000))}</span><span>접속 ${ago(p.last_online)}</span>${p.followers?`<span>팔로워 ${p.followers.toLocaleString()}</span>`:""}</div></div>
-    <a class="ext" href="${esc(p.url)}" target="_blank" rel="noopener">체스닷컴 프로필</a>`;
+    <div class="pacts"><button type="button" class="ract" id="meBtn">${isMe()?"내 계정 등록됨 · 해제":"내 계정으로 등록"}</button><a class="ext" href="${esc(p.url)}" target="_blank" rel="noopener">체스닷컴 프로필</a></div>`;
   $("#prof").classList.add("on");
+  $("#meBtn").onclick=()=>{if(isMe()){ME.clear();GC.drop(S.user)}else{ME.set(S.profile.username||S.user);Object.keys(S.cache).forEach(u=>GC.put(S.user+"|"+u,S.cache[u]))}
+    const sl=document.querySelector('.nav nav a[href^="stats.html"]');if(sl)sl.href=ME.get()?"stats.html?user="+encodeURIComponent(ME.get()):"stats.html";
+    $("#meBtn").textContent=isMe()?"내 계정 등록됨 · 해제":"내 계정으로 등록"};
   const st=S.stats||{},keys=[["chess_bullet","불릿"],["chess_blitz","블리츠"],["chess_rapid","래피드"],["chess_daily","데일리"]];
   let h=keys.map(([k,l])=>{const s=st[k];const ic=tcIcon(k.slice(6));if(!s||!s.last)return `<div class="rc off"><small>${ic}${l}</small><b>–</b><div class="best">기록 없음</div></div>`;
     const r=s.record||{win:0,draw:0,loss:0};return `<div class="rc"><small>${ic}${l}</small><b>${s.last.rating}</b><div class="best">최고 ${s.best?s.best.rating:"–"}</div>${wdl(r.win,r.draw,r.loss)}<div class="nums">${r.win.toLocaleString()}승 ${r.draw.toLocaleString()}무 ${r.loss.toLocaleString()}패</div></div>`}).join("");
@@ -195,5 +208,6 @@ function ratingChart(svg,pts){
 }
 renderRecent();
 const q0=new URL(location.href).searchParams.get("user");
-if(q0){$("#q").value=q0;search(q0,new URL(location.href).searchParams.get("game"))}else $("#q").focus();
+const me0=window.ME&&ME.get();
+if(q0){$("#q").value=q0;search(q0,new URL(location.href).searchParams.get("game"))}else if(me0){$("#q").value=me0;search(me0)}else $("#q").focus();
 }

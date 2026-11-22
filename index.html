@@ -114,9 +114,11 @@
   let r=[];try{r=JSON.parse(localStorage.getItem("hansu-recent")||"[]")}catch(e){}
 
   const pop=["hikaru","magnuscarlsen","gothamchess","fabianocaruana"];
-  if(!r.length){r=pop}else{document.getElementById("hrl").textContent="최근 검색"}
+  const me=window.ME&&ME.get();
+  if(me){r=[me].concat(r.filter(x=>x.toLowerCase()!==me.toLowerCase())).slice(0,5);document.getElementById("hrl").textContent="내 계정"}
+  else if(!r.length){r=pop}else{document.getElementById("hrl").textContent="최근 검색"}
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  document.getElementById("hrec").innerHTML=r.map(u=>`<a href="stats.html?user=${encodeURIComponent(u)}&tab=report">${esc(u)}</a>`).join("");
+  document.getElementById("hrec").innerHTML=r.map((u,i)=>`<a${me&&!i?' class="me"':""} href="stats.html?user=${encodeURIComponent(u)}&tab=report">${esc(u)}</a>`).join("");
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>

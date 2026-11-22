@@ -319,3 +319,6 @@ header{position:sticky}
 #pRep .racts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 @media(max-width:640px){.rr{grid-template-columns:minmax(0,1fr) 44px}.rr .rw{grid-column:1;grid-row:2;font-size:12px}.rr .wdl{grid-column:2;grid-row:2}}
 #rEngB .hb{max-width:620px;grid-template-columns:80px minmax(0,1fr) 40px}
+.pacts{margin-left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.pacts .ract{margin:0}
+.hrec a.me{border-color:#5C54D6;color:#5C54D6;font-weight:700}

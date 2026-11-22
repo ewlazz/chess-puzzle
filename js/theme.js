@@ -4,8 +4,11 @@
   var cur="paper";try{cur=localStorage.getItem("hansu-board")||"paper"}catch(e){}
   function apply(k){var t=T[k]||T.paper,s=document.documentElement.style;s.setProperty("--lsq",t[0]);s.setProperty("--dsq",t[1])}
   apply(cur);
+  /* 내 계정: 등록하면 메뉴의 전적이 바로 내 전적으로 감 */
+  window.ME={get:function(){try{return localStorage.getItem("hansu-me")||""}catch(e){return ""}},set:function(u){try{localStorage.setItem("hansu-me",u)}catch(e){}},clear:function(){try{localStorage.removeItem("hansu-me")}catch(e){}}};
   function ui(){
     var nav=document.querySelector(".nav nav");if(!nav||document.getElementById("setb"))return;
+    var me=ME.get(),sl=nav.querySelector('a[href="stats.html"]');if(me&&sl)sl.href="stats.html?user="+encodeURIComponent(me);
     var b=document.createElement("button");b.id="setb";b.className="setb";b.type="button";b.setAttribute("aria-label","보드 색");b.setAttribute("aria-expanded","false");
     b.innerHTML='<span class="sw"><i></i><i></i><i></i><i></i></span>';nav.appendChild(b);
     var p=document.createElement("div");p.className="setp";p.hidden=true;
