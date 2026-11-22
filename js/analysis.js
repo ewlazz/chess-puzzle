@@ -3,7 +3,7 @@
 if(!document.getElementById("ana"))document.body.insertAdjacentHTML("beforeend",'<div class="ana" id="ana" role="dialog" aria-label="게임 분석"> <div class="ahead"><b id="aTitle"></b><a id="aLink" href="#" target="_blank" rel="noopener">체스닷컴에서 보기</a><button class="x" id="aClose" aria-label="닫기">닫기</button></div> <div class="alay"> <div> <div class="who" id="wTop"></div> <div class="bwrap2"> <div class="evb" id="evb"><i id="evbW"></i><span id="evbT"></span></div> <div class="aboard"><div class="ab8" id="ab8" role="grid" aria-label="분석 보드"></div><svg class="amarks" id="amarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="apromo"><div id="apromoRow"></div></div></div> </div> <div class="who" id="wBot"></div> <div class="ctl"><button id="cFirst" aria-label="처음">처음</button><button id="cPrev" aria-label="이전">이전</button><button id="cNext" aria-label="다음">다음</button><button id="cLast" aria-label="마지막">끝</button><button id="cFlip" aria-label="보드 뒤집기">뒤집기</button></div> <div class="gfig" id="gfig"><svg id="gsvg"></svg></div> </div> <div class="side"> <div><div class="prog"><i id="prog"></i></div><p class="ast" id="ast"></p></div> <div class="acc2" id="acc2"></div> <div class="lines"><div class="lh"><button class="engt" id="engT" aria-pressed="true">엔진</button><span id="ldep"></span></div><div id="lbody"></div></div> <div class="cur" id="cur"></div> <div class="mlist" id="mlist"></div> <table class="cls" id="cls"></table> </div> </div> </div>');
 const F="abcdefgh",ENG="engine/stockfish-19-lite-single.js";
 const CL={
-  brilliant:{l:"탁월",i:"brilliant",c:"#1bada6"},great:{l:"유일",i:"great_find",c:"#1bada6"},
+  brilliant:{l:"탁월",i:"brilliant",c:"#1bada6"},great:{l:"유일",i:"great",x:"svg",c:"#749BBF"},
   best:{l:"최선",i:"best",c:"#96bc4b"},excellent:{l:"훌륭",i:"excellent",c:"#96bc4b"},good:{l:"좋음",i:"good",c:"#96af8b"},
   book:{l:"오프닝",i:"book",c:"#a88865"},forced:{l:"강제 수",i:"forced",c:"#96af8b"},
   inaccuracy:{l:"부정확",i:"inaccuracy",c:"#f7c045"},mistake:{l:"실수",i:"mistake",c:"#e58f2a"},
@@ -11,7 +11,7 @@ const CL={
 };
 const ORDER=["brilliant","great","best","excellent","good","book","forced","inaccuracy","mistake","miss","blunder"];
 const ico=(n,cls)=>`<img class="${cls}" src="icons/${n}.png" alt="" draggable="false">`;
-const clIco=(c,cls)=>`<img class="${cls}" src="icons/${CL[c].i}.png" alt="${CL[c].l}" title="${CL[c].l}" draggable="false">`;
+const clIco=(c,cls)=>`<img class="${cls}" src="icons/${CL[c].i}.${CL[c].x||"png"}" alt="${CL[c].l}" title="${CL[c].l}" draggable="false">`;
 /* 오프닝 이론 길이: 체스닷컴 ECOUrl 끝의 수(예: ...-6.Be3, ...-3...Nf6-4.Bg5)까지 */
 function bookPly(game,moves){
   const u=game.eco||(/\[ECOUrl "([^"]+)"/.exec(game.pgn||"")||[])[1];if(!u)return 0;
