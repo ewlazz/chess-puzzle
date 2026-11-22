@@ -200,18 +200,29 @@ function study(){
     const st=pr?(pr.ok?"외움":`연습 ${pr.n}번`):"아직";
     return `<div class="ritem${on?" on":""}" data-sv="${l?l.id:"_"}">${miniBoard(ps.fen,o.side,ps.hl)}<div class="rt1">${l?esc(l.ko):"공통 수순"}${l&&l===o.lines[0]?'<span class="bkt">메인</span>':""}${l&&l.trap?'<span class="bkt">함정</span>':""}</div><div class="rt2">${l?esc(l.sub):`${Math.ceil(t.length/2)}.${t[t.length-1]}까지`}</div><div class="rt3">${st}</div><button class="chip rgo" data-sd="${l?l.id:"_"}">연습</button></div>`};
   el.innerHTML=`<div id="stStat"></div><div class="stlist">${row(null)}${o.lines.map(row).join("")}</div><p class="cnt" style="margin-top:10px">줄을 누르면 보드에서 한 수씩 볼 수 있어요. ← → 키로 넘겨요.</p>`;
-  stStats(o);
+  stStats(o,ST.cur&&ST.cur.o===o?ST.cur.l:null);
 }
 /* 레이팅별 채택률·성적: 이 오프닝을 고르는 수(gam) 직전 자리에서 그 수를 몇 %가 두고 결과가 어떤지.
    마스터는 로그인 없이, 리체스 레이팅 구간은 리체스 연결 필요. 3일 캐시 */
 const BANDS=["1000","1200","1400","1600","1800","2000","2200","2500"];
 const BC={},BRUN={};
-async function stStats(o){if(!$("#stStat")||o.gam==null)return;const t=o.trunk.split(" "),fen=fenOf(t,o.gam),san=t[o.gam],ck="hansu-band-"+fen;
+/* 이 줄이 다른 줄과 갈라지는 자리들(+ 오프닝을 고르는 수). 마지막 갈림이 이 변화를 정하는 수 */
+function stForkPlies(o,l){const mv=stFull(o,l),all=[null].concat(o.lines).filter(x=>x!==l).map(x=>stFull(o,x)),out=new Set();if(o.gam!=null)out.add(o.gam);
+  for(const M of all){let k=0;while(k<mv.length&&k<M.length&&M[k]===mv[k])k++;if(k<mv.length&&k<M.length)out.add(k)}
+  return [...out].sort((a,b)=>a-b)}
+async function stStats(o,l){if(!$("#stStat"))return;const mv=stFull(o,l),F=stForkPlies(o,l);if(!F.length){$("#stStat").innerHTML="";return}
+  const lk=o.id+"/"+(l?l.id:"_");if(ST.fkLine!==lk||!F.includes(ST.fk)){ST.fkLine=lk;ST.fk=!l&&o.gam!=null?o.gam:F[F.length-1]}
+  const ply=ST.fk,fen=fenOf(mv,ply),san=mv[ply],ck="hansu-band-"+fen+"|"+san;ST.bk=ck;
   let C=BC[ck];if(!C){C={};try{C=JSON.parse(localStorage.getItem(ck)||"{}")}catch(e){}if(C.t&&Date.now()-C.t>3*864e5)C={};BC[ck]=C}
+  const me=o.side==="w"?"백":"흑";
   const row=(lab,r)=>{if(!r)return `<tr><td>${lab}</td><td colspan="4" class="cnt">…</td></tr>`;if(r.err)return `<tr><td>${lab}</td><td colspan="4" class="cnt">${r.err}</td></tr>`;
     const n=r.w+r.d+r.b,sc=n?Math.round(((o.side==="w"?r.w:r.b)+r.d/2)/n*100):0;
-    return `<tr><td>${lab}</td><td><b>${r.tot?(n/r.tot*100).toFixed(n/r.tot<.1?1:0):0}%</b></td><td>${n.toLocaleString()}</td><td>${n?wdb(r.w,r.d,r.b):""}</td><td>${n?sc+"%":"–"}</td></tr>`};
-  const draw=()=>{const el=$("#stStat");if(!el)return;el.innerHTML=`<div class="bst"><p class="bsh"><b>레이팅별 채택률</b> <span class="cnt">${esc(mvNo(o.gam,san))} 자리에서 · 블리츠·래피드 · 리체스 레이팅</span></p><div class="scroll"><table class="xt"><thead><tr><th>구간</th><th>채택률</th><th>판</th><th>백 승 · 무 · 흑 승</th><th>${o.side==="w"?"백":"흑"} 점수</th></tr></thead><tbody>`+
+    return `<tr><td>${lab}</td><td><b>${r.tot?(n/r.tot*100).toFixed(n&&n/r.tot<.1?1:0):0}%</b></td><td>${n.toLocaleString()}</td><td>${n?wdb(r.w,r.d,r.b):""}</td><td>${n?sc+"%":"–"}</td></tr>`};
+  const draw=()=>{const el=$("#stStat");if(!el||ST.bk!==ck)return;
+    el.innerHTML=`<div class="bst"><p class="bsh"><b>레이팅별 채택률</b> <span class="cnt">블리츠·래피드 · 리체스 레이팅</span></p>`+
+    `<div class="bfk">${F.map(p=>`<button class="chip" data-fk="${p}" aria-pressed="${p===ply}">${esc(mvNo(p,mv[p]))}</button>`).join("")}</div>`+
+    `<p class="cnt bq"><b>${esc(mvNo(ply,san))}</b> · 이 자리에서 둔 비율과 그 뒤 결과 · 점수는 ${me} 기준</p>`+
+    `<div class="scroll"><table class="xt"><thead><tr><th>구간</th><th>채택률</th><th>판</th><th>백 승 · 무 · 흑 승</th><th>${me} 점수</th></tr></thead><tbody>`+
     (LI.tok?BANDS.map(k=>row(k==="2500"?"2500+":k+"~"+(k==="2200"?2499:+k+199),C[k])).join(""):"")+row("마스터",C.m)+`</tbody></table></div>`+
     (LI.tok?"":`<div class="xlogin"><button class="libtn" id="liGo2">${window.LIIC||""}리체스 연결</button><span class="cnt">연결하면 1000~2500 구간별로 보여요</span></div>`)+`</div>`};
   draw();if(BRUN[ck])return;BRUN[ck]=1;
@@ -223,6 +234,7 @@ async function stStats(o){if(!$("#stStat")||o.gam==null)return;const t=o.trunk.s
     draw();await new Promise(r=>setTimeout(r,250))}
   BRUN[ck]=0;if(Object.values(C).every(x=>x&&!x.err)){C.t=Date.now();try{localStorage.setItem(ck,JSON.stringify(C))}catch(e){}}
 }
+document.addEventListener("click",e=>{const b=e.target.closest("[data-fk]");if(!b||!ST.cur)return;ST.fk=+b.dataset.fk;stStats(ST.cur.o,ST.cur.l)});
 const fenOf=(mv,n)=>{const g=new Chess();for(let i=0;i<n;i++)g.move(mv[i]);return g.fen()};
 document.addEventListener("click",e=>{if(e.target.closest("#liGo2"))LI.login()});
 function stSet(o,l){const mv=stFull(o,l);ST.cur={key:o.id+"/"+(l?l.id:"_"),o,l,mv,notes:stNotes(o,l),name:l?l.ko:"공통 수순"}}
