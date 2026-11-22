@@ -82,28 +82,58 @@ function setLine(sans){line=sans.slice();idx=line.length;sel=null;marks.clear();
 function pushMove(san){if(line[idx]===san){idx++}else{line=line.slice(0,idx);line.push(san);idx++}}
 /* 수 통계 */
 function wdb(w,d,b){const n=w+d+b||1,p=x=>Math.round(x/n*100);return `<div class="wdb"><i class="w" style="width:${w/n*100}%">${p(w)>12?p(w)+"%":""}</i><i class="d" style="width:${d/n*100}%">${p(d)>12?p(d)+"%":""}</i><i class="l" style="width:${b/n*100}%">${p(b)>12?p(b)+"%":""}</i></div>`}
-async function fetchX(fen){
-  if(cache.has(fen))return cache.get(fen);
-  const r=await fetch(`https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fen)}&moves=12&topGames=10`);
-  if(!r.ok){const e=new Error(r.status);e.code=r.status;throw e}
-  const j=await r.json();cache.set(fen,j);return j;
+/* 통계 출처: 마스터 또는 리체스 레이팅 구간 (레이팅 구간은 리체스 로그인 필요) */
+const RATE=["m","1000","1200","1400","1600","1800","2000","2200","2500"],SPD=[["blitz,rapid","블리츠·래피드"],["bullet","불릿"],["blitz","블리츠"],["rapid","래피드"]];
+let SRC="m",SPEED="blitz,rapid";try{SRC=localStorage.getItem("hansu-src")||"m";SPEED=localStorage.getItem("hansu-speed")||SPEED}catch(e){}
+const LI={get tok(){try{return localStorage.getItem("hansu-li")||""}catch(e){return ""}},set tok(v){try{v?localStorage.setItem("hansu-li",v):localStorage.removeItem("hansu-li")}catch(e){}}};
+const redir=()=>location.origin+location.pathname;
+const b64u=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+async function liLogin(){
+  const v=b64u(crypto.getRandomValues(new Uint8Array(48))),st=b64u(crypto.getRandomValues(new Uint8Array(12)));
+  const ch=b64u(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v)));
+  try{sessionStorage.setItem("hansu-pkce",JSON.stringify({v,st,line:line.slice(0,idx).join(",")}))}catch(e){}
+  location.href=`https://lichess.org/oauth?response_type=code&client_id=hansu-chess&redirect_uri=${encodeURIComponent(redir())}&code_challenge_method=S256&code_challenge=${ch}&state=${st}`;
 }
+async function liReturn(){
+  const q=new URL(location.href).searchParams,code=q.get("code"),st=q.get("state");if(!code)return null;
+  let k=null;try{k=JSON.parse(sessionStorage.getItem("hansu-pkce")||"null")}catch(e){}
+  try{history.replaceState(null,"",redir()+(k&&k.line?"?line="+encodeURIComponent(k.line):""))}catch(e){}
+  if(!k||k.st!==st)return null;
+  try{const r=await fetch("https://lichess.org/api/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({grant_type:"authorization_code",code,code_verifier:k.v,redirect_uri:redir(),client_id:"hansu-chess"})});
+    const j=await r.json();if(j.access_token){LI.tok=j.access_token;SRC=SRC==="m"?"1600":SRC;try{localStorage.setItem("hansu-src",SRC)}catch(e){}}}catch(e){}
+  return k.line||null;
+}
+async function fetchX(fen){
+  const key=SRC+"|"+SPEED+"|"+fen;if(cache.has(key))return cache.get(key);
+  let r;
+  if(SRC==="m")r=await fetch(`https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fen)}&moves=12&topGames=10`);
+  else{if(!LI.tok){const e=new Error("login");e.code="login";throw e}
+    r=await fetch(`https://explorer.lichess.ovh/lichess?variant=standard&speeds=${SPEED}&ratings=${SRC}&moves=12&topGames=0&recentGames=0&fen=${encodeURIComponent(fen)}`,{headers:{Authorization:"Bearer "+LI.tok}});
+    if(r.status===401){LI.tok="";const e=new Error("login");e.code="login";throw e}}
+  if(!r.ok){const e=new Error(r.status);e.code=r.status;throw e}
+  const j=await r.json();cache.set(key,j);return j;
+}
+const srcLabel=()=>SRC==="m"?"마스터":(SRC==="2500"?"2500+":SRC+"~"+(+SRC+200))+" · "+(SPD.find(x=>x[0]===SPEED)||SPD[0])[1];
+function srcBar(){return `<div class="xsrc"><div class="chips">${RATE.map(k=>`<button class="chip" data-src="${k}" aria-pressed="${k===SRC}">${k==="m"?"마스터":k==="2500"?"2500+":k}</button>`).join("")}</div>${SRC==="m"?"":`<div class="chips">${SPD.map(([k,l])=>`<button class="chip" data-spd="${k}" aria-pressed="${k===SPEED}">${l}</button>`).join("")}</div>`}</div>`}
 function explore(){
-  clearTimeout(xTimer);const fen=fenAt(),el=$("#tEx");
-  if(!cache.has(fen))el.innerHTML='<p class="cnt">불러오는 중…</p>';
+  clearTimeout(xTimer);const fen=fenAt(),el=$("#tEx"),key=SRC+"|"+SPEED+"|"+fen;
+  if(!cache.has(key))el.innerHTML=srcBar()+'<p class="cnt">불러오는 중…</p>';
   xTimer=setTimeout(async()=>{
-    let x=null;try{x=await fetchX(fen)}catch(e){if(fen!==fenAt())return;el.innerHTML=`<p class="cnt">${e.code===429?"요청이 많아요. 잠시 후 다시 해 보세요.":"수 통계를 불러오지 못했어요."}</p>`+bookMoves(fen);topArrows=[];drawArrows();return}
+    let x=null;try{x=await fetchX(fen)}catch(e){if(fen!==fenAt())return;
+      if(e.code==="login"){el.innerHTML=srcBar()+`<div class="xlogin"><p>레이팅별 통계는 리체스 게임 데이터라서 리체스 로그인이 필요해요. 무료 계정이면 돼요.</p><button class="bgo" id="liGo">리체스로 로그인</button></div>`;topArrows=[];drawArrows();return}
+      el.innerHTML=srcBar()+`<p class="cnt">${e.code===429?"요청이 많아요. 잠시 후 다시 해 보세요.":"수 통계를 불러오지 못했어요."}</p>`+bookMoves(fen);topArrows=[];drawArrows();return}
     if(fen!==fenAt())return;
     info();
     const tot=x.white+x.draws+x.black;
-    if(!x.moves||!x.moves.length){el.innerHTML=`<p class="cnt">마스터 게임에 이 포지션이 없어요.</p>`+bookMoves(fen);topArrows=[];drawArrows();return}
-    const g=new Chess(fen);
-    el.innerHTML=`<p class="cnt">마스터 게임 ${tot.toLocaleString()}판</p><div class="scroll"><table class="xt"><thead><tr><th>수</th><th>판</th><th>백 승 · 무 · 흑 승</th><th>평균</th><th>오프닝</th></tr></thead><tbody>`+
+    if(!x.moves||!x.moves.length){el.innerHTML=srcBar()+`<p class="cnt">${srcLabel()} 게임에 이 포지션이 없어요.</p>`+bookMoves(fen);topArrows=[];drawArrows();return}
+    const g=new Chess(fen),stm=g.turn(),minN=SRC==="m"?20:100;
+    el.innerHTML=srcBar()+`<p class="cnt">${srcLabel()} 게임 ${tot.toLocaleString()}판${SRC!=="m"?` · <button class="lnk" id="liOut">리체스 로그아웃</button>`:""}</p><div class="scroll"><table class="xt"><thead><tr><th>수</th><th>판</th><th>백 승 · 무 · 흑 승</th><th>평균</th><th>오프닝</th></tr></thead><tbody>`+
       x.moves.map(m=>{const n=m.white+m.draws+m.black,t=new Chess(fen);t.move(m.san);const a=Openings.at(t.fen());const nm0=a&&a.name?a.name:m.opening?m.opening.name:"",nm=Openings.ko(nm0)||nm0;
-        return `<tr data-san="${esc(m.san)}"><td class="sn">${esc(m.san)}${a?'<span class="bkt">정석</span>':""}</td><td>${n.toLocaleString()} <span class="cnt">${Math.round(n/tot*100)}%</span></td><td>${wdb(m.white,m.draws,m.black)}</td><td>${m.averageRating||""}</td><td class="nm">${esc(nm)}</td></tr>`}).join("")+`</tbody></table></div>`;
+        const sc=n?((stm==="w"?m.white:m.black)+m.draws/2)/n:0,bee=n>=minN&&sc>=.6;
+        return `<tr data-san="${esc(m.san)}"><td class="sn">${esc(m.san)}${bee?BEE(`${stm==="w"?"백":"흑"} 승률 ${Math.round(sc*100)}%`):""}${a?'<span class="bkt">정석</span>':""}</td><td>${n.toLocaleString()} <span class="cnt">${Math.round(n/tot*100)}%</span></td><td>${wdb(m.white,m.draws,m.black)}</td><td>${m.averageRating||""}</td><td class="nm">${esc(nm)}</td></tr>`}).join("")+`</tbody></table></div>`;
     const mx=Math.max(...x.moves.map(m=>m.white+m.draws+m.black));
     topArrows=x.moves.slice(0,3).map(m=>{const n=m.white+m.draws+m.black;return {from:m.uci.slice(0,2),to:m.uci.slice(2,4),w:.08+.14*n/mx}}).filter(a=>n0(a));drawArrows();
-  },cache.has(fen)?0:180);
+  },cache.has(key)?0:180);
 }
 const n0=a=>a.from&&a.to;
 function bookMoves(fen){
@@ -112,6 +142,9 @@ function bookMoves(fen){
   if(!out.length)return "";
   return `<p class="cnt" style="margin-top:10px">이름 붙은 정석 수</p><div class="scroll"><table class="xt"><tbody>${out.map(o=>`<tr data-san="${esc(o.san)}"><td class="sn">${esc(o.san)}</td><td class="nm">${esc(o.name)}</td></tr>`).join("")}</tbody></table></div>`;
 }
+$("#tEx").addEventListener("click",e=>{const b=e.target.closest("[data-src],[data-spd],#liGo,#liOut");if(!b)return;e.stopPropagation();
+  if(b.id==="liGo"){liLogin();return}if(b.id==="liOut"){LI.tok="";SRC="m";try{localStorage.setItem("hansu-src","m")}catch(_){}explore();return}
+  if(b.dataset.src){SRC=b.dataset.src}else SPEED=b.dataset.spd;try{localStorage.setItem("hansu-src",SRC);localStorage.setItem("hansu-speed",SPEED)}catch(_){}explore()},true);
 $("#tEx").onclick=e=>{const r=e.target.closest("[data-san]");if(!r)return;const g=game();const m=g.move(r.dataset.san);if(!m)return;play(snd(m,g));pushMove(m.san);refresh()};
 /* 대표 게임 */
 async function games(){
@@ -283,7 +316,7 @@ $("#bFlip").onclick=()=>{orient=orient==="w"?"b":"w";render()};
 document.addEventListener("keydown",e=>{if(/INPUT|TEXTAREA/.test(e.target.tagName)||DR.on)return;if(e.key==="ArrowLeft"){go(idx-1);e.preventDefault()}else if(e.key==="ArrowRight"){go(idx+1);e.preventDefault()}});
 /* 시작: ?line=e4,c5 */
 render();
-Openings.load().then(()=>{
+Promise.all([Openings.load(),liReturn()]).then(()=>{
   const q=new URL(location.href).searchParams.get("line");
   const sp=new URL(location.href).searchParams,dr=sp.get("drill");
   if(q){const g=new Chess(),ok=[];for(const s of q.split(",")){if(!s)continue;const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}else refresh();

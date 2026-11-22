@@ -22,7 +22,7 @@ const recTxt=r=>`${r.w}승 ${r.d}무 ${r.l}패`;
 function line(name,r,o){o=o||{};
   return `<div class="rr${o.cls?" "+o.cls:""}"${o.attr||""}><span class="rn">${name}${o.tag||""}</span><span class="rw">${recTxt(r)}</span>${window.wdlBar(r.w,r.d,r.l)}<span class="rp">${P(r.s)}</span></div>`;
 }
-const flag=(r,base)=>r.n>=5&&r.s<=base-.1?{cls:"lo",tag:'<span class="rtg">약함</span>'}:r.n>=5&&r.s>=base+.1?{cls:"hi",tag:'<span class="rtg">강함</span>'}:{};
+const flag=(r,base)=>r.n>=5&&r.s<=base-.1?{cls:"lo",tag:'<span class="rtg">약함</span>'}:r.n>=5&&r.s>=base+.1?{cls:"hi",tag:window.BEE?BEE("승률 "+P(r.s)):'<span class="rtg">강함</span>'}:{};
 function gameRow(g){const d=new Date(g.end*1000);
   return `<div class="og"><span class="res ${g.res}">${RL[g.res]||"–"}</span><span class="on">${esc(g.op.name)} <em>${g.op.rating}</em> · ${esc(g.how||"")}</span><span class="od">${pad(d.getMonth()+1)}.${pad(d.getDate())}</span><button class="ab" data-gid="${esc(g.id)}">분석</button></div>`}
 /* 1. 오프닝 */
