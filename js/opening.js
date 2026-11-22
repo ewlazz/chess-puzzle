@@ -81,7 +81,9 @@ function info(){
   if(MODE==="ex")try{const u=new URL(location.href);if(line.length)u.searchParams.set("line",line.slice(0,idx).join(","));else u.searchParams.delete("line");history.replaceState(null,"",u)}catch(e){}
 }
 $("#oLine").onclick=e=>{const b=e.target.closest("[data-i]");if(b)go(+b.dataset.i)};
-function go(i){idx=Math.max(0,Math.min(line.length,i));sel=null;marks.clear();circ.clear();refresh()}
+function go(i){const was=idx;idx=Math.max(0,Math.min(line.length,i));sel=null;marks.clear();circ.clear();stepSnd(was);refresh()}
+/* 수순을 넘길 때도 소리: 앞으로 가면 그 수 소리, 뒤로 가면 기본 소리 */
+function stepSnd(was){if(idx===was)return;if(idx<was){play("move-self");return}const g=game(idx-1),m=g.move(line[idx-1]);if(!m)return;const k=snd(m,g);play(k==="move-self"&&m.color!==orient?"move-opponent":k)}
 function refresh(){render();info();if(MODE==="ex")explore();engine();if(tab==="games")games();stNote()}
 function setLine(sans){line=sans.slice();idx=line.length;sel=null;marks.clear();circ.clear();refresh()}
 function pushMove(san){if(line[idx]===san){idx++}else{line=line.slice(0,idx);line.push(san);idx++}}
@@ -415,7 +417,7 @@ const kstep=k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k}));
 $("#bStart").onclick=()=>kstep("Home");$("#bBack").onclick=()=>kstep("ArrowLeft");$("#bFwd").onclick=()=>kstep("ArrowRight");
 $("#bFlip").onclick=()=>{orient=orient==="w"?"b":"w";render()};
 document.addEventListener("keydown",e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
-  const step=i=>{if(DR.on){if(DR.busy)return;idx=Math.max(0,Math.min(line.length,i));sel=null;render();info();drill();return}go(i)};
+  const step=i=>{if(DR.on){if(DR.busy)return;const was=idx;idx=Math.max(0,Math.min(line.length,i));sel=null;stepSnd(was);render();info();drill();return}go(i)};
   if(e.key==="ArrowLeft"){step(idx-1);e.preventDefault()}else if(e.key==="ArrowRight"){step(idx+1);e.preventDefault()}else if(e.key==="Home"){step(0);e.preventDefault()}else if(e.key==="End"){step(line.length);e.preventDefault()}});
 /* 시작: 목록 화면 / ?study=id 공부 화면 / ?line=e4,c5 자유 탐색 */
 stTop();
