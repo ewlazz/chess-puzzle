@@ -93,7 +93,7 @@ function famCard(L){
     const hw=group(a.filter(x=>x.res!=="draw"),x=>(x.res==="win"?"승·":"패·")+x.how)[0];
     const tag=k===best?'<span class="tg good">강함</span>':k===worst?'<span class="tg bad">약함</span>':"";
     return `<tr data-fam="${esc(k)}"><td class="fn">${esc(k)}${tag}</td><td>${r.n}</td><td class="wb">${window.wdlBar(r.w,r.d,r.l)}</td><td>${pct(r)}</td><td>${r.perf}</td><td>${len}</td><td class="hw">${hw?esc(hw[0])+" "+hw[1].length:"–"}</td></tr>`}).join("");
-  return `<div class="sc full"><h3>오프닝별 성적</h3><div class="scroll"><table class="ft"><thead><tr><th>오프닝</th><th>판</th><th></th><th>점수</th><th>퍼포먼스</th><th>평균 수</th><th>많이 끝난 방식</th></tr></thead><tbody>${rows||'<tr><td colspan="7">두 판 이상 둔 오프닝이 없어요.</td></tr>'}</tbody></table></div></div>`;
+  return `<div class="sc full"><h3>오프닝별 성적</h3><div class="scroll"><table class="ft"><thead><tr><th>오프닝</th><th>판</th><th></th><th>승률</th><th>퍼포먼스</th><th>평균 수</th><th>많이 끝난 방식</th></tr></thead><tbody>${rows||'<tr><td colspan="7">두 판 이상 둔 오프닝이 없어요.</td></tr>'}</tbody></table></div></div>`;
 }
 /* 트리 */
 function atPath(){const p=O.path;return mine().filter(g=>{const s=g._o.san;if(s.length<p.length)return false;for(let i=0;i<p.length;i++)if(s[i]!==p[i])return false;return true})}
@@ -106,7 +106,7 @@ function drawTree(){
   $("#oName").innerHTML=(nm?`${esc(nm.eco)} · ${esc(nm.name)}${op?"":" (정석 밖)"}`:"")+` <a class="olink" href="opening.html?line=${encodeURIComponent(p.join(","))}">오프닝 페이지에서 보기</a>`;
   const ch=group(G,g=>g._o.san[i]);
   const tot=ch.reduce((s,[k,a])=>s+a.length,0)||1;
-  $("#oTab").innerHTML=ch.length?`<thead><tr><th>${isMine?"내 수":"상대 수"}</th><th>판</th><th></th><th>점수</th><th>퍼포먼스</th><th>평균 상대</th><th>엔진</th></tr></thead><tbody>`+ch.map(([k,a],j)=>{const r=rec(a);
+  $("#oTab").innerHTML=ch.length?`<thead><tr><th>${isMine?"내 수":"상대 수"}</th><th>판</th><th></th><th>승률</th><th>퍼포먼스</th><th>평균 상대</th><th>엔진</th></tr></thead><tbody>`+ch.map(([k,a],j)=>{const r=rec(a);
     return `<tr data-move="${esc(k)}"><td class="mvn">${esc(num(i,k))}</td><td>${r.n} <em>${Math.round(r.n/tot*100)}%</em></td><td class="wb">${window.wdlBar(r.w,r.d,r.l)}</td><td>${pct(r)}</td><td>${r.perf}</td><td>${r.opp}</td><td class="ev" id="oev${j}">…</td></tr>`}).join("")+"</tbody>":`<tbody><tr><td class="empty">이 뒤로 둔 게임이 없어요.</td></tr></tbody>`;
   $("#oGames").innerHTML=G.slice(0,8).map(g=>{const d=new Date(g.end*1000);return `<div class="og"><span class="res ${g.res}">${RL[g.res]||"–"}</span><span class="on">${esc(g.op.name)} <em>${g.op.rating}</em></span><span class="od">${d.getMonth()+1}.${d.getDate()}</span><button class="ab" data-gid="${esc(g.id)}">분석</button></div>`}).join("")||'<p class="empty">없음</p>';
   // 엔진

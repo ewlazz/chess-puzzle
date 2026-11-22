@@ -23,14 +23,14 @@ function fast(L){
     const C=rec(L.filter(g=>g.me===c));
     m.forEach((G,f)=>{if(G.length<5)return;const r=rec(G),d=r.s-C.s;
       const line=commonLine(G),href=`opening.html?line=${encodeURIComponent(line.join(","))}&drill=${c}`;
-      if(d<=-.12)bad.push({s:-d*Math.sqrt(G.length)*1.2,t:`${CN[c]}으로 ${ko(f)} 점수 ${P(r.s)}`,d:`${G.length}판 · ${CN[c]}일 때 평소 점수 ${P(C.s)}${line.length?" · 자주 가는 수순 "+mv(line):""}`,act:[{l:"이 오프닝 연습",href},{l:"트리에서 보기",tab:"open"}]});
-      else if(d>=.12)good.push({s:d*Math.sqrt(G.length),t:`${CN[c]}으로 ${eun(ko(f))} 강해요`,d:`${G.length}판 · 점수 ${P(r.s)}`});
+      if(d<=-.12)bad.push({s:-d*Math.sqrt(G.length)*1.2,t:`${CN[c]}으로 ${ko(f)} 승률 ${P(r.s)}`,d:`${G.length}판 · ${CN[c]}일 때 평소 승률 ${P(C.s)}${line.length?" · 자주 가는 수순 "+mv(line):""}`,act:[{l:"이 오프닝 연습",href},{l:"트리에서 보기",tab:"open"}]});
+      else if(d>=.12)good.push({s:d*Math.sqrt(G.length),t:`${CN[c]}으로 ${eun(ko(f))} 강해요`,d:`${G.length}판 · 승률 ${P(r.s)}`});
     });
   });
   /* 색 */
   const W=rec(L.filter(g=>g.me==="w")),B=rec(L.filter(g=>g.me==="b"));
   if(W.n>=10&&B.n>=10&&Math.abs(W.s-B.s)>=.1){const c=W.s<B.s?"w":"b",lo=c==="w"?W:B,hi=c==="w"?B:W;
-    bad.push({s:Math.abs(W.s-B.s)*4,t:`${CN[c]}일 때 점수가 ${P(lo.s)}로 더 낮아요`,d:`${CN[c==="w"?"b":"w"]}일 때 ${P(hi.s)} · ${lo.n}판`,act:[{l:`${CN[c]} 오프닝 보기`,tab:"open"}]})}
+    bad.push({s:Math.abs(W.s-B.s)*4,t:`${CN[c]}일 때 승률이 ${P(lo.s)}로 더 낮아요`,d:`${CN[c==="w"?"b":"w"]}일 때 ${P(hi.s)} · ${lo.n}판`,act:[{l:`${CN[c]} 오프닝 보기`,tab:"open"}]})}
   /* 시간패 */
   const live=L.filter(g=>g.tclass!=="daily"),lost=live.filter(g=>g.res==="loss"),tl=lost.filter(g=>g.how==="시간");
   if(lost.length>=5&&tl.length/lost.length>=.25)bad.push({s:tl.length/lost.length*5,t:`진 판의 ${P(tl.length/lost.length)}가 시간패`,d:`${lost.length}판 중 ${tl.length}판`,act:[{l:"퍼즐 러시로 빠른 판단 연습",href:"puzzle.html#rush"}]});
@@ -41,16 +41,16 @@ function fast(L){
   const A=L.slice().sort((a,b)=>a.end-b.end),aw=[],al=[];
   for(let i=1;i<A.length;i++){const p=A[i-1],g=A[i];if(g.tclass!==p.tclass||g.tclass==="daily"||g.end-p.end>1800)continue;if(p.res==="win")aw.push(g);else if(p.res==="loss")al.push(g)}
   const RW=rec(aw),RL=rec(al);
-  if(RL.n>=10&&RW.n>=10&&RW.s-RL.s>=.12)bad.push({s:(RW.s-RL.s)*4,t:`진 다음 바로 둔 판 점수 ${P(RL.s)}`,d:`이긴 다음 바로 둔 판은 ${P(RW.s)} · 지고 나면 몇 분 쉬었다 두는 게 좋아요`,act:[{l:"시간대 통계",tab:"stats"}]});
+  if(RL.n>=10&&RW.n>=10&&RW.s-RL.s>=.12)bad.push({s:(RW.s-RL.s)*4,t:`진 다음 바로 둔 판 승률 ${P(RL.s)}`,d:`이긴 다음 바로 둔 판은 ${P(RW.s)} · 지고 나면 몇 분 쉬었다 두는 게 좋아요`,act:[{l:"시간대 통계",tab:"stats"}]});
   /* 시간대 */
   const hrs=[["새벽(0~6시)",0,6],["오전(6~12시)",6,12],["오후(12~18시)",12,18],["저녁(18~24시)",18,24]];
   hrs.forEach(([l,a,b])=>{const r=rec(L.filter(g=>{const x=new Date(g.end*1000).getHours();return x>=a&&x<b}));if(r.n<10)return;const d=r.s-R.s;
-    if(d<=-.12)bad.push({s:-d*3,t:`${l}에 점수가 ${P(r.s)}`,d:`${r.n}판 · 평소 ${P(R.s)}`});else if(d>=.12)good.push({s:d*2,t:`${l}에 잘 둬요`,d:`${r.n}판 · 점수 ${P(r.s)}`})});
+    if(d<=-.12)bad.push({s:-d*3,t:`${l}에 승률이 ${P(r.s)}`,d:`${r.n}판 · 평소 ${P(R.s)}`});else if(d>=.12)good.push({s:d*2,t:`${l}에 잘 둬요`,d:`${r.n}판 · 승률 ${P(r.s)}`})});
   /* 시간 종류 */
   const tcs=Object.keys(TC).map(k=>[k,rec(L.filter(g=>g.tclass===k))]).filter(x=>x[1].n>=10);
   if(tcs.length>1){tcs.sort((a,b)=>b[1].s-a[1].s);const [bk,br]=tcs[0],[wk,wr]=tcs[tcs.length-1];if(br.s-wr.s>=.12)good.push({s:(br.s-wr.s)*2,t:`${TC[bk]}가 잘 맞아요`,d:`${TC[bk]} ${P(br.s)} · ${TC[wk]} ${P(wr.s)}`})}
   /* 레이팅 높은 상대 */
-  const up=rec(L.filter(g=>g.op.rating-g.my.rating>=100));if(up.n>=8&&up.s>=.45)good.push({s:up.s*2,t:"높은 상대에게도 잘 버텨요",d:`100 이상 높은 상대 ${up.n}판 · 점수 ${P(up.s)}`});
+  const up=rec(L.filter(g=>g.op.rating-g.my.rating>=100));if(up.n>=8&&up.s>=.45)good.push({s:up.s*2,t:"높은 상대에게도 잘 버텨요",d:`100 이상 높은 상대 ${up.n}판 · 승률 ${P(up.s)}`});
   return {bad,good};
 }
 function engine(L){
@@ -93,7 +93,7 @@ function draw(L){
   const p=S.profile||{};
   const rt=Object.keys(TC).map(k=>{const a=L.filter(g=>g.tclass===k&&g.rated).sort((x,y)=>x.end-y.end);if(a.length<5)return "";const d=a[a.length-1].my.rating-a[0].my.rating;return `<span>${TC[k]} ${a[a.length-1].my.rating} <em class="${d>=0?"up":"dn"}">${d>=0?"+":""}${d}</em></span>`}).join("");
   const top10=L.slice(0,10),done=window.BatchAPI?BatchAPI.results(top10).length:0;
-  el.innerHTML=`<div class="rhead"><div><b>${esc(p.username||S.user)}</b><small>${L.length}판 · 점수 ${P(R.s)} · ${R.w}승 ${R.d}무 ${R.l}패</small></div><div class="rrt">${rt}</div><button class="ract" id="rShare">링크 복사</button></div>
+  el.innerHTML=`<div class="rhead"><div><b>${esc(p.username||S.user)}</b><small>${L.length}판 · 승률 ${P(R.s)} · ${R.w}승 ${R.d}무 ${R.l}패</small></div><div class="rrt">${rt}</div><button class="ract" id="rShare">링크 복사</button></div>
     <div class="rgrid"><div><h3 class="rh">고칠 점</h3>${bad.length?bad.map((x,i)=>card(x,i)).join(""):'<p class="empty">눈에 띄는 약점이 없어요. 엔진 진단을 해 보세요.</p>'}</div>
     <div><h3 class="rh">잘하는 점</h3>${good.length?good.map(x=>card(x,0,1)).join(""):'<p class="empty">아직 뚜렷한 강점이 안 보여요.</p>'}
       <div class="reng"><h3 class="rh">엔진 진단</h3><p>${E.n>=5?`최근 ${E.n}판을 엔진으로 분석한 결과가 위에 들어가 있어요.`:"최근 10판을 엔진으로 분석해서 실수가 나오는 국면과 시간 압박을 찾아요. 2~3분쯤 걸리고, 이 브라우저에서만 돌아가요."}</p>
