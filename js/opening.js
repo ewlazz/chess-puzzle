@@ -186,11 +186,11 @@ function gal(){
   const chips=(k,key,arr)=>`<div class="chips">${arr.map(([v,t])=>`<button class="chip" data-${k}="${v}" aria-pressed="${ST[key]===v}">${t}</button>`).join("")}</div>`;
   const L=S.filter(o=>(ST.cat==="all"||stCat(o)===ST.cat)&&(ST.side==="all"||o.side===ST.side)&&(!ST.f||o.tags.includes(ST.f))),P=stProg();
   const RT=(window.OROOTS||[]).filter(r=>(ST.cat==="all"||ST.cat==="e4"&&r.moves.startsWith("e4")||ST.cat==="d4"&&r.moves.startsWith("d4")||ST.cat==="fl"&&/^(c4|Nf3)/.test(r.moves)||ST.cat==="etc"&&!/^(e4|d4|c4|Nf3)/.test(r.moves))&&(ST.side==="all"||r.side===ST.side)&&!ST.f);
-  const rootCards=RT.map(r=>{const t=r.moves.split(" "),ps=stPos(t,t.length);return `<a class="scard" href="opening.html?tree=${r.id}">${miniBoard(ps.fen,r.side,ps.hl)}<span class="sct"><b>${esc(r.ko)}</b><small>${esc(mvSeq(0,t))} · ${r.side==="w"?"백":"흑"}</small><em>${esc(r.one)}</em></span></a>`}).join("");
+  const rootCards=RT.map(r=>{const t=r.moves.split(" "),ps=stPos(t,t.length);return `<a class="scard" href="opening.html?tree=${r.id}">${miniBoard(ps.fen,r.side,ps.hl)}<span class="sct"><b>${esc(r.ko)}</b><small>${esc(mvSeq(0,t))} · ${r.side==="w"?"백":"흑"}</small></span></a>`}).join("");
   el.innerHTML=`<div class="stf">${chips("stc","cat",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}${chips("sts","side",[["all","백·흑"],["w","백으로"],["b","흑으로"]])}${chips("stf","f",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
     (rootCards?`<h2 class="gsec">오프닝 갈래</h2><div class="scards">${rootCards}</div>`:"")+`<h2 class="gsec">공부 자료</h2>`+
     (L.length?`<div class="scards">${L.map(o=>{const t=o.trunk.split(" "),ps=stPos(t,o.thumb||t.length),done=o.lines.filter(l=>(P[o.id+"/"+l.id]||{}).ok).length;
-      return `<a class="scard" href="opening.html?study=${o.id}">${miniBoard(ps.fen,o.side,ps.hl)}<span class="sct"><b>${esc(o.ko)}${stBadge(o)}</b><small>${esc(o.eco)} · ${o.side==="w"?"백":"흑"}</small><em>${esc(o.one)}</em><small>변화 ${o.lines.length}개${done?` · 외움 ${done}`:""}</small></span></a>`}).join("")}</div>`:'<p class="cnt">아직 없어요</p>');
+      return `<a class="scard" href="opening.html?study=${o.id}">${miniBoard(ps.fen,o.side,ps.hl)}<span class="sct"><b>${esc(o.ko)}${stBadge(o)}</b><small>${esc(mvSeq(0,t.slice(0,(o.gam!=null?o.gam:t.length-1)+1)))} · ${o.side==="w"?"백":"흑"}</small></span></a>`}).join("")}</div>`:'<p class="cnt">아직 없어요</p>');
 }
 $("#gal").onclick=e=>{const b=e.target.closest("[data-stc],[data-sts],[data-stf]");if(!b)return;const d=b.dataset;
   if(d.stc!=null)ST.cat=d.stc;else if(d.sts!=null)ST.side=d.sts;else ST.f=d.stf;gal()};
