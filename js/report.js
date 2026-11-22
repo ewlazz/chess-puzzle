@@ -74,7 +74,7 @@ async function fillStudy(t){
   for(let i=0;i<STU.length;i++){const x=STU[i];if(t!==RT)return;
     if(x.dev){const M=await masters(x.dev.path);if(t!==RT)return;const el=$("#stdev"+i);if(el){const r=rec(x.dev.G),tot=M&&M.moves?M.moves.reduce((s,m)=>s+m.white+m.draws+m.black,0):0,sh=m=>tot?(m.white+m.draws+m.black)/tot:0;
       const top=(M&&M.moves||[]).filter(m=>sh(m)>=.01).slice(0,3),mine=(M&&M.moves||[]).find(m=>m.san===x.dev.mv);
-      if(tot>=20&&mine&&sh(mine)>=.15){el.innerHTML="";}else{
+      if(tot<20||(mine&&sh(mine)>=.15)){el.innerHTML="";}else{
       const mvn=lineTxt(x.dev.path.concat(x.dev.mv),Math.max(0,x.dev.path.length-1));
       el.innerHTML=`<h5>자주 정석에서 벗어나는 곳</h5><p class="rline"><b>${esc(mvn)}</b> ${x.dev.G.length}판 · ${recTxt(r)}${top.length?` · 마스터는 ${top.map(m=>`<b>${esc(m.san)}</b> ${Math.round((m.white+m.draws+m.black)/tot*100)}%`).join(", ")}`:""}</p><div class="racts"><a class="ract" href="opening.html?line=${encodeURIComponent(x.dev.path.join(","))}">이 자리 보기</a>${top.length?`<a class="ract" href="opening.html?line=${encodeURIComponent(x.dev.path.concat(top[0].san).join(","))}&drill=${x.c}">${esc(top[0].san)}로 연습</a>`:""}</div>`}}}
     const M=await masters(x.ln);if(t!==RT)return;const el=$("#stn"+i);
