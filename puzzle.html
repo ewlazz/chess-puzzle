@@ -530,7 +530,9 @@ function kingSq(c){for(const sq of order("w")){const p=g.get(sq);if(p&&p.type===
 /* 프리무브: 상대 차례에는 기물의 이동 패턴만으로 목적지를 정함 (막힘·합법성은 실행 순간에 판정) */
 const pinned=(g,f,t)=>{try{return g.moves({square:f,verbose:true,legal:false}).some(m=>m.to===t)&&!g.moves({square:f,verbose:true}).some(m=>m.to===t)}catch(e){return false}};
 /* 킹을 자기 룩 위에 놓아도 캐슬링 (체스닷컴처럼). ok로 실제 둘 수 있는지 확인 */
-const castleSq=(get,f,t,ok)=>{const k=get(f),r=get(t);if(!(k&&k.type==="k"&&r&&r.type==="r"&&r.color===k.color&&f[0]==="e"&&f[1]===t[1]&&(t[0]==="h"||t[0]==="a")))return null;const c=(t[0]==="h"?"g":"c")+f[1];return !ok||ok(c)?c:null};
+const castleSq=(get,f,t,ok)=>{const k=get(f);if(!(k&&k.type==="k"&&f[0]==="e"&&f[1]===t[1]&&Math.abs(t.charCodeAt(0)-101)>=2))return null;const c=(t[0]>"e"?"g":"c")+f[1];return !ok||ok(c)?c:null};
+/* 보드 바깥 옆으로 살짝 끌어 놓아도 그 줄 끝 칸으로 봄 (캐슬링 판정용) */
+const edgeSq=(el,o,x,y)=>{const b=el.getBoundingClientRect(),s=b.width/8;if(y<b.top||y>=b.bottom)return null;let c;if(x<b.left&&x>=b.left-s*1.5)c=0;else if(x>=b.right&&x<b.right+s*1.5)c=7;else return null;const r=Math.floor((y-b.top)/s);return "abcdefgh"[o==="w"?c:7-c]+(o==="w"?8-r:r+1)};
 const waiting=()=>phase==="opp"||phase==="intro";
 function vpos(){const b={};for(const sq of order("w")){const p=g.get(sq);if(p)b[sq]=p}
   if(premove){const m=premove,p=b[m.from];if(p){delete b[m.from];
@@ -777,7 +779,8 @@ window.addEventListener("pointerup",e=>{
   let to=sqAt(e.clientX,e.clientY);
   if(!drag)return;
   const d=drag;drag=null;endFloat();
-  if(to&&to!==d.from){const c=castleSq(x=>waiting()?at(x):g.get(x),d.from,to,c=>waiting()||g.moves({square:d.from,verbose:true}).some(m=>m.to===c));if(c)to=c}
+  const inB=!!to;to=to||edgeSq(boardEl,orient,e.clientX,e.clientY);
+  if(to&&to!==d.from){const c=castleSq(x=>waiting()?at(x):g.get(x),d.from,to,c=>waiting()||g.moves({square:d.from,verbose:true}).some(m=>m.to===c));if(c)to=c;else if(!inB)to=null}
   if(to&&to!==d.from){
     if(waiting()){if(pmTargets(d.from).includes(to)){premove={from:d.from,to};sel=null;play("premove")}render();return}
     if(phase==="idle"&&tryMove(d.from,to,false))return;

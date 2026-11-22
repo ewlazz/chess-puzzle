@@ -270,7 +270,9 @@ const bEl=$("#ab8");
 function sqAt(x,y){const b=bEl.getBoundingClientRect(),c=Math.floor((x-b.left)/b.width*8),r=Math.floor((y-b.top)/b.height*8);if(c<0||c>7||r<0||r>7)return null;return F[A.orient==="w"?c:7-c]+(A.orient==="w"?8-r:r+1)}
 const sqEl=sq=>bEl.querySelector(`[data-sq="${sq}"]`);
 /* 킹을 자기 룩 위에 놓아도 캐슬링 (체스닷컴처럼). ok로 실제 둘 수 있는지 확인 */
-const castleSq=(get,f,t,ok)=>{const k=get(f),r=get(t);if(!(k&&k.type==="k"&&r&&r.type==="r"&&r.color===k.color&&f[0]==="e"&&f[1]===t[1]&&(t[0]==="h"||t[0]==="a")))return null;const c=(t[0]==="h"?"g":"c")+f[1];return !ok||ok(c)?c:null};
+const castleSq=(get,f,t,ok)=>{const k=get(f);if(!(k&&k.type==="k"&&f[0]==="e"&&f[1]===t[1]&&Math.abs(t.charCodeAt(0)-101)>=2))return null;const c=(t[0]>"e"?"g":"c")+f[1];return !ok||ok(c)?c:null};
+/* 보드 바깥 옆으로 살짝 끌어 놓아도 그 줄 끝 칸으로 봄 (캐슬링 판정용) */
+const edgeSq=(el,o,x,y)=>{const b=el.getBoundingClientRect(),s=b.width/8;if(y<b.top||y>=b.bottom)return null;let c;if(x<b.left&&x>=b.left-s*1.5)c=0;else if(x>=b.right&&x<b.right+s*1.5)c=7;else return null;const r=Math.floor((y-b.top)/s);return "abcdefgh"[o==="w"?c:7-c]+(o==="w"?8-r:r+1)};
 const COLS={n:["#5C54D6","#6A80B4"],s:["#505A82","#505A82"],c:["#242942","#5C54D6"],a:["#6A80B4","#6A80B4"]};
 const modK=e=>e.shiftKey?"s":(e.ctrlKey||e.metaKey)?"c":e.altKey?"a":"n";
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
@@ -305,7 +307,7 @@ window.addEventListener("pointerup",e=>{
     else if(to===r.from){const c=COLS[r.k][1];if(circ.get(to)===c)circ.delete(to);else circ.set(to,c)}
     drawBoard();return}
   if(!drag)return;const d=drag;drag=null;endFloat();
-  let to=sqAt(e.clientX,e.clientY);if(to&&to!==d.from){const c=castleSq(x=>new Chess(curFen()).get(x),d.from,to,c=>new Chess(curFen()).moves({square:d.from,verbose:true}).some(m=>m.to===c));if(c)to=c}
+  let to=sqAt(e.clientX,e.clientY);const inB=!!to;to=to||edgeSq(bEl,A.orient,e.clientX,e.clientY);if(to&&to!==d.from){const c=castleSq(x=>new Chess(curFen()).get(x),d.from,to,c=>new Chess(curFen()).moves({square:d.from,verbose:true}).some(m=>m.to===c));if(c)to=c;else if(!inB)to=null}
   if(to&&to!==d.from){if(!tryUser(d.from,to))drawBoard();return}
   if(to===d.from&&d.was&&!d.moved)sel=null;
   drawBoard();
