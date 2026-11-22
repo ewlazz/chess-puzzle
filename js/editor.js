@@ -114,4 +114,5 @@ $("#eGo").onclick=()=>{const f=fen(),e=fenProblem(f);if(e)return;window.openAnal
 load(START);
 const q=new URL(location.href).searchParams,qf=q.get("fen");
 if(qf&&isFen(qf)){load(fullFen(qf));tab("edit")}
+const qp=q.get("pgn");if(qp){const g=gameFromPgn(qp,"","",q.get("me")||"w");if(g){g.title=q.get("t")||"퍼즐";window.openAnalysis(g,+(q.get("ply")||0))}}
 }
