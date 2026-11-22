@@ -72,9 +72,11 @@ function studySec(L){
 }
 async function fillStudy(t){
   for(let i=0;i<STU.length;i++){const x=STU[i];if(t!==RT)return;
-    if(x.dev){const M=await masters(x.dev.path);if(t!==RT)return;const el=$("#stdev"+i);if(el){const r=rec(x.dev.G),top=(M&&M.moves||[]).slice(0,3),tot=top.length?M.moves.reduce((s,m)=>s+m.white+m.draws+m.black,0):0;
-      const mvn=lineTxt(x.dev.path.concat(x.dev.mv),x.dev.path.length);
-      el.innerHTML=`<h5>자주 정석에서 벗어나는 곳</h5><p class="rline"><b>${esc(mvn)}</b> ${x.dev.G.length}판 · ${recTxt(r)}${top.length?` · 마스터는 ${top.map(m=>`<b>${esc(m.san)}</b> ${Math.round((m.white+m.draws+m.black)/tot*100)}%`).join(", ")}`:""}</p><div class="racts"><a class="ract" href="opening.html?line=${encodeURIComponent(x.dev.path.join(","))}">이 자리 보기</a>${top.length?`<a class="ract" href="opening.html?line=${encodeURIComponent(x.dev.path.concat(top[0].san).join(","))}&drill=${x.c}">${esc(top[0].san)}로 연습</a>`:""}</div>`}}
+    if(x.dev){const M=await masters(x.dev.path);if(t!==RT)return;const el=$("#stdev"+i);if(el){const r=rec(x.dev.G),tot=M&&M.moves?M.moves.reduce((s,m)=>s+m.white+m.draws+m.black,0):0,sh=m=>tot?(m.white+m.draws+m.black)/tot:0;
+      const top=(M&&M.moves||[]).filter(m=>sh(m)>=.01).slice(0,3),mine=(M&&M.moves||[]).find(m=>m.san===x.dev.mv);
+      if(tot>=20&&mine&&sh(mine)>=.15){el.innerHTML="";}else{
+      const mvn=lineTxt(x.dev.path.concat(x.dev.mv),Math.max(0,x.dev.path.length-1));
+      el.innerHTML=`<h5>자주 정석에서 벗어나는 곳</h5><p class="rline"><b>${esc(mvn)}</b> ${x.dev.G.length}판 · ${recTxt(r)}${top.length?` · 마스터는 ${top.map(m=>`<b>${esc(m.san)}</b> ${Math.round((m.white+m.draws+m.black)/tot*100)}%`).join(", ")}`:""}</p><div class="racts"><a class="ract" href="opening.html?line=${encodeURIComponent(x.dev.path.join(","))}">이 자리 보기</a>${top.length?`<a class="ract" href="opening.html?line=${encodeURIComponent(x.dev.path.concat(top[0].san).join(","))}&drill=${x.c}">${esc(top[0].san)}로 연습</a>`:""}</div>`}}}
     const M=await masters(x.ln);if(t!==RT)return;const el=$("#stn"+i);
     const tot=M&&M.moves?M.moves.reduce((s,m)=>s+m.white+m.draws+m.black,0):0;
     const opts=tot>=20?M.moves.filter(m=>(m.white+m.draws+m.black)/tot>=.1).slice(0,2):[];
@@ -82,7 +84,7 @@ async function fillStudy(t){
     const out=[];
     for(const m of opts){const p=x.ln.concat(m.san);
       for(let k=0;k<5;k++){const N=await masters(p);if(t!==RT)return;const nt=N&&N.moves?N.moves.reduce((s,q)=>s+q.white+q.draws+q.black,0):0;if(nt<20)break;p.push(N.moves[0].san)}
-      const c=new Chess(),fens=[c.fen()];p.forEach(q=>{c.move(q);fens.push(c.fen())});const on=window.Openings?Openings.line(fens).name:"";
+      const c=new Chess(),fens=[c.fen()];p.slice(0,x.ln.length+2).forEach(q=>{c.move(q);fens.push(c.fen())});const on=window.Openings?Openings.line(fens).name:"";
       out.push({p,sh:(m.white+m.draws+m.black)/tot,name:on});
       if(el)el.innerHTML=out.map(z=>`<div class="stl"><span class="stn">${esc(ko(z.name)||"마스터 주요 수순")} <em>마스터 ${Math.round(z.sh*100)}%</em><small>${esc(lineTxt(z.p,x.ln.length))}</small></span><a class="ract" href="opening.html?line=${encodeURIComponent(z.p.join(","))}&drill=${x.c}">연습</a></div>`).join("");
     }
