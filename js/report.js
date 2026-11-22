@@ -96,7 +96,7 @@ function studySec(L){
       const ln=commonLine(G),dev=devPoint(G,c),weak=group(G,varOf).filter(([v,b])=>v.includes(":")&&b.length>=4&&rec(b).s<=base-.1);
       STU.push({c,f,G,ln,dev,weak,r:rec(G)})})});
   if(!STU.length)return "";
-  return `<section class="rsec"><h3 class="rh">오프닝 공부</h3><p class="rsub">많이 두는 오프닝마다 정석에서 벗어나는 곳과 다음에 익힐 수순. 연습은 그 수순을 둔 다음 마스터 수로 이어서 해요.</p><div class="rcols">${STU.map((x,i)=>{
+  return `<section class="rsec"><h3 class="rh">오프닝 공부</h3><div class="rcols">${STU.map((x,i)=>{
     const href=`opening.html?line=${encodeURIComponent(x.ln.join(","))}&drill=${x.c}`;
     return `<div class="stud"><div class="sth"><span class="rcol2">${CN[x.c]}</span><b>${esc(ko(x.f))}</b><em>${x.r.n}판 · ${P(x.r.s)}</em></div>
       ${x.ln.length?`<p class="rline">내 주 수순 <b>${esc(mv(x.ln))}</b></p>`:""}
@@ -115,7 +115,7 @@ async function fillStudy(t){
     const M=await masters(x.ln);if(t!==RT)return;const el=$("#stn"+i);
     const tot=M&&M.moves?M.moves.reduce((s,m)=>s+m.white+m.draws+m.black,0):0;
     const opts=tot>=20?M.moves.filter(m=>(m.white+m.draws+m.black)/tot>=.1).slice(0,2):[];
-    if(!opts.length){if(el)el.innerHTML='<p class="rline">마스터 게임이 적은 자리예요. 오프닝 페이지에서 엔진 수를 따라가 보세요.</p>';continue}
+    if(!opts.length){if(el)el.innerHTML='<p class="rline">마스터 게임 적음</p>';continue}
     const out=[];
     for(const m of opts){const p=x.ln.concat(m.san);
       for(let k=0;k<5;k++){const N=await masters(p);if(t!==RT)return;const nt=N&&N.moves?N.moves.reduce((s,q)=>s+q.white+q.draws+q.black,0):0;if(nt<20)break;p.push(N.moves[0].san)}
@@ -143,7 +143,7 @@ function scanBody(){
       <div class="rbd">${x.n}번 둠 · 이 수 두면 <b class="bad">${ev(x.after)}</b> · ${esc(x.best)} 두면 <b>${ev(x.bestEv)}</b> · 이 수 두고 ${recTxt(x.rec)}</div>
       <div class="rbl">${lineHtml(x.path,x.mv)}</div>
       <div class="racts"><a class="ract" href="opening.html?line=${encodeURIComponent(x.path.join(","))}">보드에서 보기</a><button class="ract" data-badg="${i}">게임 ${x.n}판</button></div><div class="rgames" id="rbg${i}" hidden></div></div>`}).join("");
-  return (S2.done?"":`<p class="rprog">${esc(AUTO.txt)}</p>`)+(items||(S2.done?'<p class="empty">세 번 이상 둔 수 중에서 크게 손해 보는 수는 없어요.</p>':""));
+  return (S2.done?"":`<p class="rprog">${esc(AUTO.txt)}</p>`)+(items||(S2.done?'<p class="empty">없음</p>':""));
 }
 /* 3. 시간 */
 function timeSec(L){
@@ -163,7 +163,7 @@ function oppSec(L){
   const op=x=>Object.assign({},flag(x,base));
   return `<section class="rsec"><h3 class="rh">상대와 흐름</h3>
     <h4>상대 레이팅</h4>${up.n?line("나보다 50 이상 높음",up,op(up)):""}${eq.n?line("비슷함",eq,op(eq)):""}${dn.n?line("나보다 50 이상 낮음",dn,op(dn)):""}
-    <h4>바로 앞 판 결과 (30분 안에 이어서 둔 판)</h4>${aw.length?line("이긴 다음 판",rec(aw),op(rec(aw))):""}${al.length?line("진 다음 판",rec(al),op(rec(al))):""}${!aw.length&&!al.length?'<p class="empty">이어서 둔 판이 없어요.</p>':""}
+    <h4>연달아 둔 판</h4>${aw.length?line("이긴 다음 판",rec(aw),op(rec(aw))):""}${al.length?line("진 다음 판",rec(al),op(rec(al))):""}${!aw.length&&!al.length?'<p class="empty">이어서 둔 판이 없어요.</p>':""}
     <h4>시간대</h4>${hrs.map(([l,a,b])=>{const r=rec(L.filter(g=>{const x=new Date(g.end*1000).getHours();return x>=a&&x<b}));return r.n?line(l,r,op(r)):""}).join("")}</section>`;
 }
 /* 5. 엔진 진단 */
@@ -171,7 +171,7 @@ function engBody(){
   const L=LIST;if(!window.BatchAPI)return "";
   const n=Math.min(AUTO.n||ENGN,L.length),T=L.slice(0,n),R=BatchAPI.results(T);
   const prog=R.length<T.length?`<p class="rprog">${esc(AUTO.etxt||(AUTO.scan&&AUTO.scan.done?"곧 시작해요":"자꾸 두는 수 점검이 끝나면 시작해요"))}</p>`:"";
-  if(!R.length)return prog+`<p class="empty">최근 ${n}판을 한 수씩 엔진으로 봐요. 한 판에 10~20초쯤 걸리고, 본 판은 저장돼요.</p>`;
+  if(!R.length)return prog+``;
   const mean=a=>{a=a.filter(x=>x!=null);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null};
   const f1=v=>v==null?"–":v.toFixed(1);
   const wph=k=>{let s=0,c=0;R.forEach(x=>{const [v,m]=x.r.ph[k];if(v!=null){s+=v*m;c+=m}});return c?s/c:null};
@@ -258,7 +258,7 @@ function draw(L){
     ${trendSec(L)}
     ${openSec(L)}
     ${studySec(L)}
-    <section class="rsec"><h3 class="rh">자꾸 두는 안 좋은 수</h3><p class="rsub">세 번 이상 둔 내 수 중에서 엔진이 0.6 이상 손해라고 보는 수. 평가는 내 쪽 기준이에요.</p><div id="rScan">${scanBody()}</div></section>
+    <section class="rsec"><h3 class="rh">자꾸 두는 안 좋은 수</h3><div id="rScan">${scanBody()}</div></section>
     <div class="rcols">${timeSec(L)}${oppSec(L)}</div>
     <section class="rsec"><h3 class="rh">엔진 진단</h3><div id="rEngB">${engBody()}</div></section>`;
   pressTxt();fillStudy(RT);

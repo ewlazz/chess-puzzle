@@ -48,7 +48,7 @@ function toggleSave(){const L=reps(),i=savedIdx();if(i>=0)L.splice(i,1);else{con
 $("#oName").onclick=e=>{if(e.target.closest("#oStar"))toggleSave()};
 function saved(){
   const L=reps(),el=$("#tSaved");
-  if(!L.length){el.innerHTML='<p class="cnt">아직 없어요. 보드에서 수순을 만든 뒤 이름 옆 저장을 누르세요. 저장할 때 보드 방향(백/흑)이 레퍼토리 색이 돼요.</p>';return}
+  if(!L.length){el.innerHTML='<p class="cnt">저장한 수순 없음</p>';return}
   el.innerHTML=["w","b"].map(c=>{const G=L.map((r,i)=>[r,i]).filter(([r])=>r.color===c);if(!G.length)return "";
     return `<div class="rg"><div class="rgh"><h3>${c==="w"?"백":"흑"} 레퍼토리 <span class="cnt">${G.length}</span></h3><button class="chip" data-drill="${c}">전부 연습</button></div>`+
       G.map(([r,i])=>`<div class="ri"><button class="rl" data-open="${i}"><b>${esc(Openings.ko(r.name)||r.name||"이름 없는 수순")}</b><small>${esc(mvText(r.moves))}</small></button><input class="rm" data-memo="${i}" value="${esc(r.memo||"")}" placeholder="메모" aria-label="메모"><div class="ra"><button class="chip" data-col="${i}">${r.color==="w"?"백":"흑"}으로 저장됨</button><button class="chip" data-copy="${i}">PGN 복사</button><button class="chip" data-del="${i}">삭제</button></div></div>`).join("")+"</div>"}).join("");
@@ -201,7 +201,7 @@ function show(l){
 }
 $("#oEng").onclick=e=>{const b=e.target.closest("[data-pv]");if(!b)return;const x=E.lines[+b.dataset.pv];if(!x)return;setLine(line.slice(0,idx).concat(x.san.slice(0,+b.dataset.k+1)))};
 let eT=0;function engine(){clearTimeout(eT);const fen=fenAt(),g=new Chess(fen);
-  if(DR&&DR.on){$("#oEng").innerHTML='<p class="cnt">연습 중에는 엔진을 꺼 둬요.</p>';if(E.searching){E.pending++;E.w.postMessage("stop");E.searching=false}return}
+  if(DR&&DR.on){$("#oEng").innerHTML='<p class="cnt">연습 중 엔진 꺼짐</p>';if(E.searching){E.pending++;E.w.postMessage("stop");E.searching=false}return}
   if(g.game_over()){$("#oEng").textContent=g.in_checkmate()?"체크메이트":"무승부";return}
   $("#oEng").innerHTML='<p class="cnt">엔진 계산 중…</p>';eT=setTimeout(()=>E.init().then(()=>{if(fenAt()===fen)E.go(fen)}).catch(()=>{$("#oEng").textContent=""}),150)}
 /* 연습: 받은 수순(prefix)이 있으면 그 순서대로, 끝나면 마스터 게임에서 많이 둔 수로 이어감 */

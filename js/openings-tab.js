@@ -60,7 +60,7 @@ function draw(){
   h+=`<div class="sc full otree"><h3>레퍼토리 트리</h3><div class="crumb" id="oCrumb"></div>
     <div class="ogrid"><div class="obw"><div class="ob8" id="ob8"></div><p class="oname" id="oName"></p><p class="oeng" id="oEng"></p></div>
     <div class="otw"><div class="scroll"><table class="ot" id="oTab"></table></div><h4>이 수순으로 둔 게임</h4><div id="oGames"></div></div></div></div>`;
-  h+=`<div class="sc full"><h3>고칠 만한 수</h3><p class="sub3">세 판 이상 둔 내 수 중에서 엔진 평가가 크게 떨어지는 수를 찾아요.</p><button class="ab oscan" id="oScan">엔진으로 점검</button><div id="oScanOut"></div></div>`;
+  h+=`<div class="sc full"><h3>고칠 만한 수</h3><button class="ab oscan" id="oScan">엔진으로 점검</button><div id="oScanOut"></div></div>`;
   $("#pOpen").innerHTML=h;bindCol();
   $("#pOpen").onclick=onClick;
   drawTree();

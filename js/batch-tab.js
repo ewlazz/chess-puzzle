@@ -34,7 +34,7 @@ window.renderBatch=function(list){
   const L=list.filter(g=>g.res!=="abort"&&(!g.rules||g.rules==="chess"));
   $("#pAcc").innerHTML=`<div class="bctl"><span class="sub3" style="margin:0">최근</span><div class="chips" id="bN">${[10,20,50].map(n=>`<button class="chip" data-n="${n}" aria-pressed="${n===B.n}">${n}판</button>`).join("")}</div>
     <button class="bgo" id="bGo">${B.running?"멈추기":"분석 시작"}</button><span class="bprog" id="bProg"></span></div>
-    <p class="sub3">브라우저에서 엔진으로 분석해요. 한 판에 10~20초쯤 걸리고, 분석한 판은 저장돼서 다시 하지 않아요.</p><div id="bOut"></div>`;
+    <div id="bOut"></div>`;
   $("#bN").onclick=e=>{const b=e.target.closest("[data-n]");if(!b)return;B.n=+b.dataset.n;window.renderBatch(list)};
   $("#bGo").onclick=()=>{if(B.running){B.running=false;$("#bGo").textContent="분석 시작";return}run(L)};
   out(L);
