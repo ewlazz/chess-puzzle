@@ -3,7 +3,7 @@
 const F="abcdefgh",ENG="engine/stockfish-19-lite-single.js";
 const LV=[{s:0,d:1,t:60},{s:1,d:2,t:80},{s:3,d:3,t:120},{s:5,d:4,t:160},{s:7,d:6,t:220},{s:9,d:8,t:300},{s:12,d:10,t:450},{s:15,d:12,t:650},{s:18,d:15,t:900},{s:20,d:18,t:1300}];
 let g=new Chess(),me="w",orient="w",lvl=4,tc="0",base=0,inc=0,clock={w:0,b:0},iv=0,lastT=0,on=false,thinking=false,result=null;
-let sel=null,drag=null,floatEl=null,hov=null,rd=null,pq=[],eTok=0;
+let sel=null,drag=null,floatEl=null,hov=null,rd=null,pq=[],eTok=0,dropMv=false;
 const marks=new Map(),circ=new Map();
 let pref={col:"w",lvl:4,tc:"0"};try{pref=Object.assign(pref,JSON.parse(localStorage.getItem("hansu-play")||"{}"))}catch(e){}
 /* 소리 */
@@ -108,7 +108,7 @@ function tick(){
 }
 function afterMove(m,opp){
   if(base&&inc)clock[m.color]+=inc;lastT=performance.now();
-  play(moveSnd(m,opp));render();save();
+  play(moveSnd(m,opp));render();if(!dropMv&&window.slideMove)slideMove(bEl,m);save();
   if(g.in_checkmate()){finish(g.turn()===me?"loss":"win","체크메이트");return true}
   if(g.in_stalemate()){finish("draw","스테일메이트");return true}
   if(g.insufficient_material()){finish("draw","기물 부족");return true}
@@ -199,7 +199,7 @@ window.addEventListener("pointerup",e=>{
   const to=sqAt(e.clientX,e.clientY);
   if(to&&to!==d.from){
     if(!myTurn()){if(on&&pmTargets(d.from).includes(to))addPre(d.from,to);else render();return}
-    if(tryMove(d.from,to))return;if(pinned(g,d.from,to))play("illegal");render();return;
+    dropMv=true;const ok=tryMove(d.from,to);dropMv=false;if(ok)return;if(pinned(g,d.from,to))play("illegal");render();return;
   }
   if(to===d.from&&d.was&&!d.moved)sel=null;
   render();

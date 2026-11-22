@@ -234,10 +234,12 @@ function live(){
 $("#lbody").onclick=e=>{const b=e.target.closest("button");if(!b)return;const ln=L.lines[+b.dataset.l];if(!ln)return;const pv=ln.pv.slice(0,+b.dataset.k+1);pv.forEach(u=>userMove(u.slice(0,2),u.slice(2,4),u[4],true));nav(N.v,N.i)};
 $("#engT").onclick=()=>{engOn=!engOn;$("#engT").setAttribute("aria-pressed",engOn);try{localStorage.setItem("hansu-engine",engOn?"on":"off")}catch(e){}live();if(A)drawEval()};
 /* 이동 */
-function nav(v,i){
+function nav(v,i){const o=N;
   if(v&&V){if(i<=0)N={v:false,i:V.base};else N={v:true,i:Math.min(i,V.moves.length)}}
   else N={v:false,i:Math.max(0,Math.min(A.fens.length-1,i))};
   sel=null;drawAll();live();
+  /* 한 수씩 넘길 때 미끄러지게 */
+  if(window.slideMove&&o&&!!o.v===!!N.v){const L=N.v?V.moves:A.moves;if(N.i===o.i+1)slideMove($("#ab8"),L[N.i-1]);else if(N.i===o.i-1)slideMove($("#ab8"),L[N.i],true)}
 }
 const same=(a,m)=>a&&a.from===m.from&&a.to===m.to&&(a.promotion||"")===(m.promotion||"");
 function userMove(from,to,pr,quiet){

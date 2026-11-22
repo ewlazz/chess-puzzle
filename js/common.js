@@ -6,6 +6,14 @@ window.calAcc=function(v){if(v==null||isNaN(v))return v;var y=0.01671*v*v-1.6543
 /* 승률이 아주 좋은 수·변화에 붙이는 꿀벌 표시 (직접 그린 SVG) */
 window.BEE=function(t){return '<svg class="bee" viewBox="0 0 24 24" role="img" aria-label="'+(t||"승률 높음")+'"><title>'+(t||"승률 높음")+'</title><ellipse cx="9" cy="6.8" rx="4.2" ry="3.2" transform="rotate(-25 9 6.8)" fill="#EFF0F6" stroke="#6A80B4" stroke-width="1.3"/><ellipse cx="15.2" cy="6.3" rx="3.6" ry="2.8" transform="rotate(20 15.2 6.3)" fill="#EFF0F6" stroke="#6A80B4" stroke-width="1.3"/><path d="M21.6 14.6l1.9.9-1.9.9z" fill="#242942"/><ellipse cx="12.4" cy="14.6" rx="9" ry="6.4" fill="#5C54D6"/><path d="M11 8.6c-1.3 1.7-2 3.7-2 6s.7 4.3 2 6M15.6 8.9c-1.1 1.6-1.6 3.5-1.6 5.7s.5 4.1 1.6 5.7" fill="none" stroke="#242942" stroke-width="2.2"/><circle cx="6.4" cy="13.4" r="1.25" fill="#242942"/><circle cx="6.7" cy="13.05" r=".4" fill="#EFF0F6"/></svg>'};
 window.CHAD=function(t){t=t||"상남자 라인";return '<svg class="bee" viewBox="0 0 24 24" role="img" aria-label="'+t+'"><title>'+t+'</title><path d="M4.4 3.6c.4-1.3 1.6-2 3-2h2.5c1.5 0 2.6 1.1 2.6 2.5v1.5c0 1.1-.9 2-2 2.1l-.9.1 1.5 6c2.4-2.7 7-2.8 9.4.2 1.4 1.7 2 3.8 1.8 6l-.2 1.8H7.6c-2.2 0-3.8-1.6-3.8-3.7L3.6 6.4c0-1 .3-1.9.8-2.8z" fill="#5C54D6" stroke="#242942" stroke-width="1.3" stroke-linejoin="round"/><path d="M7.4 1.9v2.6M9.9 1.9v2.6" stroke="#242942" stroke-width="1.1" stroke-linecap="round"/><path d="M12.4 15c2-1.5 4.6-1.4 6.4.4" fill="none" stroke="#EFF0F6" stroke-width="1.2" stroke-linecap="round"/></svg>'};
+/* 수 미끄러지듯 움직이기 (체스닷컴처럼 클릭·넘기기·상대 수에만, 드래그로 놓은 수는 제외) */
+window.slidePiece=function(boardEl,from,to){try{if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  var q=function(s){return boardEl.querySelector('[data-sq="'+s+'"]')},a=q(from),b=q(to);if(!a||!b)return;var el=b.querySelector(".pc");if(!el)return;
+  var ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();el.style.zIndex=6;
+  var an=el.animate([{transform:"translate("+(ra.left-rb.left)+"px,"+(ra.top-rb.top)+"px)"},{transform:"translate(0,0)"}],{duration:140,easing:"cubic-bezier(.25,.8,.4,1)"});
+  an.onfinish=function(){el.style.zIndex=""}}catch(e){}};
+window.slideMove=function(boardEl,m,back){if(!m||!m.from)return;slidePiece(boardEl,back?m.to:m.from,back?m.from:m.to);
+  if(m.flags&&/[kq]/.test(m.flags)){var r=m.color==="w"?"1":"8",k=m.flags.indexOf("k")>=0,rf=(k?"h":"a")+r,rt=(k?"f":"d")+r;slidePiece(boardEl,back?rt:rf,back?rf:rt)}};
 /* 잡은 기물 + 점수 차 (체스닷컴처럼). c 쪽이 잡은 상대 기물과, c가 앞서면 +점수 */
 window.matBar=function(fen,c){var V={p:1,n:3,b:3,r:5,q:9},S={p:8,b:2,n:2,r:2,q:1},K={w:{p:0,n:0,b:0,r:0,q:0},b:{p:0,n:0,b:0,r:0,q:0}};
   for(var ch of fen.split(" ")[0]){var t=ch.toLowerCase();if(V[t]==null)continue;K[ch===t?"b":"w"][t]++}

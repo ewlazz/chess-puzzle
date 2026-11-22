@@ -23,7 +23,7 @@ function arrow(from,to,color,op){
   const sw=.2,H=.46,W=.3,bx=tx-ux*H,by=ty-uy*H,j=p=>p.map(v=>+v.toFixed(3)).join(",");
   return `<g opacity="${op||.8}"><polyline points="${pts.slice(0,-1).concat([[bx+ux*.02,by+uy*.02]]).map(j).join(" ")}" fill="none" stroke="${color}" stroke-width="${sw}"/><polygon points="${[[tx,ty],[bx-uy*W,by+ux*W],[bx+uy*W,by-ux*W]].map(j).join(" ")}" fill="${color}"/></g>`;
 }
-let QZ=null;
+let QZ=null,animNext=null,dropMv=false;
 const canMove=g=>QZ&&QZ.on?(!QZ.busy&&g.turn()===QZ.list[QZ.i].c&&idx===line.length):(!DR.on||(!DR.busy&&g.turn()===DR.color&&idx===line.length));
 function render(){
   const g=game(),h=g.history({verbose:true}),last=h[h.length-1],legal=sel?g.moves({square:sel,verbose:true}).map(m=>m.to):[];
@@ -37,6 +37,7 @@ function render(){
     return `<div class="${cls}" data-sq="${sq}">${mk}${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===sq?" ghost":""}"></i>`:""}${dot}</div>`;
   }).join("");
   drawArrows();
+  if(animNext){const a=animNext;animNext=null;slideMove(bEl,a.m,a.back)}
   const f=g.fen();$("#oCapT").innerHTML=matBar(f,orient==="w"?"b":"w");$("#oCapB").innerHTML=matBar(f,orient);
 }
 let topArrows=[];
@@ -84,7 +85,7 @@ function info(){
 $("#oLine").onclick=e=>{const b=e.target.closest("[data-i]");if(b)go(+b.dataset.i)};
 function go(i){const was=idx;idx=Math.max(0,Math.min(line.length,i));sel=null;marks.clear();circ.clear();stepSnd(was);refresh()}
 /* 수순을 넘길 때도 소리: 앞으로 가면 그 수 소리, 뒤로 가면 기본 소리 */
-function stepSnd(was){if(idx===was)return;if(idx<was){play("move-self");return}const g=game(idx-1),m=g.move(line[idx-1]);if(!m)return;const k=snd(m,g);play(k==="move-self"&&m.color!==orient?"move-opponent":k)}
+function stepSnd(was){if(idx===was)return;if(idx<was){play("move-self");if(was-idx===1){const g=game(idx),m=g.move(line[idx]);if(m)animNext={m,back:true}}return}const g=game(idx-1),m=g.move(line[idx-1]);if(!m)return;if(idx-was===1)animNext={m};const k=snd(m,g);play(k==="move-self"&&m.color!==orient?"move-opponent":k)}
 function refresh(){render();info();if(MODE==="ex")explore();engine();if(tab==="games")games();stNote()}
 function setLine(sans){line=sans.slice();idx=line.length;sel=null;marks.clear();circ.clear();refresh()}
 function pushMove(san){if(line[idx]===san){idx++}else{line=line.slice(0,idx);line.push(san);idx++}}
@@ -136,7 +137,7 @@ function bookMoves(fen){
 $("#tEx").addEventListener("click",e=>{const b=e.target.closest("[data-src],[data-spd],#liGo,#liOut");if(!b)return;e.stopPropagation();
   if(b.id==="liGo"){LI.login();return}if(b.id==="liOut"){LI.logout();SRC="m";try{localStorage.setItem("hansu-src","m")}catch(_){}explore();return}
   if(b.dataset.src){SRC=b.dataset.src}else SPEED=b.dataset.spd;try{localStorage.setItem("hansu-src",SRC);localStorage.setItem("hansu-speed",SPEED)}catch(_){}explore()},true);
-$("#tEx").onclick=e=>{const r=e.target.closest("[data-san]");if(!r)return;const g=game();const m=g.move(r.dataset.san);if(!m)return;play(snd(m,g));pushMove(m.san);refresh()};
+$("#tEx").onclick=e=>{const r=e.target.closest("[data-san]");if(!r)return;const g=game();const m=g.move(r.dataset.san);if(!m)return;play(snd(m,g));animNext={m};pushMove(m.san);refresh()};
 /* 대표 게임 */
 async function games(){
   const el=$("#tGames"),fen=fenAt();el.innerHTML='<p class="cnt">불러오는 중…</p>';
@@ -277,7 +278,7 @@ function stNote(){const el=$("#oNote"),c=ST.cur;if(!el)return;
   el.innerHTML=`<b>${esc(C.name)} <em>${idx} / ${C.mv.length}</em></b>${n?`<span>${esc(n)}</span>`:""}<div class="onx">${nx}</div>`}
 $("#oNote").onclick=e=>{const br=e.target.closest("[data-br]");
   if(br&&ST.cur){const o=ST.cur.o,l=br.dataset.br==="_"?null:o.lines.find(x=>x.id===br.dataset.br),at=idx;stSet(o,l);line=ST.cur.mv.slice();idx=Math.min(at+1,line.length);sel=null;
-    const g=game(),h=g.history({verbose:true}),m=h[h.length-1];if(m)play(snd(m,g));study();refresh();return}
+    const g=game(),h=g.history({verbose:true}),m=h[h.length-1];if(m){play(snd(m,g));animNext={m}}study();refresh();return}
   if(e.target.closest("[data-onb]")&&ST.cur){let k=0;while(k<idx&&line[k]===ST.cur.mv[k])k++;line=ST.cur.mv.slice();idx=k;sel=null;refresh()}};
 /* 검색 */
 let hits=[];
@@ -357,17 +358,17 @@ async function dStep(){
   if(DR.rep&&!repCands(idx).length){DR.on=false;DR.msg=`저장한 수순 끝까지 왔어요. 맞힘 ${DR.hits} · 틀림 ${DR.miss}`;render();el2();return}
   if(g.turn()===DR.color){if(DR.study){stGuide();render();return}if(!DR.msg)dMsg("내 차례예요.");render();return}
   if(DR.prefix&&idx<DR.prefix.length){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
-    const m=g.move(DR.prefix[idx]);DR.busy=false;if(!m){DR.prefix=null;dStep();return}play(snd(m,g));pushMove(m.san);refresh();if(DR.study&&idx>=DR.prefix.length){stDone();return}if(DR.study){stGuide(m.san);return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
+    const m=g.move(DR.prefix[idx]);DR.busy=false;if(!m){DR.prefix=null;dStep();return}play(snd(m,g));animNext={m};pushMove(m.san);refresh();if(DR.study&&idx>=DR.prefix.length){stDone();return}if(DR.study){stGuide(m.san);return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
   if(DR.rep){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
     const C=repCands(idx),pk=C[Math.floor(Math.random()*C.length)][idx],m=g.move(pk);DR.busy=false;if(!m){DR.on=false;drill();return}
-    play(snd(m,g));pushMove(m.san);refresh();if(!repCands(idx).length){dStep();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
+    play(snd(m,g));animNext={m};pushMove(m.san);refresh();if(!repCands(idx).length){dStep();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
   DR.busy=true;render();
   let x;try{x=await fetchX(fen,true)}catch(e){DR.busy=false;dMsg("수 통계를 불러오지 못해서 멈췄어요.","bad");DR.on=false;drill();return}
   const ms=(x.moves||[]).filter(m=>m.white+m.draws+m.black>=3),tot=ms.reduce((s,m)=>s+m.white+m.draws+m.black,0);
   if(!ms.length||tot<10){DR.busy=false;DR.on=false;DR.msg=`여기서 마스터 게임이 끝났어요. 맞힘 ${DR.hits} · 벗어남 ${DR.miss}`;DR.cls="good";render();el2();return}
   let r=Math.random()*tot,pick=ms[0];for(const m of ms){r-=m.white+m.draws+m.black;if(r<=0){pick=m;break}}
   await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
-  const m=g.move(pick.san);if(!m){DR.busy=false;DR.on=false;dMsg("");drill();return}play(snd(m,g));pushMove(m.san);DR.busy=false;refresh();dMsg(`상대: ${pick.san} · 내 차례예요.`);
+  const m=g.move(pick.san);if(!m){DR.busy=false;DR.on=false;dMsg("");drill();return}play(snd(m,g));animNext={m};pushMove(m.san);DR.busy=false;refresh();dMsg(`상대: ${pick.san} · 내 차례예요.`);
 }
 function el2(){$("#tDrill").innerHTML=`<div class="pr"><div class="prm good">${esc(DR.msg)}</div>${DR.rep?`<button class="bgo" data-redo="${DR.color}">다시 연습</button>`:'<button class="bgo" id="drGo">다시 연습</button>'}</div>`}
 $("#tDrill").addEventListener("click",e=>{const r=e.target.closest("[data-redo]");if(!r)return;const R=reps().filter(x=>x.color===r.dataset.redo&&x.moves.length).map(x=>x.moves);if(!R.length)return;DR={on:true,color:r.dataset.redo,hits:0,miss:0,busy:false,msg:"",rep:R};line=[];idx=0;orient=DR.color;refresh();drill();dStep()});
@@ -412,7 +413,7 @@ document.querySelectorAll(".otabs .tab").forEach(b=>b.onclick=()=>showTab(b.data
 /* 보드 조작 */
 function userMove(from,to,pr){
   const fenBefore=fenAt(),g=game(),m=g.move({from,to,promotion:pr||"q"});sel=null;if(!m){render();return}
-  play(snd(m,g));pushMove(m.san);marks.clear();circ.clear();refresh();
+  play(snd(m,g));if(!dropMv)animNext={m};pushMove(m.san);marks.clear();circ.clear();refresh();
   if(QZ&&QZ.on){qzCheck(m);return}
   if(DR.on){DR.busy=true;dCheck(m,fenBefore).then(()=>{if(DR.on&&DR.cls!=="bad")DR.busy=false})}
 }
@@ -455,7 +456,7 @@ window.addEventListener("pointerup",e=>{
     render();return}
   if(!drag)return;const d=drag;drag=null;endFloat();
   const to=sqAt(e.clientX,e.clientY);
-  if(to&&to!==d.from){if(!tryMove(d.from,to)){const g=game();if(canMove(g)&&pinned(g,d.from,to))play("illegal");render()}return}
+  if(to&&to!==d.from){dropMv=true;const ok=tryMove(d.from,to);dropMv=false;if(!ok){const g=game();if(canMove(g)&&pinned(g,d.from,to))play("illegal");render()}return}
   if(to===d.from&&d.was&&!d.moved)sel=null;render();
 });
 const kstep=k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k}));

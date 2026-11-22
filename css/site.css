@@ -126,7 +126,7 @@ header{background:var(--band);color:#242942;position:sticky;top:0;z-index:20;bor
 .s8.chk::before{content:"";position:absolute;inset:0;background:radial-gradient(circle,#ff2b2bcc 0,#ff2b2b55 45%,transparent 72%);z-index:1}
 .s8.hov::before{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 4px #5C54D6;z-index:4}
 .s8.own{cursor:grab}body.grabbing,body.grabbing *{cursor:grabbing!important}
-.s8 .pc.ghost{opacity:.35}
+.s8 .pc.ghost{opacity:0}
 .pc.float{position:fixed;left:0;top:0;z-index:1000;pointer-events:none;background-size:100% 100%;filter:drop-shadow(0 6px 8px #0006)}
 .s8 .dt8{position:absolute;inset:36%;border-radius:50%;background:#2429424d;z-index:3}
 .s8 .cp8{position:absolute;inset:3%;border-radius:50%;border:5px solid #2429424d;z-index:3}
