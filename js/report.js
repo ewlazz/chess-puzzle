@@ -306,7 +306,7 @@ window.renderReport=async function(list){
 /* 섹션: 접히는 칸 + 한 줄 요약 */
 function wrap(html,id){const m=/^\s*<section class="rsec"><h3 class="rh">([\s\S]*?)<\/h3>([\s\S]*)<\/section>\s*$/.exec(html);if(!m)return "";
   return `<details class="rsec" id="s-${id}"${OPEN.has(id)?" open":""}><summary><h3 class="rh">${m[1]}</h3><span class="rsum" id="sum-${id}">${esc(SUM[id]?SUM[id]():"")}</span></summary><div class="rbody">${m[2]}</div></details>`}
-const OPEN=new Set();
+const OPEN=new Set(["trend","open","study","time","opp","eng"]);
 const SUM={trend:()=>AUTO.trendSum||"",open:()=>AUTO.openSum||"",study:()=>{const a=AUTO.scan&&AUTO.scan.done?AUTO.scan.found.length:null,b=AUTO.om?AUTO.om.length:null;return a==null&&b==null?"분석 중":`자꾸 두는 수 ${a??"–"} · 흔들린 수 ${b??"–"}`},
   time:()=>AUTO.timeSum||"",opp:()=>AUTO.oppSum||"",eng:()=>AUTO.engSum||"분석 중"};
 /* 지금 고칠 것: 가장 큰 약점 3개 */
@@ -333,7 +333,7 @@ function draw(L){
   el.innerHTML=`<div class="rhead"><div><b>${esc(p.username||S.user)}</b><small>${L.length}판 · ${recTxt(R)} · 승률 ${P(R.s)}</small></div><div class="rrt">${rt}</div><button class="ract" id="rShare">링크 복사</button></div>
     <div class="rprogbar" id="rProg" hidden><span></span><i></i></div>
     <h3 class="rh todo-h">지금 고칠 것</h3><div class="todos" id="rTodo">${todo()}</div>
-    <nav class="rnav"><a href="#s-trend" data-go="trend">추이</a><a href="#s-open" data-go="open">오프닝</a><a href="#s-study" data-go="study">오프닝 연습</a><a href="#s-time" data-go="time">시간</a><a href="#s-opp" data-go="opp">상대</a><a href="#s-eng" data-go="eng">엔진</a><button class="lnk" id="rAll">모두 펼치기</button></nav>
+    <nav class="rnav"><a href="#s-trend" data-go="trend">추이</a><a href="#s-open" data-go="open">오프닝</a><a href="#s-study" data-go="study">오프닝 연습</a><a href="#s-time" data-go="time">시간</a><a href="#s-opp" data-go="opp">상대</a><a href="#s-eng" data-go="eng">엔진</a><button class="lnk" id="rAll">${OPEN.size>=6?"모두 접기":"모두 펼치기"}</button></nav>
     ${wrap(trend,"trend")}${wrap(open,"open")}${wrap(study,"study")}${wrap(time,"time")}${wrap(opp,"opp")}${wrap(eng,"eng")}`;
   el.querySelectorAll("details.rsec").forEach(d=>d.addEventListener("toggle",()=>{const id=d.id.slice(2);d.open?OPEN.add(id):OPEN.delete(id)}));
   pressTxt();fillStudy(RT);

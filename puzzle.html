@@ -178,6 +178,7 @@ footer p{margin:0}
 @media(max-width:600px){.nav nav{margin-left:0;width:100%}.nav nav a{padding:8px 10px}.card h3{font-size:26px}.plist{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pz{padding:8px}.pz b{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 .wbar{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.wtag{font-size:12px;font-weight:700;border:1px solid #C4C9DC;border-radius:2px;padding:2px 6px;color:#505A82}
+.stepb{width:100%;margin:8px 0 2px;background:#242942!important;color:#EFF0F6!important;border-color:#242942!important;font-weight:800}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#EFF0F6">
@@ -213,6 +214,7 @@ footer p{margin:0}
         <h3 id="ptitle">백랭크 메이트</h3>
         <div class="turn"><i id="tdot" class="w"></i><span id="tgoal">백 차례 · 1수 메이트</span></div>
         <div class="status" id="status"></div>
+        <button class="btn stepb" id="bStep" hidden>다음 수 →</button>
         <div class="btns">
           <button class="btn" id="bHint">힌트</button>
           <button class="btn" id="bShow">정답</button>
@@ -550,7 +552,7 @@ function stats(){
 }
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const e=sqEl(hov);if(e)e.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 let booted=false;
-function start(p,info){
+function start(p,info){stepOff();
   clearTimeout(timer);ctok++;endFloat();drag=rdrag=null;if(booted&&mode!=="rush")play("start");
   CP=p;lastInfo=info;g=new Chess(p.fen);ply=0;orient=g.turn();sel=last=hintSq=badSq=premove=bdg=endBdg=null;phase="idle";shown=false;failed=false;CP._rated=false;
   if(p.last)last={from:p.last.slice(0,2),to:p.last.slice(2,4)};
@@ -579,7 +581,11 @@ const PE={w:null,ready:null,cb:null,
 };
 const MV={p:1,n:3,b:3,r:5,q:9,k:0};
 function matFor(fen,c){let v=0;for(const ch of fen.split(" ")[0]){const t=ch.toLowerCase();if(MV[t]==null)continue;v+=(ch===t?"b":"w")===c?MV[t]:-MV[t]}return v}
-let ctok=0;
+let ctok=0,STEPF=null;
+function stepOn(f){STEPF=f;$("#bStep").hidden=false}
+function stepOff(){STEPF=null;$("#bStep").hidden=true}
+$("#bStep").onclick=()=>{if(STEPF)STEPF()};
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"&&STEPF&&!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)){e.preventDefault();STEPF()}});
 async function cont(base){
   const tok=++ctok;phase="cont";
   setStatus("win",base+" · 이어서 보는 중");
@@ -594,15 +600,15 @@ async function cont(base){
     if(g.in_checkmate()){const c=g.turn();endBdg={sq:kingSq(c),ic:"checkmate_"+(c==="w"?"white":"black")};render()}};
   r.fen0=g.fen();
   const step=()=>{
-    if(tok!==ctok)return;if(n>=r.pv.length||n>=max){done();return}
-    const u=r.pv[n],m=g.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]});if(!m){done();return}
+    if(tok!==ctok)return;if(n>=r.pv.length||n>=max){stepOff();done();return}
+    const u=r.pv[n],m=g.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]});if(!m){stepOff();done();return}
     n++;played.push(m.san);last={from:m.from,to:m.to};bdg=null;play(moveSound(m),0,m.color!==orient);render();animate(m.from,m.to);
     const nu=r.pv[n],nx=nu?new Chess(g.fen()).move({from:nu.slice(0,2),to:nu.slice(2,4),promotion:nu[4]}):null;
     const quiet=!m.captured&&!m.promotion&&!g.in_check()&&!(nx&&(nx.captured||nx.promotion));
-    if(g.game_over()||(!mate&&n>=2&&quiet)){done();return}
-    timer=setTimeout(step,800);
+    if(g.game_over()||(!mate&&n>=2&&quiet)){stepOff();done();return}
+    setStatus("win",`${base} · 이후 ${played.join(" ")}`);
   };
-  timer=setTimeout(step,500);
+  setStatus("win",`${base} · 상대 최선 수 보기`);stepOn(step);
 }
 function finish(){
   phase="done";premove=null;$("#bHint").disabled=$("#bShow").disabled=true;
@@ -729,8 +735,9 @@ $("#bShow").onclick=()=>{
   if(mode==="basic"&&store.streak){store.streak=0;save();stats()}
   if(((mode==="rated"||mode==="theme"||mode==="weak"))&&!CP._rated)rate(false);
   setStatus("hint","정답: "+P().sol.join(" "));
-  const step=()=>{if(ply>=P().sol.length){finish();return}const r=g.move(P().sol[ply]);last={from:r.from,to:r.to};bdg=r.color===orient?{sq:r.to,ic:"best"}:null;ply++;play(moveSound(r),0,r.color!==orient);render();animate(r.from,r.to);timer=setTimeout(step,750)};
-  render();timer=setTimeout(step,300);
+  const step=()=>{const r=g.move(P().sol[ply]);last={from:r.from,to:r.to};bdg=r.color===orient?{sq:r.to,ic:"best"}:null;ply++;play(moveSound(r),0,r.color!==orient);render();animate(r.from,r.to);
+    if(ply>=P().sol.length){stepOff();finish()}};
+  setStatus("hint","정답 보기");render();stepOn(step);
 };
 $("#bAna").onclick=()=>{if(!CP)return;const t=new Chess(P().fen),mv=g.history();
   const pgn=`[SetUp "1"]\n[FEN "${P().fen}"]\n[White "${orient==="w"?"나":"상대"}"]\n[Black "${orient==="b"?"나":"상대"}"]\n\n`+mv.join(" ");
