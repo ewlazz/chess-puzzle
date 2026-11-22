@@ -111,3 +111,5 @@ main>section+section{border-top:1px solid #C4C9DC}
 .mini{border:1px solid #C4C9DC}
 .ef,.dot{box-shadow:none!important}
 .rov .rbs small{background:none!important;color:#EFF0F6!important;opacity:.8}
+header{padding:0 max(5vw,16px)!important}
+.nav{padding:12px 0!important}
