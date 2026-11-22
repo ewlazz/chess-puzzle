@@ -417,7 +417,7 @@ function rushStrike(){R.strikes++;rushBar();if(R.strikes>=3){setTimeout(rushEnd,
 function rushEnd(){
   if(!R.on)return;R.on=false;clearInterval(R.iv);clearTimeout(timer);phase="done";
   const k=R.len,nb=R.score>(rushBest[k]||0);if(nb){rushBest[k]=R.score;try{localStorage.setItem("hansu-rush",JSON.stringify(rushBest))}catch(e){}}
-  setStatus(nb?"win":"",`끝 · ${R.score}점${nb?" (최고 기록)":""}`);if(nb)play("end");
+  setStatus(nb?"win":"",`끝 · ${R.score}점${nb?" (최고 기록)":""}`);
   $("#pnum").textContent="점수 "+R.score;stats();rushBar();render();
 }
 /* 오늘의 퍼즐 (리체스 데일리) */
@@ -511,7 +511,7 @@ function play(name,delay,opp){
   const k=name==="move"&&opp?"opp":name;
   try{if(sndBuf[k]){const s=a.createBufferSource();s.buffer=sndBuf[k];s.connect(a.destination);s.start(t)}else if(SFX[name])SFX[name](t)}catch(e){}
 }
-const moveSound=m=>g.in_checkmate()?"end":g.in_check()?"check":m.flags.indexOf("p")>=0?"promote":/[kq]/.test(m.flags)?"castle":m.captured?"capture":"move";
+const moveSound=m=>g.in_check()?"check":m.flags.indexOf("p")>=0?"promote":/[kq]/.test(m.flags)?"castle":m.captured?"capture":"move";
 function soundBtn(){const b=$("#bSound");b.setAttribute("aria-pressed",soundOn);b.textContent=soundOn?"소리 켬":"소리 끔"}
 $("#bSound").onclick=()=>{soundOn=!soundOn;try{localStorage.setItem("hansu-sound",soundOn?"on":"off")}catch(e){}soundBtn();if(soundOn)play("move")};
 document.addEventListener("pointerdown",()=>{if(soundOn)ac()},{once:true});
@@ -615,7 +615,7 @@ let booted=false;
 /* 퍼즐 주제(포크, 2수 메이트 등)는 풀거나 틀린 뒤에만 보여 줌 */
 function reveal(){if(!CP)return;$("#ptitle").textContent=CP.title+(CP.goal&&!/대신$/.test(CP.title||"")?" · "+CP.goal:"")}
 function start(p,info){stepOff();
-  clearTimeout(timer);ctok++;endFloat();drag=rdrag=null;if(booted&&mode!=="rush"&&!(p.prev&&p.last))play("start");
+  clearTimeout(timer);ctok++;endFloat();drag=rdrag=null;
   CP=p;lastInfo=info;g=new Chess(p.fen);ply=0;orient=g.turn();sel=last=hintSq=badSq=premove=bdg=endBdg=null;phase="idle";shown=false;failed=false;CP._rated=false;
   if(p.last)last={from:p.last.slice(0,2),to:p.last.slice(2,4)};
   arrows.clear();circles.clear();$("#promo").classList.remove("on");
