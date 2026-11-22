@@ -22,7 +22,7 @@ function arrow(from,to,color,w){
   const sw=w||.2,H=.44,W=.29,bx=tx-ux*H,by=ty-uy*H,j=p=>p.map(v=>+v.toFixed(3)).join(",");
   return `<g opacity=".8"><polyline points="${pts.slice(0,-1).concat([[bx+ux*.02,by+uy*.02]]).map(j).join(" ")}" fill="none" stroke="${color}" stroke-width="${sw}"/><polygon points="${[[tx,ty],[bx-uy*W,by+ux*W],[bx+uy*W,by-ux*W]].map(j).join(" ")}" fill="${color}"/></g>`;
 }
-const canMove=g=>!DR.on||(!DR.busy&&g.turn()===DR.color);
+const canMove=g=>!DR.on||(!DR.busy&&g.turn()===DR.color&&idx===line.length);
 function render(){
   const g=game(),h=g.history({verbose:true}),last=h[h.length-1],legal=sel?g.moves({square:sel,verbose:true}).map(m=>m.to):[];
   let chk=null;if(g.in_check())for(const sq of order()){const p=g.get(sq);if(p&&p.type==="k"&&p.color===g.turn())chk=sq}
@@ -85,12 +85,13 @@ function wdb(w,d,b){const n=w+d+b||1,p=x=>Math.round(x/n*100);return `<div class
 /* 통계 출처: 마스터 또는 리체스 레이팅 구간 (레이팅 구간은 리체스 로그인 필요) */
 const RATE=["m","1000","1200","1400","1600","1800","2000","2200","2500"],SPD=[["blitz,rapid","블리츠·래피드"],["bullet","불릿"],["blitz","블리츠"],["rapid","래피드"]];
 let SRC="m",SPEED="blitz,rapid";try{SRC=localStorage.getItem("hansu-src")||"m";SPEED=localStorage.getItem("hansu-speed")||SPEED}catch(e){}
-async function fetchX(fen){
-  const key=SRC+"|"+SPEED+"|"+fen;if(cache.has(key))return cache.get(key);
+async function fetchX(fen,drillUse){
+  const S0=drillUse&&!LI.tok?"m":SRC;
+  const key=S0+"|"+SPEED+"|"+fen;if(cache.has(key))return cache.get(key);
   let r;
-  if(SRC==="m")r=await fetch(`https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fen)}&moves=12&topGames=10`);
+  if(S0==="m")r=await fetch(`https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fen)}&moves=12&topGames=10`);
   else{if(!LI.tok){const e=new Error("login");e.code="login";throw e}
-    r=await fetch(`https://explorer.lichess.ovh/lichess?variant=standard&speeds=${SPEED}&ratings=${SRC}&moves=12&topGames=0&recentGames=0&fen=${encodeURIComponent(fen)}`,{headers:{Authorization:"Bearer "+LI.tok}});
+    r=await fetch(`https://explorer.lichess.ovh/lichess?variant=standard&speeds=${SPEED}&ratings=${S0}&moves=12&topGames=0&recentGames=0&fen=${encodeURIComponent(fen)}`,{headers:{Authorization:"Bearer "+LI.tok}});
     if(r.status===401){LI.logout();const e=new Error("login");e.code="login";throw e}}
   if(!r.ok){const e=new Error(r.status);e.code=r.status;throw e}
   const j=await r.json();cache.set(key,j);return j;
@@ -203,12 +204,26 @@ let eT=0;function engine(){clearTimeout(eT);const fen=fenAt(),g=new Chess(fen);
   if(DR&&DR.on){$("#oEng").innerHTML='<p class="cnt">연습 중에는 엔진을 꺼 둬요.</p>';if(E.searching){E.pending++;E.w.postMessage("stop");E.searching=false}return}
   if(g.game_over()){$("#oEng").textContent=g.in_checkmate()?"체크메이트":"무승부";return}
   $("#oEng").innerHTML='<p class="cnt">엔진 계산 중…</p>';eT=setTimeout(()=>E.init().then(()=>{if(fenAt()===fen)E.go(fen)}).catch(()=>{$("#oEng").textContent=""}),150)}
+/* 연습: 받은 수순(prefix)이 있으면 그 순서대로, 끝나면 마스터 게임에서 많이 둔 수로 이어감 */
+function drill(){
+  const el=$("#tDrill");
+  if(!DR.on){el.innerHTML=`<div class="pr"><div class="seg" id="drC"><button class="chip" data-c="w" aria-pressed="${DR.color==="w"}">백으로</button><button class="chip" data-c="b" aria-pressed="${DR.color==="b"}">흑으로</button></div>
+    <button class="bgo" id="drGo">지금 위치부터 연습</button></div>`;return}
+  const pre=DR.prefix&&DR.prefix.length?`<p class="cnt" style="margin:0">수순 ${Math.min(idx,DR.prefix.length)} / ${DR.prefix.length}</p>`:"";
+  el.innerHTML=`<div class="pr">${DR.rep?'<p class="cnt" style="margin:0">저장한 수순 연습</p>':pre}<div class="prm ${DR.cls||""}" id="drM">${DR.msg||""}</div><p class="cnt" style="margin:0">맞힘 ${DR.hits} · 틀림 ${DR.miss}${idx<line.length?" · 지난 수 보는 중 (→로 돌아오기)":""}</p><div class="racts"><button class="chip" id="drHint">힌트</button><button class="chip" id="drStop">그만하기</button></div></div>`;
+}
 $("#tDrill").onclick=e=>{
   const c=e.target.closest("[data-c]");if(c){DR.color=c.dataset.c;drill();return}
   if(e.target.id==="drGo"){DR={on:true,color:DR.color,hits:0,miss:0,busy:false,msg:"",start:idx,rep:null};line=line.slice(0,idx);orient=DR.color;drill();render();dStep();return}
   if(e.target.id==="drStop"){DR.on=false;drill();render()}
+  if(e.target.id==="drHint"&&DR.on&&idx===line.length){DR.miss++;hint()}
 };
 const dMsg=(t,c)=>{DR.msg=t;DR.cls=c||"";drill()};
+async function hint(){let san=DR.prefix&&idx<DR.prefix.length?DR.prefix[idx]:null;
+  if(!san&&DR.rep){const C=repCands(idx);if(C.length)san=C[0][idx]}
+  if(!san){try{const x=await fetchX(fenAt(),true);san=x.moves&&x.moves[0]&&x.moves[0].san}catch(e){}}
+  if(!san)return;DR.hintMv=san;showHint();dMsg(`힌트 ${san}`,"")}
+function showHint(){if(!DR.hintMv)return;const g=new Chess(fenAt()),m=g.move(DR.hintMv);if(!m)return;marks.clear();marks.set(m.from+"-"+m.to,"#5C54D6");drawArrows();DR.hintMv=null}
 const repCands=n=>{const k=line.slice(0,n);return DR.rep.filter(r=>r.length>n&&k.every((x,i)=>r[i]===x))};
 async function dStep(){
   if(!DR.on)return;const fen=fenAt(),g=new Chess(fen);
@@ -221,7 +236,7 @@ async function dStep(){
     const C=repCands(idx),pk=C[Math.floor(Math.random()*C.length)][idx],m=g.move(pk);DR.busy=false;if(!m){DR.on=false;drill();return}
     play(snd(m,g));pushMove(m.san);refresh();if(!repCands(idx).length){dStep();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
   DR.busy=true;render();
-  let x;try{x=await fetchX(fen)}catch(e){DR.busy=false;dMsg("수 통계를 불러오지 못해서 멈췄어요.","bad");DR.on=false;drill();return}
+  let x;try{x=await fetchX(fen,true)}catch(e){DR.busy=false;dMsg("수 통계를 불러오지 못해서 멈췄어요.","bad");DR.on=false;drill();return}
   const ms=(x.moves||[]).filter(m=>m.white+m.draws+m.black>=3),tot=ms.reduce((s,m)=>s+m.white+m.draws+m.black,0);
   if(!ms.length||tot<10){DR.busy=false;DR.on=false;DR.msg=`여기서 마스터 게임이 끝났어요. 맞힘 ${DR.hits} · 벗어남 ${DR.miss}`;DR.cls="good";render();el2();return}
   let r=Math.random()*tot,pick=ms[0];for(const m of ms){r-=m.white+m.draws+m.black;if(r<=0){pick=m;break}}
@@ -235,8 +250,12 @@ async function dCheck(m,fenBefore){
     if(exp.includes(m.san)){DR.hits++;dMsg(`맞아요, ${m.san}.`,"good");setTimeout(dStep,300)}
     else{DR.miss++;dMsg(`저장한 수는 ${exp.join(", ")}예요.`,"bad");DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill()},1300)}
     return}
+  if(DR.prefix&&idx-1<DR.prefix.length){const exp=DR.prefix[idx-1];
+    if(m.san===exp){DR.hits++;dMsg(`맞아요, ${m.san}.`,"good");setTimeout(dStep,300)}
+    else{DR.miss++;dMsg(`이 수순은 ${exp}예요.`,"bad");DR.hintMv=exp;DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill();showHint()},1100)}
+    return}
   let ok=!!Openings.at(fenAt()),pop=[];
-  try{const x=await fetchX(fenBefore),tot=(x.moves||[]).reduce((s,y)=>s+y.white+y.draws+y.black,0);pop=(x.moves||[]).slice(0,3).map(y=>y.san);
+  try{const x=await fetchX(fenBefore,true),tot=(x.moves||[]).reduce((s,y)=>s+y.white+y.draws+y.black,0);pop=(x.moves||[]).slice(0,3).map(y=>y.san);
     const me=(x.moves||[]).find(y=>y.san===m.san);if(me&&tot&&(me.white+me.draws+me.black)/tot>=.05)ok=true}catch(e){}
   if(ok&&DR.prefix&&line[idx-1]!==DR.prefix[idx-1])DR.prefix=null;
   if(ok){DR.hits++;dMsg(`좋아요, ${m.san}.`,"good");setTimeout(dStep,300)}
@@ -293,15 +312,18 @@ window.addEventListener("pointerup",e=>{
   if(to&&to!==d.from){if(!tryMove(d.from,to))render();return}
   if(to===d.from&&d.was&&!d.moved)sel=null;render();
 });
-$("#bStart").onclick=()=>{if(!DR.on)go(0)};$("#bBack").onclick=()=>{if(!DR.on)go(idx-1)};$("#bFwd").onclick=()=>{if(!DR.on)go(idx+1)};
+const kstep=k=>document.dispatchEvent(new KeyboardEvent("keydown",{key:k}));
+$("#bStart").onclick=()=>kstep("Home");$("#bBack").onclick=()=>kstep("ArrowLeft");$("#bFwd").onclick=()=>kstep("ArrowRight");
 $("#bFlip").onclick=()=>{orient=orient==="w"?"b":"w";render()};
-document.addEventListener("keydown",e=>{if(/INPUT|TEXTAREA/.test(e.target.tagName)||DR.on)return;if(e.key==="ArrowLeft"){go(idx-1);e.preventDefault()}else if(e.key==="ArrowRight"){go(idx+1);e.preventDefault()}});
+document.addEventListener("keydown",e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+  const step=i=>{if(DR.on){if(DR.busy)return;idx=Math.max(0,Math.min(line.length,i));sel=null;render();info();drill();return}go(i)};
+  if(e.key==="ArrowLeft"){step(idx-1);e.preventDefault()}else if(e.key==="ArrowRight"){step(idx+1);e.preventDefault()}else if(e.key==="Home"){step(0);e.preventDefault()}else if(e.key==="End"){step(line.length);e.preventDefault()}});
 /* 시작: ?line=e4,c5 */
 render();
 Promise.all([Openings.load(),LI.ready]).then(()=>{if(LI.tok&&SRC==="m"&&LI.fresh){SRC="1600";try{localStorage.setItem("hansu-src",SRC)}catch(e){}}
   const q=new URL(location.href).searchParams.get("line");
   const sp=new URL(location.href).searchParams,dr=sp.get("drill");
   if(q){const g=new Chess(),ok=[];for(const s of q.split(",")){if(!s)continue;const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}else refresh();
-  if(dr==="w"||dr==="b"){const pre=line.slice();DR={on:true,color:dr,hits:0,miss:0,busy:false,msg:pre.length?`자주 가는 수순(${pre.length}수)부터 연습해요. 내 차례예요.`:"",rep:null,prefix:pre};line=[];idx=0;orient=dr;showTab("drill");refresh();dStep()}
+  if(dr==="w"||dr==="b"){const pre=line.slice();DR={on:true,color:dr,hits:0,miss:0,busy:false,msg:"내 차례예요.",rep:null,prefix:pre};line=[];idx=0;orient=dr;showTab("drill");refresh();dStep()}
 });
 }
