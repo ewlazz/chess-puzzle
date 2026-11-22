@@ -65,7 +65,7 @@ async function makePos(x,tok){let calls=0;for(let t=0;t<400;t++){if(tok!==TOK)re
   if(++calls>40)break;const j=await tb(fen);if(fits(x,j))return fen}return null}
 
 /* 판 */
-let g=null,orient="w",start="",TOK=0,phase="idle",usedHelp=0,myMoves=0,sel=null,drag=null,floatEl=null,hov=null,hint=null,lastM=null,anim=null,hist=[];
+let pq=[],g=null,orient="w",start="",TOK=0,phase="idle",usedHelp=0,myMoves=0,sel=null,drag=null,floatEl=null,hov=null,hint=null,lastM=null,anim=null,hist=[];
 const bEl=$("#eb8"),sqEl=s=>bEl.querySelector(`[data-sq="${s}"]`);
 let soundOn=true;try{soundOn=localStorage.getItem("hansu-sound")!=="off"}catch(e){}
 const audio={};const play=k=>{if(!soundOn)return;try{const a=audio[k]||(audio[k]=new Audio("sounds/"+k+".mp3"));a.currentTime=0;a.play().catch(()=>{})}catch(e){}};
@@ -73,10 +73,20 @@ const snd=(m,opp)=>g.in_checkmate()?"game-end":g.in_check()?"move-check":m.flags
 const order=()=>{const a=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)a.push(F[orient==="w"?c:7-c]+(orient==="w"?8-r:r+1));return a};
 function sqAt(x,y){const b=bEl.getBoundingClientRect(),c=Math.floor((x-b.left)/b.width*8),r=Math.floor((y-b.top)/b.height*8);if(c<0||c>7||r<0||r>7)return null;return F[orient==="w"?c:7-c]+(orient==="w"?8-r:r+1)}
 const myTurn=()=>phase==="play"&&g&&g.turn()==="w";
-function render(){if(!g)return;const legalT=sel&&myTurn()?g.moves({square:sel,verbose:true}).map(m=>m.to):[];let chk=null;
+/* 프리무브: 상대가 두는 동안 미리 걸어 둠. 보드엔 걸어 둔 대로 옮겨 보여 줌 */
+const waitOpp=()=>phase==="busy"&&g&&!!g;
+function vpos(){const B={};for(const s of order()){const p=g.get(s);if(p)B[s]=p}for(const m of pq){const p=B[m.from];if(!p)continue;delete B[m.from];B[m.to]=p.type==="p"&&/[18]/.test(m.to[1])?{type:"q",color:p.color}:p}return B}
+const at=s=>pq.length?vpos()[s]||null:g.get(s);
+function pmTargets(s){const p=at(s);if(!p)return [];const f=fi(s),r=+s[1],out=[],add=(df,dr)=>{const nf=f+df,nr=r+dr;if(nf>=0&&nf<8&&nr>=1&&nr<=8)out.push(F[nf]+nr)},ray=(df,dr)=>{for(let k=1;k<8;k++)add(df*k,dr*k)};
+  const D=[[1,1],[1,-1],[-1,1],[-1,-1]],O=[[1,0],[-1,0],[0,1],[0,-1]];
+  if(p.type==="n")[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(d=>add(...d));if(p.type==="b"||p.type==="q")D.forEach(d=>ray(...d));if(p.type==="r"||p.type==="q")O.forEach(d=>ray(...d));
+  if(p.type==="k")D.concat(O).forEach(d=>add(...d));if(p.type==="p"){add(0,1);if(r===2)add(0,2);add(1,1);add(-1,1)}return out}
+const canPre=()=>phase==="busy"&&g&&g.turn()==="b";
+function addPre(from,to){if(pq.length<10)pq.push({from,to});sel=null;play("premove");render()}
+function render(){if(!g)return;const legalT=sel?(myTurn()?g.moves({square:sel,verbose:true}).map(m=>m.to):canPre()?pmTargets(sel):[]):[];let chk=null;const vb=pq.length?vpos():null;
   if(g.in_check())for(const s of order()){const p=g.get(s);if(p&&p.type==="k"&&p.color===g.turn())chk=s}
-  bEl.innerHTML=order().map((s,n)=>{const p=g.get(s),r=Math.floor(n/8),c=n%8,dark=(fi(s)+ +s[1])%2===1;
-    const cls=["s8",dark?"d":"l",lastM&&(lastM.from===s||lastM.to===s)?"lm":"",sel===s?"sel":"",chk===s?"chk":"",p&&p.color==="w"&&myTurn()?"own":""].join(" ");
+  bEl.innerHTML=order().map((s,n)=>{const p=vb?vb[s]||null:g.get(s),r=Math.floor(n/8),c=n%8,dark=(fi(s)+ +s[1])%2===1;
+    const cls=["s8",dark?"d":"l",lastM&&(lastM.from===s||lastM.to===s)?"lm":"",pq.some(m=>m.from===s||m.to===s)?"pre":"",sel===s?"sel":"",chk===s?"chk":"",p&&p.color==="w"&&(myTurn()||canPre())?"own":""].join(" ");
     const co=(c===0?`<span class="co r">${s[1]}</span>`:"")+(r===7?`<span class="co f">${s[0]}</span>`:"");
     const dot=legalT.includes(s)?(p?'<b class="cp8"></b>':'<b class="dt8"></b>'):"";
     return `<div class="${cls}" data-sq="${s}">${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===s?" ghost":""}"></i>`:""}${dot}</div>`}).join("");
@@ -89,7 +99,7 @@ function arrowSvg(from,to){const d=s=>{const f=fi(s),r=+s[1];return orient==="w"
 function stat(){const x=LS;$("#eStat").innerHTML=x.goal==="draw"?`버틴 수 ${myMoves} / ${x.hold}`:`내 수 ${myMoves}`;
   $("#bUndo").disabled=!hist.length||phase==="busy";$("#bHint").disabled=!(phase==="play"&&myTurn())}
 const msg=(t,c)=>{$("#eMsg").className="emsg"+(c?" "+c:"");$("#eMsg").innerHTML=t};
-async function newGame(){const x=LS,tok=++TOK;phase="busy";g=null;hist=[];usedHelp=0;myMoves=0;sel=null;hint=null;lastM=null;
+async function newGame(){const x=LS,tok=++TOK;phase="busy";g=null;pq=[];hist=[];usedHelp=0;myMoves=0;sel=null;hint=null;lastM=null;
   $("#bUndo").disabled=$("#bHint").disabled=true;msg("자리 만드는 중…");bEl.innerHTML="";
   let fen=null;try{fen=await makePos(x,tok)}catch(e){if(tok===TOK){msg('테이블베이스에 연결하지 못했어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame}return}
   if(tok!==TOK)return;if(!fen){msg('알맞은 자리를 못 찾았어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame;return}
@@ -108,13 +118,14 @@ async function after(m){/* 내 수 뒤 판정 */
   lastM=r;anim=r;play(snd(r,true));phase="play";
   if(g.in_checkmate()){render();slip("메이트당했어요.");return}
   if(g.in_stalemate()||g.insufficient_material()){if(x.goal==="draw")finish(true);else{render();slip("무승부가 됐어요.")}return}
-  msg(x.goal==="draw"?"잘 막고 있어요.":"이기는 자리예요. 계속.");render()}
-function slip(t){phase="slip";render();msg(`${t} <button class="lnk" id="eUndo2">무르기</button>`,"bad");$("#eUndo2").onclick=undo;play("game-end")}
-function finish(ok){phase="done";const s=Math.max(1,3-usedHelp),P=prog(),x=LS;if(!P[x.id]||P[x.id].s<s)P[x.id]={s,t:Date.now()};else P[x.id].t=Date.now();saveProg(P);
+  msg(x.goal==="draw"?"잘 막고 있어요.":"이기는 자리예요. 계속.");render();
+  if(pq.length){const pm=pq.shift();if(!tryMove(pm.from,pm.to,"q")){pq=[];render()}}}
+function slip(t){pq=[];phase="slip";render();msg(`${t} <button class="lnk" id="eUndo2">무르기</button>`,"bad");$("#eUndo2").onclick=undo;play("game-end")}
+function finish(ok){pq=[];phase="done";const s=Math.max(1,3-usedHelp),P=prog(),x=LS;if(!P[x.id]||P[x.id].s<s)P[x.id]={s,t:Date.now()};else P[x.id].t=Date.now();saveProg(P);
   render();play("game-end");
   msg(`${x.goal==="mate"?"메이트!":x.goal==="promote"?"승진! 이겼어요.":"지켜 냈어요. 무승부예요."} <span class="estars">${stars(s)}</span><div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">다른 자리</button><a class="lnk" href="endgame.html">목록</a></div>`,"good");
   $("#eNext").onclick=newGame}
-function undo(){if(!hist.length||phase==="busy")return;const h=hist.pop();g=new Chess(h);lastM=null;sel=null;hint=null;myMoves=Math.max(0,myMoves-1);usedHelp++;phase="play";msg("다시 둬 보세요.");render()}
+function undo(){if(!hist.length||phase==="busy")return;pq=[];const h=hist.pop();g=new Chess(h);lastM=null;sel=null;hint=null;myMoves=Math.max(0,myMoves-1);usedHelp++;phase="play";msg("다시 둬 보세요.");render()}
 async function giveHint(){if(!myTurn())return;phase="busy";let j;try{j=await tb(g.fen())}catch(e){phase="play";msg("테이블베이스에 연결하지 못했어요.","bad");return}phase="play";
   const b=j.moves&&j.moves[0];if(!b)return;usedHelp++;hint={from:b.uci.slice(0,2),to:b.uci.slice(2,4)};msg("화살표 수가 가장 좋아요.");render()}
 function tryMove(from,to,pr){if(!myTurn())return false;const ms=g.moves({square:from,verbose:true}).filter(m=>m.to===to);if(!ms.length)return false;
@@ -125,16 +136,19 @@ let DROP=false;
 function doMove(from,to,pr,an){hist.push(g.fen());const m=g.move({from,to,promotion:pr||"q"});if(!m){hist.pop();render();return}lastM=m;if(an)anim=m;play(snd(m,false));after(m)}
 /* 조작 */
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
-bEl.addEventListener("contextmenu",e=>e.preventDefault());
+bEl.addEventListener("contextmenu",e=>{e.preventDefault();if(pq.length||sel){pq=[];sel=null;render()}});
 bEl.addEventListener("pointerdown",e=>{const s=sqAt(e.clientX,e.clientY);if(!s||e.button!==0)return;e.preventDefault();try{bEl.setPointerCapture(e.pointerId)}catch(_){}
-  if(!myTurn()){return}const p=g.get(s);
-  if(sel&&sel!==s&&!(p&&p.color==="w")&&g.moves({square:sel,verbose:true}).some(m=>m.to===s)){tryMove(sel,s);return}
+  if(!g)return;if(!myTurn()&&!canPre()){return}const pre=!myTurn(),p=pre?at(s):g.get(s);
+  if(pre&&sel&&sel!==s&&!(p&&p.color==="w")&&pmTargets(sel).includes(s)){addPre(sel,s);return}
+  if(pre&&pq.length&&!(p&&p.color==="w")){pq=[];sel=null;render();return}
+  if(!pre&&sel&&sel!==s&&!(p&&p.color==="w")&&g.moves({square:sel,verbose:true}).some(m=>m.to===s)){tryMove(sel,s);return}
   if(p&&p.color==="w"){const was=sel===s;sel=s;render();const w=bEl.getBoundingClientRect().width/8;floatEl=document.createElement("i");floatEl.className=`pc w${p.type} float`;floatEl.style.width=floatEl.style.height=w+"px";document.body.appendChild(floatEl);
     drag={from:s,was,x0:e.clientX,y0:e.clientY,moved:false,w};floatEl.style.transform=`translate(${e.clientX-w/2}px,${e.clientY-w/2}px)`;document.body.classList.add("grabbing");const pe=sqEl(s).querySelector(".pc");if(pe)pe.classList.add("ghost")}
   else{sel=null;render()}});
 addEventListener("pointermove",e=>{if(!drag)return;floatEl.style.transform=`translate(${e.clientX-drag.w/2}px,${e.clientY-drag.w/2}px)`;if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)>3)drag.moved=true;
   const t=sqAt(e.clientX,e.clientY);if(t!==hov){if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov")}hov=t;if(t&&t!==drag.from){const n=sqEl(t);if(n)n.classList.add("hov")}}});
 addEventListener("pointerup",e=>{if(!drag)return;const d=drag;drag=null;endFloat();const to=sqAt(e.clientX,e.clientY);
+  if(to&&to!==d.from&&canPre()){if(pmTargets(d.from).includes(to))addPre(d.from,to);else render();return}
   if(to&&to!==d.from){DROP=true;const ok=tryMove(d.from,to);DROP=false;if(!ok){const gg=g;try{if(gg.moves({square:d.from,verbose:true,legal:false}).some(m=>m.to===to))play("illegal")}catch(_){}render()}return}
   if(to===d.from&&d.was&&!d.moved)sel=null;render()});
 $("#bUndo").onclick=undo;$("#bHint").onclick=giveHint;$("#bNew").onclick=newGame;$("#bFlip").onclick=()=>{orient=orient==="w"?"b":"w";render()};
