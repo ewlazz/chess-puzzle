@@ -303,6 +303,7 @@ const RS_READY=(async()=>{if(rs.init)return;let r=1500,src="";const me=window.ME
     if(t){r=t-100;src="체스닷컴 퍼즐 최고 "+t}else if(ra||bl){r=Math.max(ra||0,bl||0)+200;src="체스닷컴 "+(ra?"래피드 "+ra:"블리츠 "+bl)}}catch(e){}}
   r=Math.max(600,Math.min(2600,Math.round(r)));rs=Object.assign(rs,{rating:r,peak:r,day0:r,init:true,src});saveRs()})();
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()};
+RS_READY.then(()=>{try{stats();renderList()}catch(e){}});
 const TH={mateIn1:"1수 메이트",mateIn2:"2수 메이트",mateIn3:"3수 메이트",mateIn4:"4수 메이트",mateIn5:"긴 메이트",backRankMate:"백랭크 메이트",smotheredMate:"스머더드 메이트",anastasiaMate:"아나스타시아 메이트",arabianMate:"아라비안 메이트",hookMate:"훅 메이트",bodenMate:"보덴 메이트",doubleBishopMate:"더블 비숍 메이트",dovetailMate:"도브테일 메이트",
   fork:"포크",pin:"핀",skewer:"스큐어",discoveredAttack:"디스커버드 어택",doubleCheck:"더블 체크",sacrifice:"희생",deflection:"디플렉션",attraction:"어트랙션",hangingPiece:"공짜 기물",trappedPiece:"갇힌 기물",capturingDefender:"수비수 잡기",xRayAttack:"엑스레이",interference:"인터피어런스",clearance:"클리어런스",intermezzo:"중간 수",
   promotion:"승진",advantage:"우위 잡기",crushing:"결정타",equality:"동점 만들기",underPromotion:"언더프로모션",advancedPawn:"전진한 폰",enPassant:"앙파상",castling:"캐슬링",exposedKing:"노출된 킹",kingsideAttack:"킹사이드 공격",queensideAttack:"퀸사이드 공격",defensiveMove:"방어",quietMove:"조용한 수",zugzwang:"추크추방",

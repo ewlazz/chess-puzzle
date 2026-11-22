@@ -3,7 +3,7 @@
 const RL={win:"승",loss:"패",draw:"무"};
 const B={n:20,running:false,user:null,res:{}};
 const key=()=>"hansu-batch-"+S.user;
-function loadRes(){if(B.user===S.user)return;B.user=S.user;try{B.res=JSON.parse(localStorage.getItem(key())||"{}")}catch(e){B.res={}}}
+function loadRes(){if(B.user===S.user)return;B.user=S.user;try{B.res=JSON.parse(localStorage.getItem(key())||"{}")}catch(e){B.res={}}autoPz(Object.values(B.res).flatMap(r=>r.pz||[]))}
 function saveRes(){try{localStorage.setItem(key(),JSON.stringify(B.res))}catch(e){/* 가득 차면 오래된 것부터 지움 */const ids=Object.keys(B.res).sort((a,b)=>B.res[a].end-B.res[b].end);ids.slice(0,Math.ceil(ids.length/3)).forEach(i=>delete B.res[i]);try{localStorage.setItem(key(),JSON.stringify(B.res))}catch(_){}}}
 const C=window.calAcc||(v=>v);
 function calR(r){const cp=a=>[a[0]==null?null:C(a[0]),a[1]];return Object.assign({},r,{acc:C(r.acc),opAcc:C(r.opAcc),ph:{o:cp(r.ph.o),m:cp(r.ph.m),e:cp(r.ph.e)},pr:Object.assign({},r.pr,{p:cp(r.pr.p),n:cp(r.pr.n)})})}
