@@ -9,7 +9,7 @@ function rec(a){let w=0,d=0;a.forEach(g=>{if(g.res==="win")w++;else if(g.res==="
 const ko=n=>window.Openings&&Openings.ko(n)||n;
 const mv=a=>a.map((x,i)=>i%2===0?`${i/2+1}. ${x}`:x).join(" ");
 const pad=n=>String(n).padStart(2,"0");
-let RT=0,LIST=[],AUTO={tok:0,p:Promise.resolve(),scan:null,txt:"",sig:""};
+let RT=0,LIST=[],OTHER={},AUTO={tok:0,p:Promise.resolve(),scan:null,txt:"",sig:""};
 /* 여러 판이 공통으로 지나간 수순(60% 이상이 같은 수를 둔 곳까지) */
 function commonLine(G){
   const p=[];for(let i=0;i<20;i++){const m=new Map();G.forEach(g=>{const s=g._o&&g._o.san;if(s&&s.length>i&&p.every((x,k)=>s[k]===x))m.set(s[i],(m.get(s[i])||0)+1)});
@@ -34,17 +34,19 @@ function openSec(L){
     const fams=group(A,famOf).filter(([k,a])=>a.length>=3);
     if(!fams.length)return `<div class="rcol"><h4>${CN[c]} <em>${A.length}판 · ${P(base)}</em></h4><p class="empty">3판 이상 둔 오프닝이 없어요.</p></div>`;
     const h=fams.map(([f,a],i)=>{const r=rec(a);
-      const vars=group(a,varOf),big=vars.slice(0,8),rest=vars.slice(8).flatMap(x=>x[1]);
-      const vr=big.map(([v,b])=>{const r2=rec(b),nm=v.includes(":")?ko(v).split(":").slice(1).join(":").trim()||ko(v):"이른 이탈";
-        return line(esc(nm),r2,Object.assign({attr:` data-var="${esc(c+"|"+v)}"`},flag(r2,base)))+`<div class="rx" id="rx-${esc(c+"|"+v).replace(/[^\w가-힣]/g,"_")}" hidden></div>`}).join("")
-        +(rest.length?line("그 외",rec(rest),{cls:"dim"}):"");
+      const named=group(a.filter(g=>varOf(g).includes(":")),varOf),big=named.slice(0,8),keep=new Set(big.map(x=>x[0])),rest=a.filter(g=>!keep.has(varOf(g)));
+      const vid=k=>"rx-"+k.replace(/[^\w가-힣]/g,"_");
+      const vr=big.map(([v,b])=>{const r2=rec(b),nm=ko(v).split(":").slice(1).join(":").trim()||ko(v),k=c+"|"+v;
+        return line(esc(nm),r2,Object.assign({attr:` data-var="${esc(k)}"`},flag(r2,base)))+`<div class="rx" id="${vid(k)}" hidden></div>`}).join("")
+        +(rest.length?(OTHER[c+"|"+f+"|*"]=new Set(rest.map(g=>g.id)),line("기타",rec(rest),{attr:` data-var="${esc(c+"|"+f+"|*")}"`})+`<div class="rx" id="${vid(c+"|"+f+"|*")}" hidden></div>`):"");
       return `<details class="rfam"${i<4?" open":""}><summary>${line(`<b>${esc(ko(f))}</b>`,r,flag(r,base))}</summary><div class="rvars">${vr}</div></details>`}).join("");
     return `<div class="rcol"><h4>${CN[c]} <em>${A.length}판 · ${P(base)}</em></h4>${h}</div>`;
   };
   return `<section class="rsec"><h3 class="rh">오프닝</h3><div class="rcols">${col("w")}${col("b")}</div></section>`;
 }
+function pick(c,v){const o=OTHER[c+"|"+v];return o?LIST.filter(g=>o.has(g.id)):LIST.filter(g=>g.me===c&&varOf(g)===v)}
 function varPanel(c,v){
-  const G=LIST.filter(g=>g.me===c&&varOf(g)===v),ln=commonLine(G);
+  const G=pick(c,v),ln=commonLine(G);
   const href=`opening.html?line=${encodeURIComponent(ln.join(","))}&drill=${c}`;
   return `${ln.length?`<p class="rline">자주 가는 수순 <b>${esc(mv(ln))}</b></p>`:""}<div class="racts"><a class="ract" href="${href}">이 오프닝 연습</a><a class="ract" href="opening.html?line=${encodeURIComponent(ln.join(","))}">오프닝 페이지</a></div>
     <div class="rgames">${G.slice(0,10).map(gameRow).join("")}</div>${G.length>10?`<button class="more" data-morevar="${esc(c+"|"+v)}">${G.length-10}판 더 보기</button>`:""}`;
@@ -155,7 +157,7 @@ function draw(L){
     const b=e.target.closest("[data-var],[data-morevar],[data-gid],[data-badg],[data-w],[data-save],[data-more],#rShare");if(!b)return;
     if(b.dataset.var){const [c,...v]=b.dataset.var.split("|"),id="rx-"+b.dataset.var.replace(/[^\w가-힣]/g,"_"),x=document.getElementById(id);if(!x)return;
       if(x.hidden){x.innerHTML=varPanel(c,v.join("|"));x.hidden=false;b.classList.add("on")}else{x.hidden=true;b.classList.remove("on")}return}
-    if(b.dataset.morevar){const [c,...v]=b.dataset.morevar.split("|"),G=LIST.filter(g=>g.me===c&&varOf(g)===v.join("|"));b.previousElementSibling.innerHTML=G.map(gameRow).join("");b.remove();return}
+    if(b.dataset.morevar){const [c,...v]=b.dataset.morevar.split("|"),G=pick(c,v.join("|"));b.previousElementSibling.innerHTML=G.map(gameRow).join("");b.remove();return}
     if(b.dataset.gid){const g=LIST.find(x=>x.id===b.dataset.gid);if(g)window.openAnalysis(g);return}
     if(b.dataset.badg!=null){const x=AUTO.scan.found[+b.dataset.badg],box=$("#rbg"+b.dataset.badg);if(!box)return;
       if(box.hidden){const ids=new Set(x.ids);box.innerHTML=LIST.filter(g=>ids.has(g.id)).map(gameRow).join("");box.hidden=false}else box.hidden=true;return}
