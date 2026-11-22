@@ -38,6 +38,7 @@ const OE={w:null,ready:null,q:Promise.resolve(),cache:new Map(),cb:null,
 };
 const toWhite=(sc,turn)=>{let v=sc.t==="mate"?(sc.v>0?1:-1)*(10000-Math.abs(sc.v)*10):sc.v;return turn==="w"?v:-v};
 const evTxt=cp=>Math.abs(cp)>=9000?(cp>0?"M":"-M"):(cp>0?"+":"")+(cp/100).toFixed(2);
+window.prepOpening=prep;
 /* 진입 */
 window.renderOpenings=async function(list){
   const t=++O.token,el=$("#pOpen");

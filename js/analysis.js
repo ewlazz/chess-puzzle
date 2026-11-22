@@ -176,7 +176,7 @@ function mkPuzBtn(){
     let L=[];try{L=JSON.parse(localStorage.getItem("hansu-mypuz")||"[]")}catch(e){}
     const ids=new Set(L.map(x=>x.id));let added=0;list.forEach(p=>{if(!ids.has(p.id)){L.push(p);added++}});
     try{localStorage.setItem("hansu-mypuz",JSON.stringify(L))}catch(e){}
-    ast.innerHTML=`분석 완료 · ${added?added+"개 저장함":"이미 저장됨"} · <a href="index.html#mine">퍼즐에서 풀기</a>`;
+    ast.innerHTML=`분석 완료 · ${added?added+"개 저장함":"이미 저장됨"} · <a href="puzzle.html#mine">퍼즐에서 풀기</a>`;
   };
 }
 function openName(){

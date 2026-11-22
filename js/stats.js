@@ -1,7 +1,7 @@
 /* 전적: 체스닷컴 공개 API에서 프로필·레이팅·최근 3개월 게임을 받아 목록과 통계를 그림 */
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
-var S={user:null,profile:null,stats:null,games:[],tc:"all",res:"all",col:"all",tab:"games",shown:50,per:3,arch:null,cache:{},gid:null};
+var S={user:null,profile:null,stats:null,games:[],tc:"all",res:"all",col:"all",tab:(new URL(location.href).searchParams.get("tab")||"report"),shown:50,per:3,arch:null,cache:{},gid:null,scr:new URL(location.href).searchParams.get("tab")==="report"};
 {
 const API="https://api.chess.com/pub/";
 const TC={bullet:"불릿",blitz:"블리츠",rapid:"래피드",daily:"데일리"};
@@ -60,6 +60,7 @@ async function loadGames(t){
   msg(S.games.length?"":`${PER[S.per]} 동안 둔 게임이 없어요.`);
   $("#range").textContent=`${S.games.length}판`;
   $("#main").classList.add("on");renderFilters();renderAll();
+  if(S.scr){S.scr=false;setTimeout(()=>$("#main").scrollIntoView({behavior:"smooth"}),150)}
   return true;
 }
 $("#fPer").onclick=async e=>{const b=e.target.closest("button");if(!b||!S.arch)return;S.per=+b.dataset.v;document.querySelectorAll("#fPer button").forEach(x=>x.setAttribute("aria-pressed",x===b));await loadGames(token)};
@@ -113,10 +114,14 @@ function renderFilters(){
   chips("#fCol",[["all","전체"],["w","백"],["b","흑"]],"col");
   $("#fRes").hidden=$("#fCol").hidden=S.tab!=="games";
 }
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));$("#pGames").hidden=S.tab!=="games";$("#pStats").hidden=S.tab!=="stats";$("#pOpen").hidden=S.tab!=="open";$("#pVs").hidden=S.tab!=="vs";$("#pAcc").hidden=S.tab!=="acc";renderFilters();renderAll()});
+function showTab(t){S.tab=t;document.querySelectorAll("#main .tabs .tab").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));$("#pRep").hidden=t!=="report";$("#pGames").hidden=t!=="games";$("#pStats").hidden=t!=="stats";$("#pOpen").hidden=t!=="open";$("#pVs").hidden=t!=="vs";$("#pAcc").hidden=t!=="acc";
+  try{const u=new URL(location.href);if(t==="report")u.searchParams.delete("tab");else u.searchParams.set("tab",t);history.replaceState(null,"",u)}catch(e){}}
+window.showTab=t=>{showTab(t);renderFilters();renderAll()};
+document.querySelectorAll("#main .tabs .tab").forEach(b=>b.onclick=()=>window.showTab(b.dataset.tab));
+showTab(S.tab);
 const byTc=()=>S.games.filter(g=>S.tc==="all"||g.tclass===S.tc);
 function filtered(){return byTc().filter(g=>(S.res==="all"||g.res===S.res)&&(S.col==="all"||g.me===S.col))}
-function renderAll(){if(S.tab==="games")renderGames();else if(S.tab==="open"){if(window.renderOpenings)window.renderOpenings(byTc())}else if(S.tab==="vs"){if(window.renderCompare)window.renderCompare(byTc())}else if(S.tab==="acc"){if(window.renderBatch)window.renderBatch(byTc())}else renderStats()}
+function renderAll(){if(S.tab==="report"){if(window.renderReport)window.renderReport(byTc())}else if(S.tab==="games")renderGames();else if(S.tab==="open"){if(window.renderOpenings)window.renderOpenings(byTc())}else if(S.tab==="vs"){if(window.renderCompare)window.renderCompare(byTc())}else if(S.tab==="acc"){if(window.renderBatch)window.renderBatch(byTc())}else renderStats()}
 /* 게임 목록 */
 function renderGames(){
   const l=filtered(),RL={win:"승",loss:"패",draw:"무",abort:"중단"};

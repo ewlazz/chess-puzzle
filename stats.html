@@ -17,7 +17,7 @@
 <header>
   <div class="nav">
     <a class="logo" href="index.html"><span>♞</span>한 수</a>
-    <nav aria-label="메뉴"><a href="index.html">퍼즐</a><a href="index.html#list">목록</a><a href="stats.html" aria-current="page">전적</a><a href="analysis.html">분석</a><a href="opening.html">오프닝</a><a href="play.html">대국</a></nav>
+    <nav aria-label="메뉴"><a href="puzzle.html">퍼즐</a><a href="stats.html" aria-current="page">전적</a><a href="analysis.html">분석</a><a href="opening.html">오프닝</a><a href="play.html">대국</a></nav>
   </div>
 </header>
 <main>
@@ -34,7 +34,7 @@
 <section class="band main" id="main">
   <div class="wrap">
     <div class="bar">
-      <div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="games" aria-selected="true">게임</button><button class="tab" role="tab" data-tab="stats" aria-selected="false">통계</button><button class="tab" role="tab" data-tab="open" aria-selected="false">오프닝</button><button class="tab" role="tab" data-tab="acc" aria-selected="false">정확도</button><button class="tab" role="tab" data-tab="vs" aria-selected="false">비교</button></div>
+      <div class="tabs" role="tablist"><button class="tab" role="tab" data-tab="report" aria-selected="true">리포트</button><button class="tab" role="tab" data-tab="games" aria-selected="false">게임</button><button class="tab" role="tab" data-tab="stats" aria-selected="false">통계</button><button class="tab" role="tab" data-tab="open" aria-selected="false">오프닝</button><button class="tab" role="tab" data-tab="acc" aria-selected="false">정확도</button><button class="tab" role="tab" data-tab="vs" aria-selected="false">비교</button></div>
       <div class="per"><div class="chips" id="fPer"><button class="chip" data-v="3" aria-pressed="true">3개월</button><button class="chip" data-v="12" aria-pressed="false">1년</button><button class="chip" data-v="0" aria-pressed="false">전체</button></div><span class="range" id="range"></span></div>
     </div>
     <div class="filters">
@@ -42,7 +42,8 @@
       <div class="chips" id="fRes"></div>
       <div class="chips" id="fCol"></div>
     </div>
-    <div id="pGames"><div class="glist" id="glist"></div><button class="more" id="more">더 보기</button></div>
+    <div id="pRep"></div>
+    <div id="pGames" hidden><div class="glist" id="glist"></div><button class="more" id="more">더 보기</button></div>
     <div id="pStats" hidden><div class="sgrid" id="sgrid"></div></div>
     <div id="pOpen" hidden></div>
     <div id="pVs" hidden></div>
@@ -65,5 +66,6 @@
 <script src="js/openings-tab.js"></script>
 <script src="js/compare.js"></script>
 <script src="js/batch-tab.js"></script>
+<script src="js/report.js"></script>
 </body>
 </html>

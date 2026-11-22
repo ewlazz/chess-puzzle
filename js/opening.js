@@ -194,6 +194,8 @@ async function dStep(){
   if(g.game_over()){DR.on=false;dMsg("");drill();return}
   if(DR.rep&&!repCands(idx).length){DR.on=false;DR.msg=`저장한 수순 끝까지 왔어요. 맞힘 ${DR.hits} · 틀림 ${DR.miss}`;render();el2();return}
   if(g.turn()===DR.color){if(!DR.msg)dMsg("내 차례예요.");render();return}
+  if(DR.prefix&&idx<DR.prefix.length){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
+    const m=g.move(DR.prefix[idx]);DR.busy=false;if(!m){DR.prefix=null;dStep();return}play(snd(m,g));pushMove(m.san);refresh();dMsg(`상대: ${m.san} · 내 차례예요.`);return}
   if(DR.rep){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
     const C=repCands(idx),pk=C[Math.floor(Math.random()*C.length)][idx],m=g.move(pk);DR.busy=false;if(!m){DR.on=false;drill();return}
     play(snd(m,g));pushMove(m.san);refresh();if(!repCands(idx).length){dStep();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
@@ -215,6 +217,7 @@ async function dCheck(m,fenBefore){
   let ok=!!Openings.at(fenAt()),pop=[];
   try{const x=await fetchX(fenBefore),tot=(x.moves||[]).reduce((s,y)=>s+y.white+y.draws+y.black,0);pop=(x.moves||[]).slice(0,3).map(y=>y.san);
     const me=(x.moves||[]).find(y=>y.san===m.san);if(me&&tot&&(me.white+me.draws+me.black)/tot>=.05)ok=true}catch(e){}
+  if(ok&&DR.prefix&&line[idx-1]!==DR.prefix[idx-1])DR.prefix=null;
   if(ok){DR.hits++;dMsg(`좋아요, ${m.san}.`,"good");setTimeout(dStep,300)}
   else{DR.miss++;dMsg(`${m.san}은 정석 밖이에요.${pop.length?" 많이 두는 수: "+pop.join(", "):""}`,"bad");DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill()},1200)}
 }
@@ -276,6 +279,8 @@ document.addEventListener("keydown",e=>{if(/INPUT|TEXTAREA/.test(e.target.tagNam
 render();
 Openings.load().then(()=>{
   const q=new URL(location.href).searchParams.get("line");
-  if(q){const g=new Chess(),ok=[];for(const s of q.split(",")){const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}else refresh();
+  const sp=new URL(location.href).searchParams,dr=sp.get("drill");
+  if(q){const g=new Chess(),ok=[];for(const s of q.split(",")){if(!s)continue;const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}else refresh();
+  if(dr==="w"||dr==="b"){const pre=line.slice();DR={on:true,color:dr,hits:0,miss:0,busy:false,msg:pre.length?`자주 가는 수순(${pre.length}수)부터 연습해요. 내 차례예요.`:"",rep:null,prefix:pre};line=[];idx=0;orient=dr;showTab("drill");refresh();dStep()}
 });
 }

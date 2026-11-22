@@ -70,7 +70,7 @@ function out(L){
   el.onclick=e=>{
     const w=e.target.closest("[data-w]");if(w){const x=worst[+w.dataset.w];window.openAnalysis(x.g,x.w.k+1);return}
     if(e.target.id==="bPz"){let M=[];try{M=JSON.parse(localStorage.getItem("hansu-mypuz")||"[]")}catch(_){}const ids=new Set(M.map(x=>x.id));let a=0;pz.forEach(p=>{if(!ids.has(p.id)){M.push(p);a++}});try{localStorage.setItem("hansu-mypuz",JSON.stringify(M))}catch(_){}
-      e.target.outerHTML=`<p class="sub3" style="margin-top:12px">${a?a+"개 저장함":"이미 저장됨"} · <a href="index.html#mine">퍼즐에서 풀기</a></p>`}
+      e.target.outerHTML=`<p class="sub3" style="margin-top:12px">${a?a+"개 저장함":"이미 저장됨"} · <a href="puzzle.html#mine">퍼즐에서 풀기</a></p>`}
   };
   const svg=$("#bsvg"),draw=()=>{const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;const pts=R.slice().reverse();if(pts.length<2){svg.innerHTML="";return}
     const x=i=>30+(W-40)*i/(pts.length-1),y=v=>10+(H-30)*(1-(v-40)/60),ln=k=>pts.map((p,i)=>p.r[k]==null?"":`${i&&pts[i-1].r[k]!=null?"L":"M"}${x(i).toFixed(1)},${y(Math.max(40,p.r[k])).toFixed(1)}`).join("");
@@ -79,4 +79,18 @@ function out(L){
       +pts.map((p,i)=>p.r.acc==null?"":`<circle cx="${x(i)}" cy="${y(Math.max(40,p.r.acc))}" r="3.5" fill="${p.r.res==="win"?"var(--win)":p.r.res==="loss"?"var(--loss)":"var(--draw)"}"/>`).join("")};
   draw();if(window.__bro)window.__bro.disconnect();window.__bro=new ResizeObserver(draw);window.__bro.observe($("#bfig"));
 }
+/* 리포트에서 쓰는 API */
+window.BatchAPI={
+  results(list){loadRes();return list.map(g=>B.res[g.id]?{g,r:B.res[g.id]}:null).filter(Boolean)},
+  running:()=>B.running,
+  stop(){B.running=false},
+  async ensure(games,onProg){
+    loadRes();const todo=games.filter(g=>!B.res[g.id]&&(!g.rules||g.rules==="chess"));B.running=true;
+    for(let i=0;i<todo.length&&B.running;i++){
+      const g=todo[i];const X=await window.batchAnalyse(g,"go depth 11 movetime 250",(a,b)=>{if(onProg)onProg(i,todo.length,a,b)},()=>B.running);
+      if(!B.running)break;if(X){B.res[g.id]=summarize(X,g);saveRes()}
+    }
+    B.running=false;
+  }
+};
 }
