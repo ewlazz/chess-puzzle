@@ -183,14 +183,18 @@ const mvNo=(i,san)=>`${Math.floor(i/2)+1}${i%2?"...":"."}${san}`;
 /* 목록 화면 */
 function gal(){
   const el=$("#gal"),S=window.STUDY||[];
-  const chips=(k,key,arr)=>`<div class="chips">${arr.map(([v,t])=>`<button class="chip" data-${k}="${v}" aria-pressed="${ST[key]===v}">${t}</button>`).join("")}</div>`;
-  const L=S.filter(o=>(ST.cat==="all"||stCat(o)===ST.cat)&&(ST.side==="all"||o.side===ST.side)&&(!ST.f||o.tags.includes(ST.f))),P=stProg();
-  const RT=(window.OROOTS||[]).filter(r=>(ST.cat==="all"||ST.cat==="e4"&&r.moves.startsWith("e4")||ST.cat==="d4"&&r.moves.startsWith("d4")||ST.cat==="fl"&&/^(c4|Nf3)/.test(r.moves)||ST.cat==="etc"&&!/^(e4|d4|c4|Nf3)/.test(r.moves))&&(ST.side==="all"||r.side===ST.side)&&!ST.f);
-  const rootCards=RT.map(r=>{const t=r.moves.split(" "),ps=stPos(t,t.length);return `<a class="scard" href="opening.html?tree=${r.id}">${miniBoard(ps.fen,r.side,ps.hl)}<span class="sct"><b>${esc(r.ko)}</b><small>${esc(mvSeq(0,t))} · ${r.side==="w"?"백":"흑"}</small></span></a>`}).join("");
-  el.innerHTML=`<div class="stf">${chips("stc","cat",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}${chips("sts","side",[["all","백·흑"],["w","백으로"],["b","흑으로"]])}${chips("stf","f",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
-    (rootCards?`<h2 class="gsec">오프닝 갈래</h2><div class="scards">${rootCards}</div>`:"")+`<h2 class="gsec">공부 자료</h2>`+
-    (L.length?`<div class="scards">${L.map(o=>{const t=o.trunk.split(" "),ps=stPos(t,o.thumb||t.length),done=o.lines.filter(l=>(P[o.id+"/"+l.id]||{}).ok).length;
-      return `<a class="scard" href="opening.html?study=${o.id}">${miniBoard(ps.fen,o.side,ps.hl)}<span class="sct"><b>${esc(o.ko)}${stBadge(o)}</b><small>${esc(mvSeq(0,t.slice(0,(o.gam!=null?o.gam:t.length-1)+1)))} · ${o.side==="w"?"백":"흑"}</small></span></a>`}).join("")}</div>`:'<p class="cnt">아직 없어요</p>');
+  const chips=(k,key,arr)=>arr.map(([v,t])=>`<button class="chip" data-${k}="${v}" aria-pressed="${ST[key]===v}">${t}</button>`).join("");
+  const catOf=m=>m.startsWith("e4")?"e4":m.startsWith("d4")?"d4":/^(c4|Nf3)/.test(m)?"fl":"etc";
+  const L=S.filter(o=>(ST.cat==="all"||stCat(o)===ST.cat)&&(ST.side==="all"||o.side===ST.side)&&(!ST.f||o.tags.includes(ST.f)));
+  const RT=(window.OROOTS||[]).filter(r=>(ST.cat==="all"||catOf(r.moves)===ST.cat)&&(ST.side==="all"||r.side===ST.side)&&!ST.f);
+  /* 카드: 작은 보드(백 기준, 차분한 색) + 이름 + 기보 */
+  const card=(href,t,ply,name,side,badge)=>{const ps=stPos(t,ply);return `<a class="gcard" href="${href}">${miniBoard(ps.fen,"w",null)}<span><b>${esc(name)}${badge||""}</b><small>${esc(mvSeq(0,t.slice(0,ply)))}</small><em>${side==="w"?"백":"흑"}</em></span></a>`};
+  const sec=(title,list)=>list.length?`<h2 class="gsec">${title}</h2><div class="gcards">${list.join("")}</div>`:"";
+  const rc=c=>RT.filter(r=>catOf(r.moves)===c).map(r=>{const t=r.moves.split(" ");return card(`opening.html?tree=${r.id}`,t,t.length,r.ko,r.side)});
+  el.innerHTML=`<div class="gfil">${chips("stc","cat",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}<i></i>${chips("sts","side",[["all","백·흑"],["w","백"],["b","흑"]])}<i></i>${chips("stf","f",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
+    sec("1.e4",rc("e4"))+sec("1.d4",rc("d4"))+sec("1.c4 · 1.Nf3",rc("fl"))+sec("기타",rc("etc"))+
+    sec("공부 자료",L.map(o=>{const t=o.trunk.split(" ");return card(`opening.html?study=${o.id}`,t,(o.gam!=null?o.gam:t.length-1)+1,o.ko,o.side,stBadge(o))}))+
+    (!RT.length&&!L.length?'<p class="cnt">없어요</p>':"");
 }
 $("#gal").onclick=e=>{const b=e.target.closest("[data-stc],[data-sts],[data-stf]");if(!b)return;const d=b.dataset;
   if(d.stc!=null)ST.cat=d.stc;else if(d.sts!=null)ST.side=d.sts;else ST.f=d.stf;gal()};
