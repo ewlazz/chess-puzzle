@@ -85,31 +85,13 @@ function wdb(w,d,b){const n=w+d+b||1,p=x=>Math.round(x/n*100);return `<div class
 /* 통계 출처: 마스터 또는 리체스 레이팅 구간 (레이팅 구간은 리체스 로그인 필요) */
 const RATE=["m","1000","1200","1400","1600","1800","2000","2200","2500"],SPD=[["blitz,rapid","블리츠·래피드"],["bullet","불릿"],["blitz","블리츠"],["rapid","래피드"]];
 let SRC="m",SPEED="blitz,rapid";try{SRC=localStorage.getItem("hansu-src")||"m";SPEED=localStorage.getItem("hansu-speed")||SPEED}catch(e){}
-const LI={get tok(){try{return localStorage.getItem("hansu-li")||""}catch(e){return ""}},set tok(v){try{v?localStorage.setItem("hansu-li",v):localStorage.removeItem("hansu-li")}catch(e){}}};
-const redir=()=>location.origin+location.pathname;
-const b64u=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-async function liLogin(){
-  const v=b64u(crypto.getRandomValues(new Uint8Array(48))),st=b64u(crypto.getRandomValues(new Uint8Array(12)));
-  const ch=b64u(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v)));
-  try{sessionStorage.setItem("hansu-pkce",JSON.stringify({v,st,line:line.slice(0,idx).join(",")}))}catch(e){}
-  location.href=`https://lichess.org/oauth?response_type=code&client_id=hansu-chess&redirect_uri=${encodeURIComponent(redir())}&code_challenge_method=S256&code_challenge=${ch}&state=${st}`;
-}
-async function liReturn(){
-  const q=new URL(location.href).searchParams,code=q.get("code"),st=q.get("state");if(!code)return null;
-  let k=null;try{k=JSON.parse(sessionStorage.getItem("hansu-pkce")||"null")}catch(e){}
-  try{history.replaceState(null,"",redir()+(k&&k.line?"?line="+encodeURIComponent(k.line):""))}catch(e){}
-  if(!k||k.st!==st)return null;
-  try{const r=await fetch("https://lichess.org/api/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({grant_type:"authorization_code",code,code_verifier:k.v,redirect_uri:redir(),client_id:"hansu-chess"})});
-    const j=await r.json();if(j.access_token){LI.tok=j.access_token;SRC=SRC==="m"?"1600":SRC;try{localStorage.setItem("hansu-src",SRC)}catch(e){}}}catch(e){}
-  return k.line||null;
-}
 async function fetchX(fen){
   const key=SRC+"|"+SPEED+"|"+fen;if(cache.has(key))return cache.get(key);
   let r;
   if(SRC==="m")r=await fetch(`https://explorer.lichess.ovh/masters?fen=${encodeURIComponent(fen)}&moves=12&topGames=10`);
   else{if(!LI.tok){const e=new Error("login");e.code="login";throw e}
     r=await fetch(`https://explorer.lichess.ovh/lichess?variant=standard&speeds=${SPEED}&ratings=${SRC}&moves=12&topGames=0&recentGames=0&fen=${encodeURIComponent(fen)}`,{headers:{Authorization:"Bearer "+LI.tok}});
-    if(r.status===401){LI.tok="";const e=new Error("login");e.code="login";throw e}}
+    if(r.status===401){LI.logout();const e=new Error("login");e.code="login";throw e}}
   if(!r.ok){const e=new Error(r.status);e.code=r.status;throw e}
   const j=await r.json();cache.set(key,j);return j;
 }
@@ -143,7 +125,7 @@ function bookMoves(fen){
   return `<p class="cnt" style="margin-top:10px">이름 붙은 정석 수</p><div class="scroll"><table class="xt"><tbody>${out.map(o=>`<tr data-san="${esc(o.san)}"><td class="sn">${esc(o.san)}</td><td class="nm">${esc(o.name)}</td></tr>`).join("")}</tbody></table></div>`;
 }
 $("#tEx").addEventListener("click",e=>{const b=e.target.closest("[data-src],[data-spd],#liGo,#liOut");if(!b)return;e.stopPropagation();
-  if(b.id==="liGo"){liLogin();return}if(b.id==="liOut"){LI.tok="";SRC="m";try{localStorage.setItem("hansu-src","m")}catch(_){}explore();return}
+  if(b.id==="liGo"){LI.login();return}if(b.id==="liOut"){LI.logout();SRC="m";try{localStorage.setItem("hansu-src","m")}catch(_){}explore();return}
   if(b.dataset.src){SRC=b.dataset.src}else SPEED=b.dataset.spd;try{localStorage.setItem("hansu-src",SRC);localStorage.setItem("hansu-speed",SPEED)}catch(_){}explore()},true);
 $("#tEx").onclick=e=>{const r=e.target.closest("[data-san]");if(!r)return;const g=game();const m=g.move(r.dataset.san);if(!m)return;play(snd(m,g));pushMove(m.san);refresh()};
 /* 대표 게임 */
@@ -316,7 +298,7 @@ $("#bFlip").onclick=()=>{orient=orient==="w"?"b":"w";render()};
 document.addEventListener("keydown",e=>{if(/INPUT|TEXTAREA/.test(e.target.tagName)||DR.on)return;if(e.key==="ArrowLeft"){go(idx-1);e.preventDefault()}else if(e.key==="ArrowRight"){go(idx+1);e.preventDefault()}});
 /* 시작: ?line=e4,c5 */
 render();
-Promise.all([Openings.load(),liReturn()]).then(()=>{
+Promise.all([Openings.load(),LI.ready]).then(()=>{if(LI.tok&&SRC==="m"&&LI.fresh){SRC="1600";try{localStorage.setItem("hansu-src",SRC)}catch(e){}}
   const q=new URL(location.href).searchParams.get("line");
   const sp=new URL(location.href).searchParams,dr=sp.get("drill");
   if(q){const g=new Chess(),ok=[];for(const s of q.split(",")){if(!s)continue;const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}else refresh();

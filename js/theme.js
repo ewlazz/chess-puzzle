@@ -6,9 +6,59 @@
   apply(cur);
   /* 내 계정: 등록하면 메뉴의 전적이 바로 내 전적으로 감 */
   window.ME={get:function(){try{return localStorage.getItem("hansu-me")||""}catch(e){return ""}},set:function(u){try{localStorage.setItem("hansu-me",u)}catch(e){}},clear:function(){try{localStorage.removeItem("hansu-me")}catch(e){}}};
+  /* 리체스 로그인 (OAuth PKCE, 어느 페이지에서나): 레이팅별 오프닝 통계에 씀 */
+  var b64u=function(b){return btoa(String.fromCharCode.apply(null,new Uint8Array(b))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")};
+  var redir=function(){return location.origin+location.pathname};
+  window.LI={
+    get tok(){try{return localStorage.getItem("hansu-li")||""}catch(e){return ""}},
+    get name(){try{return localStorage.getItem("hansu-li-name")||""}catch(e){return ""}},
+    fresh:false,
+    login:async function(){
+      var v=b64u(crypto.getRandomValues(new Uint8Array(48))),st=b64u(crypto.getRandomValues(new Uint8Array(12)));
+      var ch=b64u(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v)));
+      try{sessionStorage.setItem("hansu-pkce",JSON.stringify({v:v,st:st,q:location.search,page:redir()}))}catch(e){}
+      location.href="https://lichess.org/oauth?response_type=code&client_id=hansu-chess&redirect_uri="+encodeURIComponent(redir())+"&code_challenge_method=S256&code_challenge="+ch+"&state="+st;
+    },
+    logout:function(){var t=this.tok;try{localStorage.removeItem("hansu-li");localStorage.removeItem("hansu-li-name")}catch(e){}if(t)fetch("https://lichess.org/api/token",{method:"DELETE",headers:{Authorization:"Bearer "+t}}).catch(function(){})}
+  };
+  LI.ready=(async function(){
+    var q=new URL(location.href).searchParams,code=q.get("code"),st=q.get("state");if(!code||!st)return;
+    var k=null;try{k=JSON.parse(sessionStorage.getItem("hansu-pkce")||"null");sessionStorage.removeItem("hansu-pkce")}catch(e){}
+    try{history.replaceState(null,"",redir()+(k&&k.q&&!/[?&]code=/.test(k.q)?k.q:""))}catch(e){}
+    if(!k||k.st!==st)return;
+    try{var r=await fetch("https://lichess.org/api/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({grant_type:"authorization_code",code:code,code_verifier:k.v,redirect_uri:redir(),client_id:"hansu-chess"})});
+      var j=await r.json();if(!j.access_token)return;localStorage.setItem("hansu-li",j.access_token);LI.fresh=true;
+      var a=await fetch("https://lichess.org/api/account",{headers:{Authorization:"Bearer "+j.access_token}}).then(function(x){return x.ok?x.json():null}).catch(function(){return null});
+      if(a&&a.username)localStorage.setItem("hansu-li-name",a.username);
+    }catch(e){}
+  })();
+  /* 머리글의 계정 버튼: 체스닷컴 닉네임 연결 + 리체스 로그인 */
+  function acct(nav){
+    var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
+    var b=document.createElement("button");b.id="acb";b.className="acb";b.type="button";b.setAttribute("aria-expanded","false");nav.parentNode.appendChild(b);
+    var p=document.createElement("div");p.className="setp acp";p.hidden=true;document.querySelector("header").appendChild(p);
+    function lab(){var m=ME.get();b.textContent=m||LI.name||(LI.tok?"리체스 연결됨":"")?(m||LI.name||"내 계정"):"로그인"}
+    function draw(){var m=ME.get(),ln=LI.name,lt=LI.tok;
+      p.innerHTML='<p>체스닷컴</p>'+(m?'<div class="acr"><b>'+esc(m)+'</b><a href="stats.html?user='+encodeURIComponent(m)+'">내 전적</a><button type="button" class="lnk" data-x="cc-out">연결 해제</button></div>'
+        :'<form class="acf" data-x="cc-form"><input name="u" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button class="bgo">연결</button></form><small class="acs">체스닷컴은 다른 사이트 로그인을 열어두지 않아서 닉네임으로 연결해요. 비밀번호는 안 받아요.</small>')
+        +'<p style="margin-top:14px">리체스</p>'+(lt?'<div class="acr"><b>'+esc(ln||"로그인됨")+'</b><button type="button" class="lnk" data-x="li-out">로그아웃</button></div>':'<button type="button" class="bgo" data-x="li-in">리체스로 로그인</button><small class="acs">로그인하면 오프닝에서 레이팅별 통계를 볼 수 있어요.</small>');
+      lab()}
+    lab();
+    b.onclick=function(e){e.stopPropagation();draw();p.hidden=!p.hidden;b.setAttribute("aria-expanded",!p.hidden);var sp=document.querySelector(".setp:not(.acp)");if(sp)sp.hidden=true};
+    p.addEventListener("click",function(e){e.stopPropagation();var t=e.target.closest("[data-x]");if(!t||t.tagName==="FORM")return;var x=t.dataset.x;
+      if(x==="cc-out"){ME.clear();draw();var sl=nav.querySelector('a[href^="stats.html"]');if(sl)sl.href="stats.html"}
+      else if(x==="li-in")LI.login();else if(x==="li-out"){LI.logout();draw()}});
+    p.addEventListener("submit",async function(e){e.preventDefault();var f=e.target,u=f.u.value.trim();if(!u)return;var btn=f.querySelector("button");btn.disabled=true;btn.textContent="확인 중";
+      try{var r=await fetch("https://api.chess.com/pub/player/"+encodeURIComponent(u.toLowerCase()));if(!r.ok)throw 0;var j=await r.json();ME.set(j.username||u);
+        var sl=nav.querySelector('a[href^="stats.html"]');if(sl)sl.href="stats.html?user="+encodeURIComponent(ME.get());draw()}
+      catch(_){btn.disabled=false;btn.textContent="연결";f.u.setCustomValidity("없는 닉네임이에요");f.u.reportValidity();f.u.oninput=function(){f.u.setCustomValidity("")}}});
+    document.addEventListener("click",function(){if(!p.hidden){p.hidden=true;b.setAttribute("aria-expanded","false")}});
+    LI.ready.then(lab);
+  }
   function ui(){
     var nav=document.querySelector(".nav nav");if(!nav||document.getElementById("setb"))return;
     var me=ME.get(),sl=nav.querySelector('a[href="stats.html"]');if(me&&sl)sl.href="stats.html?user="+encodeURIComponent(me);
+    acct(nav);
     var b=document.createElement("button");b.id="setb";b.className="setb";b.type="button";b.setAttribute("aria-label","보드 색");b.setAttribute("aria-expanded","false");
     b.innerHTML='<span class="sw"><i></i><i></i><i></i><i></i></span>';nav.appendChild(b);
     var p=document.createElement("div");p.className="setp";p.hidden=true;

@@ -119,3 +119,15 @@ header{padding:0 max(5vw,16px)!important}
 .rc.off small .tci{color:#6A80B4}
 .chip[aria-pressed=true] .tci{color:#EFF0F6}
 .chip{display:inline-flex;align-items:center}
+.acb{border:1px solid #C4C9DC;background:#EFF0F6;color:#242942;font:inherit;font-size:14px;font-weight:700;padding:0 12px;min-height:36px;border-radius:3px;cursor:pointer;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acb:hover{border-color:#242942}
+.acp{width:min(340px,calc(100vw - 32px))!important}
+.acp .acr{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:15px}
+.acp .acr a{color:#5C54D6;font-weight:700}
+.acf{display:flex;gap:6px}
+.acf input{flex:1;min-width:0;min-height:40px;border:1px solid #C4C9DC;border-radius:3px;padding:0 10px;font:inherit;background:#EFF0F6;color:#242942}
+.acf .bgo,.acp .bgo{min-height:40px;padding:0 14px;border:0;border-radius:3px;background:#5C54D6;color:#EFF0F6;font:inherit;font-weight:700;cursor:pointer}
+.acs{display:block;margin-top:6px;font-size:12px;color:#505A82;line-height:1.45}
+.acp .lnk{border:0;background:none;padding:0;font:inherit;font-size:14px;color:#505A82;text-decoration:underline;cursor:pointer}
+.nav .logo{order:1}.nav nav{order:2}.nav .acb{order:3}
+@media(max-width:720px){.nav .acb{order:2;margin-left:auto}.nav nav{order:3}}
