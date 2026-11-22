@@ -160,18 +160,21 @@ $("#aBack").onclick=()=>{
   render();save();
 };
 /* 조작 */
+/* 킹을 자기 룩 위에 놓아도 캐슬링 (체스닷컴처럼). ok로 실제 둘 수 있는지 확인 */
+const castleSq=(get,f,t,ok)=>{const k=get(f),r=get(t);if(!(k&&k.type==="k"&&r&&r.type==="r"&&r.color===k.color&&f[0]==="e"&&f[1]===t[1]&&(t[0]==="h"||t[0]==="a")))return null;const c=(t[0]==="h"?"g":"c")+f[1];return !ok||ok(c)?c:null};
 const COLS={n:["#5C54D6","#6A80B4"],s:["#505A82","#505A82"],c:["#242942","#5C54D6"],a:["#6A80B4","#6A80B4"]};
 const pinned=(g,f,t)=>{try{return g.moves({square:f,verbose:true,legal:false}).some(m=>m.to===t)&&!g.moves({square:f,verbose:true}).some(m=>m.to===t)}catch(e){return false}};
 const modK=e=>e.shiftKey?"s":(e.ctrlKey||e.metaKey)?"c":e.altKey?"a":"n";
 function endFloat(){if(floatEl){floatEl.remove();floatEl=null}if(hov){const o=sqEl(hov);if(o)o.classList.remove("hov");hov=null}document.body.classList.remove("grabbing")}
 bEl.addEventListener("contextmenu",e=>e.preventDefault());
 bEl.addEventListener("pointerdown",e=>{
-  const sq=sqAt(e.clientX,e.clientY);if(!sq)return;e.preventDefault();try{bEl.setPointerCapture(e.pointerId)}catch(_){}
+  let sq=sqAt(e.clientX,e.clientY);if(!sq)return;e.preventDefault();try{bEl.setPointerCapture(e.pointerId)}catch(_){}
   const mac=e.button===0&&e.ctrlKey&&/Mac/i.test(navigator.platform);
   if(e.button===2||mac){if(pq.length||sel){pq=[];sel=null;render()}rd={from:sq,k:mac?"n":modK(e)};return}
   if(e.button!==0)return;
   if(marks.size||circ.size){marks.clear();circ.clear()}
   if(!on){render();return}
+  if(sel&&sel!==sq){const c=castleSq(x=>myTurn()?g.get(x):at(x),sel,sq,c=>!myTurn()||g.moves({square:sel,verbose:true}).some(m=>m.to===c));if(c)sq=c}
   const p=myTurn()?g.get(sq):at(sq);
   if(sel&&sel!==sq&&!(p&&p.color===me)&&targets(sel).includes(sq)){
     if(!myTurn()){addPre(sel,sq);return}
@@ -196,7 +199,7 @@ window.addEventListener("pointerup",e=>{
     else if(to===r.from){const c=COLS[r.k][1];if(circ.get(to)===c)circ.delete(to);else circ.set(to,c)}
     render();return}
   if(!drag)return;const d=drag;drag=null;endFloat();
-  const to=sqAt(e.clientX,e.clientY);
+  let to=sqAt(e.clientX,e.clientY);if(to&&to!==d.from){const c=castleSq(x=>myTurn()?g.get(x):at(x),d.from,to,c=>!myTurn()||g.moves({square:d.from,verbose:true}).some(m=>m.to===c));if(c)to=c}
   if(to&&to!==d.from){
     if(!myTurn()){if(on&&pmTargets(d.from).includes(to))addPre(d.from,to);else render();return}
     dropMv=true;const ok=tryMove(d.from,to);dropMv=false;if(ok)return;if(pinned(g,d.from,to))play("illegal");render();return;
