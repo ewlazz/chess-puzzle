@@ -77,7 +77,7 @@ let pq=[],g=null,orient="w",start="",TOK=0,phase="idle",usedHelp=0,myMoves=0,sel
 const bEl=$("#eb8"),sqEl=s=>bEl.querySelector(`[data-sq="${s}"]`);
 let soundOn=true;try{soundOn=localStorage.getItem("hansu-sound")!=="off"}catch(e){}
 const audio={};const play=k=>{if(!soundOn)return;try{const a=audio[k]||(audio[k]=new Audio("sounds/"+k+".mp3"));a.currentTime=0;a.play().catch(()=>{})}catch(e){}};
-const snd=(m,opp)=>g.in_checkmate()?"game-end":g.in_check()?"move-check":m.flags.includes("p")?"promote":m.captured?"capture":opp?"move-opponent":"move-self";
+const snd=(m,opp)=>g.in_check()?"move-check":m.flags.includes("p")?"promote":m.captured?"capture":opp?"move-opponent":"move-self";
 const order=()=>{const a=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)a.push(F[orient==="w"?c:7-c]+(orient==="w"?8-r:r+1));return a};
 function sqAt(x,y){const b=bEl.getBoundingClientRect(),c=Math.floor((x-b.left)/b.width*8),r=Math.floor((y-b.top)/b.height*8);if(c<0||c>7||r<0||r>7)return null;return F[orient==="w"?c:7-c]+(orient==="w"?8-r:r+1)}
 const myTurn=()=>phase==="play"&&g&&g.turn()==="w";
@@ -111,7 +111,7 @@ async function newGame(){const x=LS,tok=++TOK;phase="busy";g=null;pq=[];hist=[];
   $("#bUndo").disabled=$("#bHint").disabled=true;msg("자리 만드는 중…");bEl.innerHTML="";
   let fen=null;try{fen=await makePos(x,tok)}catch(e){if(tok===TOK){msg('테이블베이스에 연결하지 못했어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame}return}
   if(tok!==TOK)return;if(!fen){msg('알맞은 자리를 못 찾았어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame;return}
-  start=fen;g=new Chess(fen);phase="play";play("game-start");msg("백 차례예요.");render()}
+  start=fen;g=new Chess(fen);phase="play";msg("백 차례예요.");render()}
 async function after(m){/* 내 수 뒤 판정 */
   myMoves++;sel=null;hint=null;const x=LS;
   if(g.in_checkmate()){finish(true);return}
@@ -130,9 +130,9 @@ async function after(m){/* 내 수 뒤 판정 */
   if(g.in_stalemate()||g.insufficient_material()){if(x.goal==="draw")finish(true);else{render();slip("무승부가 됐어요.")}return}
   msg(x.goal==="draw"?"잘 막고 있어요.":"이기는 자리예요. 계속.");render();
   if(pq.length){const pm=pq.shift();if(!tryMove(pm.from,pm.to,"q")){pq=[];render()}}}
-function slip(t){pq=[];phase="slip";render();msg(`${t} <button class="lnk" id="eUndo2">무르기</button>`,"bad");$("#eUndo2").onclick=undo;play("game-end")}
+function slip(t){pq=[];phase="slip";render();msg(`${t} <button class="lnk" id="eUndo2">무르기</button>`,"bad");$("#eUndo2").onclick=undo}
 function finish(ok){pq=[];phase="done";const s=Math.max(1,3-usedHelp),P=prog(),x=LS;if(!P[x.id]||P[x.id].s<s)P[x.id]={s,t:Date.now()};else P[x.id].t=Date.now();saveProg(P);
-  render();play("game-end");
+  render();
   msg(`${x.goal==="mate"?"메이트!":x.goal==="promote"?"승진! 이겼어요.":"지켜 냈어요. 무승부예요."} <span class="estars">${stars(s)}</span><div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">다른 자리</button><a class="lnk" href="endgame.html">목록</a></div>`,"good");
   $("#eNext").onclick=newGame}
 function undo(){if(!hist.length||phase==="busy")return;pq=[];const h=hist.pop();g=new Chess(h);lastM=null;sel=null;hint=null;myMoves=Math.max(0,myMoves-1);usedHelp++;phase="play";msg("다시 둬 보세요.");render()}
