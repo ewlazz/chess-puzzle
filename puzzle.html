@@ -47,7 +47,7 @@ header{background:var(--band);color:#242942;position:sticky;top:0;z-index:20;bor
 .sq.last::after,.sq.pre::after,.sq.sel::after,.sq.hint::after,.sq.chk::after,.sq.bad::after{content:"";position:absolute;inset:0;pointer-events:none}
 .sq.last::after{background:#5C54D640}
 .sq.sel::after{background:#5C54D640}
-.sq.pre::after{background:#6A80B48c}
+.sq.pre::after{background:#24294270}
 .sq.hov::before{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 4px #5C54D6;z-index:4;pointer-events:none}
 .sq.own{cursor:grab}body.grabbing,body.grabbing *{cursor:grabbing!important}
 .bwrap{position:relative}
@@ -528,8 +528,15 @@ function sqAt(x,y){
 }
 function kingSq(c){for(const sq of order("w")){const p=g.get(sq);if(p&&p.type==="k"&&p.color===c)return sq}}
 /* 프리무브: 상대 차례에는 기물의 이동 패턴만으로 목적지를 정함 (막힘·합법성은 실행 순간에 판정) */
+const waiting=()=>phase==="opp"||phase==="intro";
+function vpos(){const b={};for(const sq of order("w")){const p=g.get(sq);if(p)b[sq]=p}
+  if(premove){const m=premove,p=b[m.from];if(p){delete b[m.from];
+    if(p.type==="k"&&Math.abs(F.indexOf(m.to[0])-F.indexOf(m.from[0]))===2){const r=m.from[1],ks=m.to[0]==="g",rf=(ks?"h":"a")+r,rt=(ks?"f":"d")+r;if(b[rf]&&b[rf].type==="r"){b[rt]=b[rf];delete b[rf]}}
+    b[m.to]=p.type==="p"&&/[18]/.test(m.to[1])?{type:"q",color:p.color}:p}}
+  return b}
+const at=sq=>premove?vpos()[sq]||null:g.get(sq);
 function pmTargets(sq){
-  const p=g.get(sq);if(!p)return [];
+  const p=at(sq);if(!p)return [];
   const f=F.indexOf(sq[0]),r=+sq[1],out=[];
   const add=(df,dr)=>{const nf=f+df,nr=r+dr;if(nf>=0&&nf<8&&nr>=1&&nr<=8)out.push(F[nf]+nr)};
   const ray=(df,dr)=>{for(let k=1;k<8;k++)add(df*k,dr*k)};
@@ -541,13 +548,13 @@ function pmTargets(sq){
   if(p.type==="p"){const d=p.color==="w"?1:-1;add(0,d);if(r===(p.color==="w"?2:7))add(0,2*d);add(1,d);add(-1,d)}
   return out;
 }
-const targets=sq=>phase==="opp"?pmTargets(sq):g.moves({square:sq,verbose:true}).map(m=>m.to);
-const myColor=()=>phase==="opp"?orient:g.turn();
-const canAct=()=>phase==="idle"||phase==="opp";
+const targets=sq=>waiting()?pmTargets(sq):g.moves({square:sq,verbose:true}).map(m=>m.to);
+const myColor=()=>waiting()?orient:g.turn();
+const canAct=()=>phase==="idle"||waiting();
 function render(){
-  const legal=sel?targets(sel):[],chk=g.in_check()?kingSq(g.turn()):null,me=myColor();
+  const legal=sel?targets(sel):[],chk=g.in_check()?kingSq(g.turn()):null,me=myColor(),vb=premove?vpos():null;
   boardEl.innerHTML=order(orient).map((sq,i)=>{
-    const p=g.get(sq),r=Math.floor(i/8),c=i%8;
+    const p=vb?vb[sq]||null:g.get(sq),r=Math.floor(i/8),c=i%8;
     const cls=["sq",isDark(sq)?"d":"l",last&&(last.from===sq||last.to===sq)?"last":"",premove&&(premove.from===sq||premove.to===sq)?"pre":"",sel===sq?"sel":"",hintSq===sq?"hint":"",chk===sq?"chk":"",badSq===sq?"bad":"",p&&p.color===me&&canAct()?"own":"",drag&&drag.from===sq?"from":""].join(" ");
     const mark=legal.includes(sq)?(p?'<b class="cap"></b>':'<b class="dot"></b>'):"";
     const mk=circles.has(sq)?`<span class="mk" style="background:${circles.get(sq)}"></span>`:"";
@@ -613,7 +620,7 @@ function start(p,info){stepOff();
   /* 체스닷컴처럼: 상대의 직전 수를 보드에서 두고 시작 */
   let pre=null;if(p.prev&&p.last){try{pre=new Chess(p.prev);const t=new Chess(p.prev),m=t.move({from:p.last.slice(0,2),to:p.last.slice(2,4),promotion:p.last[4]||"q"});if(!m||t.fen().split(" ").slice(0,4).join(" ")!==p.fen.split(" ").slice(0,4).join(" "))pre=null}catch(e){pre=null}}
   if(pre){g=pre;last=null;phase="intro";render();
-    timer=setTimeout(()=>{if(CP!==p)return;const m=g.move({from:p.last.slice(0,2),to:p.last.slice(2,4),promotion:p.last[4]||"q"});last={from:m.from,to:m.to};phase="idle";play(moveSound(m),0,true);render();animate(m.from,m.to)},mode==="rush"?300:550);return}
+    timer=setTimeout(()=>{if(CP!==p)return;const m=g.move({from:p.last.slice(0,2),to:p.last.slice(2,4),promotion:p.last[4]||"q"});last={from:m.from,to:m.to};phase="idle";play(moveSound(m),0,true);const pm=premove;premove=null;sel=drag?drag.from:null;render();animate(m.from,m.to);if(pm&&!tryMove(pm.from,pm.to,true,"q")){render();setStatus("turn","프리무브 취소")}},mode==="rush"?300:550);return}
   render();
 }
 function load(i,fromHash){
@@ -739,12 +746,12 @@ boardEl.addEventListener("pointerdown",e=>{
   if(e.button!==0)return;
   const cleared=clearMarks();
   if(!canAct()){if(cleared)render();return}
-  const p=g.get(sq);
+  const p=waiting()?at(sq):g.get(sq);
   if(sel&&sel!==sq&&targets(sel).includes(sq)&&!(p&&p.color===myColor())){
-    if(phase==="opp"){premove={from:sel,to:sq};sel=null;play("premove");render();return}
+    if(waiting()){premove={from:sel,to:sq};sel=null;play("premove");render();return}
     if(tryMove(sel,sq,true))return;
   }
-  if(phase==="opp"&&premove){premove=null}
+  if(waiting()&&premove){premove=null}
   if(p&&p.color===myColor()){const wasSel=sel===sq;sel=sq;render();startDrag(sq,p,e,wasSel)}
   else{sel=null;render()}
 });
@@ -766,7 +773,7 @@ window.addEventListener("pointerup",e=>{
   if(!drag)return;
   const d=drag;drag=null;endFloat();
   if(to&&to!==d.from){
-    if(phase==="opp"){if(pmTargets(d.from).includes(to)){premove={from:d.from,to};sel=null;play("premove")}render();return}
+    if(waiting()){if(pmTargets(d.from).includes(to)){premove={from:d.from,to};sel=null;play("premove")}render();return}
     if(phase==="idle"&&tryMove(d.from,to,false))return;
     if(phase==="idle")play("illegal");
     render();return;

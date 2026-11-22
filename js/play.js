@@ -3,7 +3,7 @@
 const F="abcdefgh",ENG="engine/stockfish-19-lite-single.js";
 const LV=[{s:0,d:1,t:60},{s:1,d:2,t:80},{s:3,d:3,t:120},{s:5,d:4,t:160},{s:7,d:6,t:220},{s:9,d:8,t:300},{s:12,d:10,t:450},{s:15,d:12,t:650},{s:18,d:15,t:900},{s:20,d:18,t:1300}];
 let g=new Chess(),me="w",orient="w",lvl=4,tc="0",base=0,inc=0,clock={w:0,b:0},iv=0,lastT=0,on=false,thinking=false,result=null;
-let sel=null,drag=null,floatEl=null,hov=null,rd=null,premove=null,eTok=0;
+let sel=null,drag=null,floatEl=null,hov=null,rd=null,pq=[],eTok=0;
 const marks=new Map(),circ=new Map();
 let pref={col:"w",lvl:4,tc:"0"};try{pref=Object.assign(pref,JSON.parse(localStorage.getItem("hansu-play")||"{}"))}catch(e){}
 /* 소리 */
@@ -29,8 +29,16 @@ const disp=sq=>{const f=F.indexOf(sq[0]),r=+sq[1];return orient==="w"?[f,8-r]:[7
 const bEl=$("#pb8"),sqEl=sq=>bEl.querySelector(`[data-sq="${sq}"]`);
 function sqAt(x,y){const b=bEl.getBoundingClientRect(),c=Math.floor((x-b.left)/b.width*8),r=Math.floor((y-b.top)/b.height*8);if(c<0||c>7||r<0||r>7)return null;return F[orient==="w"?c:7-c]+(orient==="w"?8-r:r+1)}
 function kingSq(c){for(const sq of order()){const p=g.get(sq);if(p&&p.type==="k"&&p.color===c)return sq}}
+/* 프리무브 줄: 상대 차례에 여러 수를 미리 걸어 둠. 보드엔 걸어 둔 대로 기물을 옮겨 보여 줌 */
+function vpos(){const b={};for(const sq of order()){const p=g.get(sq);if(p)b[sq]=p}
+  for(const m of pq){const p=b[m.from];if(!p)continue;delete b[m.from];
+    if(p.type==="k"&&Math.abs(F.indexOf(m.to[0])-F.indexOf(m.from[0]))===2){const r=m.from[1],ks=m.to[0]==="g",rf=(ks?"h":"a")+r,rt=(ks?"f":"d")+r;if(b[rf]&&b[rf].type==="r"){b[rt]=b[rf];delete b[rf]}}
+    b[m.to]=p.type==="p"&&/[18]/.test(m.to[1])?{type:"q",color:p.color}:p}
+  return b}
+const at=sq=>pq.length?vpos()[sq]||null:g.get(sq);
+function addPre(from,to){if(pq.length<20)pq.push({from,to});sel=null;play("premove");render()}
 function pmTargets(sq){
-  const p=g.get(sq);if(!p)return [];const f=F.indexOf(sq[0]),r=+sq[1],out=[];
+  const p=at(sq);if(!p)return [];const f=F.indexOf(sq[0]),r=+sq[1],out=[];
   const add=(df,dr)=>{const nf=f+df,nr=r+dr;if(nf>=0&&nf<8&&nr>=1&&nr<=8)out.push(F[nf]+nr)},ray=(df,dr)=>{for(let k=1;k<8;k++)add(df*k,dr*k)};
   const D=[[1,1],[1,-1],[-1,1],[-1,-1]],O=[[1,0],[-1,0],[0,1],[0,-1]];
   if(p.type==="n")[[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]].forEach(d=>add(...d));
@@ -50,10 +58,10 @@ function arrow(from,to,color){
   return `<g opacity=".8"><polyline points="${pts.slice(0,-1).concat([[bx+ux*.02,by+uy*.02]]).map(j).join(" ")}" fill="none" stroke="${color}" stroke-width=".2"/><polygon points="${[[tx,ty],[bx-uy*W,by+ux*W],[bx+uy*W,by-ux*W]].map(j).join(" ")}" fill="${color}"/></g>`;
 }
 function render(){
-  const h=g.history({verbose:true}),last=h[h.length-1],legal=sel?targets(sel):[],chk=g.in_check()?kingSq(g.turn()):null;
+  const h=g.history({verbose:true}),last=h[h.length-1],legal=sel?targets(sel):[],chk=g.in_check()?kingSq(g.turn()):null,vb=pq.length?vpos():null;
   bEl.innerHTML=order().map((sq,n)=>{
-    const p=g.get(sq),r=Math.floor(n/8),c=n%8,dark=(F.indexOf(sq[0])+ +sq[1])%2===1;
-    const cls=["s8",dark?"d":"l",last&&(last.from===sq||last.to===sq)?"lm":"",premove&&(premove.from===sq||premove.to===sq)?"pre":"",sel===sq?"sel":"",chk===sq?"chk":"",p&&p.color===me&&on?"own":""].join(" ");
+    const p=vb?vb[sq]||null:g.get(sq),r=Math.floor(n/8),c=n%8,dark=(F.indexOf(sq[0])+ +sq[1])%2===1;
+    const cls=["s8",dark?"d":"l",last&&(last.from===sq||last.to===sq)?"lm":"",pq.some(m=>m.from===sq||m.to===sq)?"pre":"",sel===sq?"sel":"",chk===sq?"chk":"",p&&p.color===me&&on?"own":""].join(" ");
     const co=(c===0?`<span class="co r">${sq[1]}</span>`:"")+(r===7?`<span class="co f">${sq[0]}</span>`:"");
     const mk=circ.has(sq)?`<span class="mk" style="background:${circ.get(sq)}"></span>`:"";
     const dot=legal.includes(sq)?(p?'<b class="cp8"></b>':'<b class="dt8"></b>'):"";
@@ -81,7 +89,7 @@ function moveList(){
 /* 진행 */
 function save(){try{localStorage.setItem("hansu-game",JSON.stringify(on?{pgn:g.pgn(),me,lvl,base,inc,clock}:null))}catch(e){}}
 function startGame(resume){
-  clearInterval(iv);eTok++;premove=sel=null;marks.clear();circ.clear();result=null;
+  clearInterval(iv);eTok++;pq=[];sel=null;marks.clear();circ.clear();result=null;
   if(resume&&resume.fen){g=new Chess(resume.fen);me=resume.me;lvl=resume.lvl;base=0;inc=0;clock={w:0,b:0}}
   else if(resume){g=new Chess();g.load_pgn(resume.pgn);me=resume.me;lvl=resume.lvl;base=resume.base;inc=resume.inc;clock=resume.clock}
   else{g=new Chess();me=pref.col==="r"?(Math.random()<.5?"w":"b"):pref.col;lvl=pref.lvl;const [b,i]=String(pref.tc).split("+").map(Number);base=b||0;inc=i||0;clock={w:base,b:base};
@@ -118,7 +126,7 @@ async function engineMove(){
   const m=b&&b!=="(none)"?g.move({from:b.slice(0,2),to:b.slice(2,4),promotion:b[4]||"q"}):null;
   if(!m){render();return}
   if(afterMove(m,true))return;
-  if(premove){const pm=premove;premove=null;if(!tryMove(pm.from,pm.to,"q"))render()}
+  if(pq.length){const pm=pq.shift();if(!tryMove(pm.from,pm.to,"q")){pq=[];render()}}
 }
 function userMove(from,to,pr){
   const m=g.move({from,to,promotion:pr||"q"});sel=null;if(!m){render();return}
@@ -131,7 +139,7 @@ function tryMove(from,to,auto){
   userMove(from,to,auto);return true;
 }
 function finish(res,how){
-  on=false;thinking=false;eTok++;clearInterval(iv);premove=null;result={res,how};save();play("end");render();
+  on=false;thinking=false;eTok++;clearInterval(iv);pq=[];result={res,how};save();play("end");render();
   const T={win:"승리",loss:"패배",draw:"무승부"};
   $("#result").innerHTML=`<b>${T[res]}</b>${esc(how)}<div class="acts"><button class="pri" id="rAna">분석</button><button id="rNew">새 게임</button></div>`;$("#result").hidden=false;$("#pst").textContent="";
   $("#rAna").onclick=analyse;$("#rNew").onclick=newGame;
@@ -147,7 +155,7 @@ $("#start").onclick=()=>startGame();
 $("#aFlip").onclick=()=>{orient=orient==="w"?"b":"w";render()};
 $("#aResign").onclick=()=>{if(on)finish("loss","기권")};
 $("#aBack").onclick=()=>{
-  if(!on||!g.history().length)return;eTok++;thinking=false;premove=null;$("#pst").textContent="";
+  if(!on||!g.history().length)return;eTok++;thinking=false;pq=[];$("#pst").textContent="";
   g.undo();if(g.turn()!==me&&g.history().length)g.undo();if(g.turn()!==me){render();engineMove();return}
   render();save();
 };
@@ -159,16 +167,16 @@ bEl.addEventListener("contextmenu",e=>e.preventDefault());
 bEl.addEventListener("pointerdown",e=>{
   const sq=sqAt(e.clientX,e.clientY);if(!sq)return;e.preventDefault();try{bEl.setPointerCapture(e.pointerId)}catch(_){}
   const mac=e.button===0&&e.ctrlKey&&/Mac/i.test(navigator.platform);
-  if(e.button===2||mac){if(premove||sel){premove=null;sel=null;render()}rd={from:sq,k:mac?"n":modK(e)};return}
+  if(e.button===2||mac){if(pq.length||sel){pq=[];sel=null;render()}rd={from:sq,k:mac?"n":modK(e)};return}
   if(e.button!==0)return;
   if(marks.size||circ.size){marks.clear();circ.clear()}
   if(!on){render();return}
-  const p=g.get(sq);
+  const p=myTurn()?g.get(sq):at(sq);
   if(sel&&sel!==sq&&!(p&&p.color===me)&&targets(sel).includes(sq)){
-    if(!myTurn()){premove={from:sel,to:sq};sel=null;play("premove");render();return}
+    if(!myTurn()){addPre(sel,sq);return}
     if(tryMove(sel,sq))return;
   }
-  if(!myTurn()&&premove)premove=null;
+  if(!myTurn()&&pq.length&&!(p&&p.color===me)){pq=[];sel=null;render();return}
   if(p&&p.color===me){const was=sel===sq;sel=sq;render();
     const s=bEl.getBoundingClientRect().width/8;floatEl=document.createElement("i");floatEl.className=`pc ${p.color}${p.type} float`;floatEl.style.width=floatEl.style.height=s+"px";document.body.appendChild(floatEl);
     drag={from:sq,was,x0:e.clientX,y0:e.clientY,moved:false,s};floatEl.style.transform=`translate(${e.clientX-s/2}px,${e.clientY-s/2}px)`;document.body.classList.add("grabbing");
@@ -188,7 +196,7 @@ window.addEventListener("pointerup",e=>{
   if(!drag)return;const d=drag;drag=null;endFloat();
   const to=sqAt(e.clientX,e.clientY);
   if(to&&to!==d.from){
-    if(!myTurn()){if(on&&pmTargets(d.from).includes(to)){premove={from:d.from,to};sel=null;play("premove")}render();return}
+    if(!myTurn()){if(on&&pmTargets(d.from).includes(to))addPre(d.from,to);else render();return}
     if(tryMove(d.from,to))return;play("illegal");render();return;
   }
   if(to===d.from&&d.was&&!d.moved)sel=null;
