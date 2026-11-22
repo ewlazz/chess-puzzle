@@ -207,7 +207,7 @@ function mentEng(){const L=LIST;
   AUTO.hang={hl,hw,nl:AL.length,all};
   const what=v=>v>=8?"퀸":v>=5?"룩":"기물";
   return `<h4>막 둔 수 <em class="hsub">시간 있는데 몇 초 만에 기물 내준 수 · ${V.length}판 기준</em></h4>
-    <div class="rnums"><div><b>${all.length}</b><small>막 둔 수</small></div>${AL.length>=3?`<div><b>${hl.toFixed(2)}</b><small>진 다음 판<br>판당</small></div><div><b>${hw.toFixed(2)}</b><small>그 밖의 판<br>판당</small></div>`:""}</div>
+    ${!all.length?'<p class="empty">없음</p>':""}<div class="rnums"${all.length?"":" hidden"}><div><b>${all.length}</b><small>막 둔 수</small></div>${AL.length>=3?`<div><b>${hl.toFixed(2)}</b><small>진 다음 판<br>판당</small></div><div><b>${hw.toFixed(2)}</b><small>그 밖의 판<br>판당</small></div>`:""}</div>
     ${all.slice(0,5).map((x,i)=>{const no=Math.floor(x.h.k/2)+1;return `<div class="ritem" data-hg="${i}">${miniBoard(x.h.fen,x.g.me)}<div class="rt1">vs ${esc(x.g.op.name)}${x.after==="loss"?' <em>진 다음 판</em>':""}</div><div class="rt2"><b class="bad">${no}${x.h.k%2?"...":"."} ${esc(x.h.san)}</b> · ${x.h.think}초 만에 · ${what(x.h.hl)} 내줌 · 승률 −${Math.max(0,x.h.loss)}%p</div><div class="rt3">남은 시간 ${Math.floor(x.h.left/60)}:${String(x.h.left%60).padStart(2,"0")}</div><span class="rgo">게임</span></div>`}).join("")}`;
 }
 /* 4-2. 멘탈: 연패 뒤, 바로 다시 둔 판, 오래 둔 날, 무너진 날 */
