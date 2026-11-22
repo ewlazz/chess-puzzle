@@ -35,7 +35,7 @@ function openSec(L){
     if(!fams.length)return `<div class="rcol"><h4>${CN[c]} <em>${A.length}판 · ${P(base)}</em></h4><p class="empty">3판 이상 둔 오프닝이 없어요.</p></div>`;
     const h=fams.map(([f,a],i)=>{const r=rec(a);
       const vars=group(a,varOf),big=vars.slice(0,8),rest=vars.slice(8).flatMap(x=>x[1]);
-      const vr=big.map(([v,b])=>{const r2=rec(b),nm=v.includes(":")?ko(v).split(":").slice(1).join(":").trim()||ko(v):"변화 전에 정석에서 벗어난 판";
+      const vr=big.map(([v,b])=>{const r2=rec(b),nm=v.includes(":")?ko(v).split(":").slice(1).join(":").trim()||ko(v):"이른 이탈";
         return line(esc(nm),r2,Object.assign({attr:` data-var="${esc(c+"|"+v)}"`},flag(r2,base)))+`<div class="rx" id="rx-${esc(c+"|"+v).replace(/[^\w가-힣]/g,"_")}" hidden></div>`}).join("")
         +(rest.length?line("그 외",rec(rest),{cls:"dim"}):"");
       return `<details class="rfam"${i<4?" open":""}><summary>${line(`<b>${esc(ko(f))}</b>`,r,flag(r,base))}</summary><div class="rvars">${vr}</div></details>`}).join("");
