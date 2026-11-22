@@ -120,6 +120,12 @@ header{background:var(--band);color:#f3f7f8;position:sticky;top:0;z-index:20;bor
 .sws .sw{width:22px;height:22px;box-shadow:none}
 
 
+.rov{position:absolute;inset:0;z-index:25;display:grid;place-items:center;background:#0b1519c4;border-radius:14px;text-align:center;color:#fff;padding:16px}
+.rov h3{margin:0 0 4px;font-family:"Black Han Sans",sans-serif;font-weight:400;font-size:34px}
+.rov p{margin:0 0 16px;color:#d4e2e6}
+.rov .rbs{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.rov .rbs button{min-width:96px;min-height:56px;border-radius:12px;border:0;background:var(--acc);color:var(--accink);font-weight:700;font-size:18px;line-height:1.2}
+.rov .rbs button small{display:block;font-size:12px;font-weight:500;opacity:.8}
 .modes{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
 .modes button{min-height:42px;padding:0 16px;border-radius:99px;border:1px solid #ffffff40;background:transparent;color:#e7eef0;font-weight:700}
 .modes button[aria-selected=true]{background:#fff;color:#122027;border-color:#fff}
@@ -195,6 +201,7 @@ footer p{margin:0}
     <div class="grid">
       <div class="boardbox" id="boardbox">
         <div class="bwrap"><div class="board" id="board" role="grid" aria-label="체스 보드"></div><svg class="marks" id="marks" viewBox="0 0 8 8" aria-hidden="true"></svg></div>
+        <div class="rov" id="rov" hidden></div>
         <div class="promo" id="promo" role="dialog" aria-label="승진"><div><p>승진</p><div class="row" id="promoRow"></div></div></div>
       </div>
       <aside class="card" aria-live="polite">
@@ -317,18 +324,27 @@ const TIERS=["easiest","easier","normal","harder","hardest"];
 let R={on:false,len:0,end:0,score:0,strikes:0,list:[],tf:0,iv:0,fetching:null};
 let rushBest={};try{rushBest=JSON.parse(localStorage.getItem("hansu-rush")||"{}")}catch(e){}
 function rushMore(){if(R.fetching)return R.fetching;const diff=TIERS[Math.min(R.tf++,4)];R.fetching=fetchBatch("mix",diff,8).then(l=>{R.list.push(...l)}).catch(()=>{}).finally(()=>{R.fetching=null});return R.fetching}
+/* 러시 시작 전·끝난 뒤에는 보드 위에 시작 버튼 */
+function rov(){
+  const o=$("#rov"),show=mode==="rush"&&!R.on;o.hidden=!show;if(!show)return;
+  const L={180:"3분",300:"5분",0:"생존"},done=R.len!=null&&R.played;
+  o.innerHTML=`<div><h3>${done?R.score+"점":"퍼즐 러시"}</h3><p>${done?"다시 할까요?":"시간 안에 최대한 많이 푸세요. 세 번 틀리면 끝."}</p><div class="rbs">${[180,300,0].map(k=>`<button data-len="${k}">${L[k]}<small>최고 ${rushBest[k]||0}</small></button>`).join("")}</div></div>`;
+}
+$("#rov").onclick=e=>{const b=e.target.closest("[data-len]");if(b)rushStart(+b.dataset.len)};
 function rushBar(){
-  const b=$("#rushBar");b.hidden=mode!=="rush";if(mode!=="rush")return;
+  const b=$("#rushBar");b.hidden=mode!=="rush";if(mode!=="rush"){$("#rov").hidden=true;return}
   const L={180:"3분",300:"5분",0:"생존"};
-  if(!R.on){b.innerHTML=[180,300,0].map(k=>`<button class="rb" data-len="${k}">${L[k]}</button>`).join("")+`<span class="rs">최고 ${[180,300,0].map(k=>L[k]+" "+(rushBest[k]||0)).join(" · ")}</span>`;return}
+  if(!R.on){b.innerHTML=`<span class="rs">최고 ${[180,300,0].map(k=>L[k]+" "+(rushBest[k]||0)).join(" · ")}</span>`;
+    if(!R.played){$("#pnum").textContent="러시";$("#plevel").hidden=true;$("#psrc").hidden=true;$("#ptitle").textContent="퍼즐 러시";$("#tgoal").textContent="";setStatus("","")}
+    rov();return}
   const left=R.end?Math.max(0,Math.ceil((R.end-Date.now())/1000)):null;
   b.innerHTML=`<span class="rt">${left==null?"∞":Math.floor(left/60)+":"+String(left%60).padStart(2,"0")}</span>${[0,1,2].map(i=>`<span class="x${i<R.strikes?" on":""}">✕</span>`).join("")}`;
 }
 $("#rushBar").onclick=e=>{const b=e.target.closest("[data-len]");if(b)rushStart(+b.dataset.len)};
 async function rushStart(len){
-  R={on:true,len,end:0,score:0,strikes:0,list:[],tf:0,iv:0,fetching:null};
+  R={on:true,played:true,len,end:0,score:0,strikes:0,list:[],tf:0,iv:0,fetching:null};rov();
   setStatus("","불러오는 중…");await rushMore();rushMore();
-  if(!R.list.length){R.on=false;setStatus("wrong","퍼즐을 불러오지 못했어요.");rushBar();return}
+  if(!R.list.length){R.on=false;R.played=false;setStatus("wrong","퍼즐을 불러오지 못했어요.");rushBar();return}
   R.end=len?Date.now()+len*1000:0;R.iv=setInterval(()=>{rushBar();if(R.end&&Date.now()>=R.end)rushEnd()},250);
   rushNext();
 }
@@ -376,7 +392,7 @@ function setMode(m,noLoad){
   try{if(m!=="basic")history.replaceState(null,"","#"+m)}catch(e){}
   stats();
   if(noLoad)return;
-  if(m==="basic")load(cur);else if(m==="daily")loadDaily();else if(m==="mine")loadMine(mi);else if(m==="rush"){clearTimeout(timer);phase="done";setStatus("","시간 안에 최대한 많이 푸세요. 세 번 틀리면 끝.");renderList()}else nextRated();
+  if(m==="basic")load(cur);else if(m==="daily")loadDaily();else if(m==="mine")loadMine(mi);else if(m==="rush"){clearTimeout(timer);phase="done";rushBar();renderList()}else nextRated();
 }
 $("#modes").onclick=e=>{const b=e.target.closest("button");if(b)setMode(b.dataset.m)};
 $("#themeSel").onchange=()=>{try{localStorage.setItem("hansu-theme",$("#themeSel").value)}catch(e){}if(mode==="theme")nextRated()};
