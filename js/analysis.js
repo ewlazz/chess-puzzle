@@ -3,9 +3,9 @@
 if(!document.getElementById("ana"))document.body.insertAdjacentHTML("beforeend",'<div class="ana" id="ana" role="dialog" aria-label="게임 분석"> <div class="ahead"><b id="aTitle"></b><a id="aLink" href="#" target="_blank" rel="noopener">체스닷컴에서 보기</a><button class="x" id="aClose" aria-label="닫기">닫기</button></div> <div class="alay"> <div> <div class="who" id="wTop"></div> <div class="bwrap2"> <div class="evb" id="evb"><i id="evbW"></i><span id="evbT"></span></div> <div class="aboard"><div class="ab8" id="ab8" role="grid" aria-label="분석 보드"></div><svg class="amarks" id="amarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="apromo"><div id="apromoRow"></div></div></div> </div> <div class="who" id="wBot"></div> <div class="ctl"><button id="cFirst" aria-label="처음">처음</button><button id="cPrev" aria-label="이전">이전</button><button id="cNext" aria-label="다음">다음</button><button id="cLast" aria-label="마지막">끝</button><button id="cFlip" aria-label="보드 뒤집기">뒤집기</button></div> <div class="gfig" id="gfig"><svg id="gsvg"></svg></div> </div> <div class="side"> <div><div class="prog"><i id="prog"></i></div><p class="ast" id="ast"></p></div> <div class="acc2" id="acc2"></div> <div class="lines"><div class="lh"><button class="engt" id="engT" aria-pressed="true">엔진</button><span id="ldep"></span></div><div id="lbody"></div></div> <div class="cur" id="cur"></div> <div class="mlist" id="mlist"></div> <table class="cls" id="cls"></table> </div> </div> </div>');
 const F="abcdefgh",ENG="engine/stockfish-19-lite-single.js";
 const CL={
-  brilliant:{l:"브릴리언트",i:"brilliant",c:"#1bada6"},great:{l:"그레이트",i:"great_find",c:"#1bada6"},
-  best:{l:"최선",i:"best",c:"#96bc4b"},excellent:{l:"훌륭함",i:"excellent",c:"#96bc4b"},good:{l:"좋음",i:"good",c:"#96af8b"},
-  book:{l:"오프닝",i:"book",c:"#a88865"},forced:{l:"외길",i:"forced",c:"#96af8b"},
+  brilliant:{l:"탁월",i:"brilliant",c:"#1bada6"},great:{l:"훌륭한 수",i:"great_find",c:"#1bada6"},
+  best:{l:"최선",i:"best",c:"#96bc4b"},excellent:{l:"우수",i:"excellent",c:"#96bc4b"},good:{l:"좋음",i:"good",c:"#96af8b"},
+  book:{l:"오프닝",i:"book",c:"#a88865"},forced:{l:"강제 수",i:"forced",c:"#96af8b"},
   inaccuracy:{l:"부정확",i:"inaccuracy",c:"#f7c045"},mistake:{l:"실수",i:"mistake",c:"#e58f2a"},
   miss:{l:"놓침",i:"incorrect",c:"#ca3431"},blunder:{l:"블런더",i:"blunder",c:"#ca3431"}
 };
@@ -326,14 +326,21 @@ function graph(){
   svg.innerHTML=`<path d="${d}" fill="#EFF0F6"/><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="#6A80B4" stroke-opacity=".6"/>${dots}<line x1="${px}" x2="${px}" y1="0" y2="${H}" stroke="#5C54D6" stroke-width="2"/>`;
 }
 /* 분류 */
+/* 탁월 판정용: 이 수 뒤에 상대가 가져갈 수 있는 내 기물 손해(교환 계산 단순화)
+   - 움직인 기물을 내줌, 다른 기물을 지키지 않고 둠, 언더프로모션 */
+function hangLoss(fen,me){
+  const g=new Chess(fen);if(g.turn()===me)return 0;let worst=0;
+  g.moves({verbose:true}).filter(x=>x.captured&&x.captured!=="p"&&x.captured!=="k").forEach(x=>{
+    const t=new Chess(fen);t.move(x);const back=t.moves({verbose:true}).some(y=>y.to===x.to);
+    const gain=back?VAL[x.captured]-VAL[x.piece]:VAL[x.captured];if(gain>worst)worst=gain});
+  return worst;
+}
 function sac(k,X){X=X||A;
-  const m=X.moves[k];if(m.piece==="p"||m.piece==="k")return false;
-  const pv=VAL[m.piece],cv=m.captured?VAL[m.captured]:0;if(pv-cv<2)return false;
-  const g=new Chess(X.fens[k+1]),caps=g.moves({verbose:true}).filter(x=>x.to===m.to);
-  if(!caps.length)return false;
-  const low=caps.reduce((a,b)=>VAL[a.piece]<=VAL[b.piece]?a:b);g.move(low);
-  const defended=g.moves({verbose:true}).some(x=>x.to===m.to);
-  return !defended||pv-VAL[low.piece]>=2;
+  const m=X.moves[k],me=turnOf(X.fens[k]);
+  if(m.promotion&&m.promotion!=="q")return true;
+  const give=hangLoss(X.fens[k+1],me),got=m.captured?VAL[m.captured]:0;
+  /* 2점 이상 내주거나, 룩을 마이너 기물과 바꾸는 익스체인지 희생 */
+  return give-got>=2||(give-got>=1&&got>=3&&m.piece==="r");
 }
 function classify(k,X){X=X||A;
   const mover=turnOf(X.fens[k]),wb=winPct(X.ev[k]),wa=winPct(X.ev[k+1]);
@@ -346,11 +353,11 @@ function classify(k,X){X=X||A;
   if(loss>=10&&(pc==="mistake"||pc==="blunder"||pc==="miss")&&before>=60&&after>=35)c="miss";
   if(nLegal===1)c="forced";
   else if(k<X.book)c="book";
-  else if(loss<2&&before<97&&after>=45&&sac(k,X))c="brilliant";
+  else if((isBest||loss<1)&&before>=40&&before<=85&&after>=50&&!(k>0&&X.moves[k-1].captured&&X.moves[k-1].to===m.to)&&sac(k,X))c="brilliant";
   else if(isBest&&nLegal>1&&X.sc2[k]&&!pos.in_check()){
     const w2=winPct(whiteCp(X.sc2[k],mover)),s2=mover==="w"?w2:100-w2,prev=k>0?X.moves[k-1]:null;
     const recap=prev&&prev.captured&&prev.to===m.to;
-    if(before-s2>=18&&!recap&&before<92&&after>=35)c="great";
+    if(before-s2>=18&&s2<=55&&!recap&&before<90&&after>=40)c="great";
   }
   X.cls[k]=c;X.acc[k]=Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*loss)-3.1669));
 }
