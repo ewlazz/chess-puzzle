@@ -436,3 +436,12 @@ details.rsec[open]>summary .rh::before{content:"−"}
 .stopc b{font-size:20px;font-weight:900;color:#5C54D6}.stopc span{font-size:14px;color:#505A82}
 .tday{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;padding:9px 0;border-bottom:1px solid #D5D9E8;font-size:14px}
 .tday b{font-family:"Inter","Pretendard",sans-serif}.tday em{font-style:normal;font-weight:800;font-family:"Inter","Pretendard",sans-serif}.tday em.dn{color:#242942}.tday em.up{color:#5C54D6}
+
+/* 잡은 기물 */
+.cap{display:inline-flex;align-items:center;gap:6px;min-height:20px;font-weight:400}
+.cap .cg{display:inline-flex}
+.cap .pc{position:static;display:inline-block;width:20px;height:20px;background-size:100% 100%;margin-right:-11px}
+.cap .cg .pc:last-child{margin-right:0}
+.cap em{font-style:normal;font-family:"Inter","Pretendard",sans-serif;font-size:13px;font-weight:700;color:#505A82}
+.who .cap{margin-left:10px}
+.cbar{display:flex;align-items:center;min-height:30px;padding:4px 2px}

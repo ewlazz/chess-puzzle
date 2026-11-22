@@ -80,7 +80,7 @@ if(window.Openings)Openings.load().then(()=>openName());
 const fmt=s=>{s=Math.max(0,s);const m=Math.floor(s/60),x=s-m*60;return s<20?`${m}:${x.toFixed(1).padStart(4,"0")}`:`${m}:${String(Math.floor(x)).padStart(2,"0")}`};
 function players(){
   const nm=c=>c===me?"나":`Stockfish <em>레벨 ${lvl+1}</em>`,ck=c=>base&&(on||result)?`<span class="clk${on&&g.turn()===c?" run":""}${clock[c]<20&&base?" low":""}">${fmt(clock[c])}</span>`:"";
-  const top=orient==="w"?"b":"w";$("#pTop").innerHTML=`<span>${nm(top)}</span>${ck(top)}`;$("#pBot").innerHTML=`<span>${nm(orient)}</span>${ck(orient)}`;
+  const top=orient==="w"?"b":"w",f=g.fen(),mb=c=>window.matBar?matBar(f,c):"";$("#pTop").innerHTML=`<span>${nm(top)}${mb(top)}</span>${ck(top)}`;$("#pBot").innerHTML=`<span>${nm(orient)}${mb(orient)}</span>${ck(orient)}`;
 }
 function moveList(){
   const h=g.history();let s="";for(let i=0;i<h.length;i+=2)s+=`<div class="mrow"><span>${i/2+1}</span><b${i===h.length-1?' class="on"':""}>${h[i]}</b><b${i+1===h.length-1?' class="on"':""}>${h[i+1]||""}</b></div>`;

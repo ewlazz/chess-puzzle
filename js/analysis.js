@@ -137,7 +137,7 @@ function drawBoard(){
   marks.forEach((col,k)=>{const [a,b]=k.split("-");ar+=arrow(a,b,col)});
   $("#amarks").innerHTML=ar;
   const top=A.orient==="w"?"b":"w",bot=A.orient,ply=N.v?V.base:N.i;
-  const pl=c=>{const gm=A.game,p=gm.me===c?gm.my:gm.op;return `<span>${esc(p.name)} <em>${p.rating}</em></span><span class="clk">${N.v?"":fmtClk(clockAt(c,ply))}</span>`};
+  const pl=c=>{const gm=A.game,p=gm.me===c?gm.my:gm.op;return `<span>${esc(p.name)} <em>${p.rating}</em>${matBar(fen,c)}</span><span class="clk">${N.v?"":fmtClk(clockAt(c,ply))}</span>`};
   $("#wTop").innerHTML=pl(top);$("#wBot").innerHTML=pl(bot);
 }
 function drawInfo(){

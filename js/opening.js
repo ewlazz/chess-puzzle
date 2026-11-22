@@ -37,6 +37,7 @@ function render(){
     return `<div class="${cls}" data-sq="${sq}">${mk}${co}${p?`<i class="pc ${p.color}${p.type}${drag&&drag.from===sq?" ghost":""}"></i>`:""}${dot}</div>`;
   }).join("");
   drawArrows();
+  const f=g.fen();$("#oCapT").innerHTML=matBar(f,orient==="w"?"b":"w");$("#oCapB").innerHTML=matBar(f,orient);
 }
 let topArrows=[];
 function drawArrows(){let s="";
