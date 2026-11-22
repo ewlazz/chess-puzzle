@@ -1,9 +1,9 @@
 /* 오프닝 공부 데이터. 수순과 평가는 Stockfish 19 깊이 18로 확인함.
-   notes의 키는 몇 번째 수(반수) 뒤에 보여 줄지. tags: bee(낮은 레이팅에서 승률 좋음), chad(전설의 갬빗) */
+   notes의 키는 몇 번째 수(반수) 뒤에 보여 줄지. gam은 이 오프닝을 고르는 수의 위치(0부터, 레이팅별 채택률 계산용). tags: bee(낮은 레이팅에서 승률 좋음), chad(전설의 갬빗) */
 window.STUDY=[
 {id:"greco",ko:"그레코 갬빗",en:"Italian Game: Classical Variation, Greco Gambit",eco:"C54",side:"w",tags:["chad"],
  one:"중앙 폰 두 개 밀고 e4를 줘요. 개발 앞서서 흑 킹 노리기",
- trunk:"e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d4 exd4 cxd4 Bb4+ Nc3 Nxe4 O-O",thumb:13,
+ trunk:"e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d4 exd4 cxd4 Bb4+ Nc3 Nxe4 O-O",thumb:13,gam:12,
  notes:{
   5:"이탈리안. 비숍이 f7을 봐요.",
   7:"c3. 다음에 d4로 중앙을 밀려고요.",

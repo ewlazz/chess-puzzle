@@ -199,8 +199,32 @@ function study(){
   const t=o.trunk.split(" "),row=(l)=>{const mv=stFull(o,l),ps=stPos(mv,mv.length),key=o.id+"/"+(l?l.id:"_"),pr=P[key],on=ST.cur&&ST.cur.key===key;
     const st=pr?(pr.ok?"외움":`연습 ${pr.n}번`):"아직";
     return `<div class="ritem${on?" on":""}" data-sv="${l?l.id:"_"}">${miniBoard(ps.fen,o.side,ps.hl)}<div class="rt1">${l?esc(l.ko):"공통 수순"}${l&&l===o.lines[0]?'<span class="bkt">메인</span>':""}${l&&l.trap?'<span class="bkt">함정</span>':""}</div><div class="rt2">${l?esc(l.sub):`${Math.ceil(t.length/2)}.${t[t.length-1]}까지`}</div><div class="rt3">${st}</div><button class="chip rgo" data-sd="${l?l.id:"_"}">연습</button></div>`};
-  el.innerHTML=`<div class="stlist">${row(null)}${o.lines.map(row).join("")}</div><p class="cnt" style="margin-top:10px">줄을 누르면 보드에서 한 수씩 볼 수 있어요. ← → 키로 넘겨요.</p>`;
+  el.innerHTML=`<div id="stStat"></div><div class="stlist">${row(null)}${o.lines.map(row).join("")}</div><p class="cnt" style="margin-top:10px">줄을 누르면 보드에서 한 수씩 볼 수 있어요. ← → 키로 넘겨요.</p>`;
+  stStats(o);
 }
+/* 레이팅별 채택률·성적: 이 오프닝을 고르는 수(gam) 직전 자리에서 그 수를 몇 %가 두고 결과가 어떤지.
+   마스터는 로그인 없이, 리체스 레이팅 구간은 리체스 연결 필요. 3일 캐시 */
+const BANDS=["1000","1200","1400","1600","1800","2000","2200","2500"];
+const BC={},BRUN={};
+async function stStats(o){if(!$("#stStat")||o.gam==null)return;const t=o.trunk.split(" "),fen=fenOf(t,o.gam),san=t[o.gam],ck="hansu-band-"+fen;
+  let C=BC[ck];if(!C){C={};try{C=JSON.parse(localStorage.getItem(ck)||"{}")}catch(e){}if(C.t&&Date.now()-C.t>3*864e5)C={};BC[ck]=C}
+  const row=(lab,r)=>{if(!r)return `<tr><td>${lab}</td><td colspan="4" class="cnt">…</td></tr>`;if(r.err)return `<tr><td>${lab}</td><td colspan="4" class="cnt">${r.err}</td></tr>`;
+    const n=r.w+r.d+r.b,sc=n?Math.round(((o.side==="w"?r.w:r.b)+r.d/2)/n*100):0;
+    return `<tr><td>${lab}</td><td><b>${r.tot?(n/r.tot*100).toFixed(n/r.tot<.1?1:0):0}%</b></td><td>${n.toLocaleString()}</td><td>${n?wdb(r.w,r.d,r.b):""}</td><td>${n?sc+"%":"–"}</td></tr>`};
+  const draw=()=>{const el=$("#stStat");if(!el)return;el.innerHTML=`<div class="bst"><p class="bsh"><b>레이팅별 채택률</b> <span class="cnt">${esc(mvNo(o.gam,san))} 자리에서 · 블리츠·래피드 · 리체스 레이팅</span></p><div class="scroll"><table class="xt"><thead><tr><th>구간</th><th>채택률</th><th>판</th><th>백 승 · 무 · 흑 승</th><th>${o.side==="w"?"백":"흑"} 점수</th></tr></thead><tbody>`+
+    (LI.tok?BANDS.map(k=>row(k==="2500"?"2500+":k+"~"+(k==="2200"?2499:+k+199),C[k])).join(""):"")+row("마스터",C.m)+`</tbody></table></div>`+
+    (LI.tok?"":`<div class="xlogin"><button class="libtn" id="liGo2">${window.LIIC||""}리체스 연결</button><span class="cnt">연결하면 1000~2500 구간별로 보여요</span></div>`)+`</div>`};
+  draw();if(BRUN[ck])return;BRUN[ck]=1;
+  const get=async k=>{const u=k==="m"?`https://explorer.lichess.ovh/masters?moves=15&topGames=0&fen=${encodeURIComponent(fen)}`:`https://explorer.lichess.ovh/lichess?variant=standard&speeds=blitz,rapid&ratings=${k}&moves=15&topGames=0&recentGames=0&fen=${encodeURIComponent(fen)}`;
+    const r=await fetch(u,k==="m"?{}:{headers:{Authorization:"Bearer "+LI.tok}});if(r.status===429)throw new Error("429");if(!r.ok)throw new Error(r.status);const j=await r.json(),m=(j.moves||[]).find(x=>x.san===san)||{white:0,draws:0,black:0};
+    return {tot:j.white+j.draws+j.black,w:m.white,d:m.draws,b:m.black}};
+  for(const k of ["m"].concat(LI.tok?BANDS:[])){if(C[k]&&!C[k].err)continue;
+    try{C[k]=await get(k)}catch(e){C[k]={err:e.message==="429"?"요청이 많아요. 잠시 후 다시":"못 불러옴"}}
+    draw();await new Promise(r=>setTimeout(r,250))}
+  BRUN[ck]=0;if(Object.values(C).every(x=>x&&!x.err)){C.t=Date.now();try{localStorage.setItem(ck,JSON.stringify(C))}catch(e){}}
+}
+const fenOf=(mv,n)=>{const g=new Chess();for(let i=0;i<n;i++)g.move(mv[i]);return g.fen()};
+document.addEventListener("click",e=>{if(e.target.closest("#liGo2"))LI.login()});
 function stSet(o,l){const mv=stFull(o,l);ST.cur={key:o.id+"/"+(l?l.id:"_"),o,l,mv,notes:stNotes(o,l),name:l?l.ko:"공통 수순"}}
 function stView(o,l,at,noScroll){stSet(o,l);DR.on=false;if(QZ)QZ.on=false;orient=o.side;line=ST.cur.mv.slice();idx=at!=null?at:l?Math.max(0,stBase(o,ST.cur.mv)):0;sel=null;marks.clear();circ.clear();
   if(tab!=="study")showTab("study");else study();refresh();
