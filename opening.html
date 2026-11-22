@@ -87,6 +87,18 @@
 .xlogin{margin-top:8px}
 .xlogin p{margin:0 0 10px;font-size:14px;color:#505A82}
 .lnk{border:0;background:none;padding:0;font:inherit;color:#505A82;text-decoration:underline;cursor:pointer}
+.stf{display:grid;gap:6px;margin-bottom:12px}.stf .chips{display:flex;flex-wrap:wrap;gap:4px}.stf .chip{min-height:30px;padding:0 10px;font-size:13px;display:inline-flex;align-items:center;gap:2px}.stf .bee{margin:0 2px 0 0;width:16px;height:16px}
+.scards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.scard{display:grid;gap:10px;align-content:start;text-align:left;border:1px solid #C4C9DC;border-radius:4px;background:transparent;padding:10px;font:inherit;color:#242942;cursor:pointer}
+.scard:hover{border-color:#5C54D6}
+.scard .mbd{width:100%;height:auto;aspect-ratio:1;grid-template-rows:repeat(8,1fr)}
+.sct{display:grid;gap:2px}.sct b{display:flex;align-items:center;font-size:16px}.sct small{color:#505A82;font-size:12px}.sct em{font-style:normal;font-size:13px;line-height:1.5;margin:4px 0}
+.sth h3{display:flex;align-items:center;margin:12px 0 2px;font-size:22px}.sth h3 .bee{width:22px;height:22px}.sth small{color:#505A82;font-size:13px}.sth p{margin:8px 0 6px;font-size:15px}
+.stlist .ritem.on{background:#D5D9E8}.stlist .rt1 .bkt{vertical-align:2px;margin-left:6px}.stlist .rgo{min-height:34px}.stlist .rt1,.stlist .rt2,.stlist .rt3{grid-column:2}
+@media(min-width:981px){.ogrid2>div:first-child{position:sticky;top:calc(var(--hh,64px) + 12px)}}
+.onote{margin-top:10px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;border:1px solid #5C54D6;border-radius:4px;padding:10px 12px;font-size:15px;line-height:1.55}
+.onote b{font-size:13px;color:#5C54D6;width:100%}.onote b em{font-style:normal;color:#505A82;font-family:"Inter","Pretendard",sans-serif;margin-left:4px}
+.onote span{flex:1;min-width:0}.onote .lnk{font-size:13px}
 </style>
 <link rel="stylesheet" href="css/paper.css">
 </head>
@@ -104,18 +116,20 @@
       <h1>오프닝</h1>
       <div class="wood"><div class="aboard"><div class="ab8" id="ob8" aria-label="오프닝 보드"></div><svg class="amarks" id="omarks" viewBox="0 0 8 8" aria-hidden="true"></svg><div class="apromo" id="opromo"><div id="opromoRow"></div></div></div></div>
       <div class="obar"><button id="bStart" aria-label="처음">처음</button><button id="bBack" aria-label="뒤로">이전</button><button id="bFwd" aria-label="앞으로">다음</button><button id="bFlip" aria-label="뒤집기">뒤집기</button></div>
+      <div class="onote" id="oNote" hidden></div>
     </div>
     <div class="opanel">
       <div class="osearch"><input id="oq" placeholder="오프닝 이름이나 ECO 코드 (예: Sicilian, B90)" autocomplete="off" spellcheck="false" aria-label="오프닝 검색"><div class="ores" id="ores" hidden></div></div>
       <div class="oname2" id="oName"></div>
       <div class="oline" id="oLine"></div>
       <div class="oeng" id="oEng"></div>
-      <div class="otabs" role="tablist"><button class="tab" data-t="ex" aria-selected="true">수 통계</button><button class="tab" data-t="games" aria-selected="false">대표 게임</button><button class="tab" data-t="list" aria-selected="false">목록</button><button class="tab" data-t="drill" aria-selected="false">연습</button><button class="tab" data-t="saved" aria-selected="false">저장</button></div>
+      <div class="otabs" role="tablist"><button class="tab" data-t="study" aria-selected="false">공부</button><button class="tab" data-t="ex" aria-selected="true">수 통계</button><button class="tab" data-t="games" aria-selected="false">대표 게임</button><button class="tab" data-t="list" aria-selected="false">목록</button><button class="tab" data-t="drill" aria-selected="false">연습</button><button class="tab" data-t="saved" aria-selected="false">저장</button></div>
       <div id="tEx"></div>
       <div id="tGames" hidden></div>
       <div id="tList" hidden></div>
       <div id="tDrill" hidden></div>
       <div id="tSaved" hidden></div>
+      <div id="tStudy" hidden></div>
     </div>
   </div>
 </section>
@@ -130,6 +144,7 @@
 <script src="js/theme.js"></script>
 <script src="js/common.js"></script>
 <script src="js/openings.js"></script>
+<script src="js/study-data.js"></script>
 <script src="js/opening.js"></script>
 </body>
 </html>

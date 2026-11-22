@@ -78,7 +78,7 @@ function info(){
 }
 $("#oLine").onclick=e=>{const b=e.target.closest("[data-i]");if(b)go(+b.dataset.i)};
 function go(i){idx=Math.max(0,Math.min(line.length,i));sel=null;marks.clear();circ.clear();refresh()}
-function refresh(){render();info();explore();engine();if(tab==="games")games()}
+function refresh(){render();info();explore();engine();if(tab==="games")games();stNote()}
 function setLine(sans){line=sans.slice();idx=line.length;sel=null;marks.clear();circ.clear();refresh()}
 function pushMove(san){if(line[idx]===san){idx++}else{line=line.slice(0,idx);line.push(san);idx++}}
 /* 수 통계 */
@@ -155,6 +155,55 @@ $("#tList").onclick=e=>{const t=e.target.closest("[data-f],[data-back],[data-pgn
   if(t.dataset.f){famSel=t.dataset.f;list();$("#tList").scrollIntoView({block:"nearest"});return}
   loadPgn(t.dataset.pgn);window.scrollTo({top:0,behavior:"smooth"})};
 function loadPgn(p){const sans=(p||"").replace(/\d+\.(\.\.)?/g," ").trim().split(/\s+/).filter(Boolean);const g=new Chess(),ok=[];for(const s of sans){const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}
+/* 공부: 오프닝 카드 목록 → 상세(변화별 보기·연습). 데이터는 js/study-data.js */
+const ST={cat:"all",side:"all",f:"",open:null,cur:null};
+const stProg=()=>{try{return JSON.parse(localStorage.getItem("hansu-study")||"{}")}catch(e){return {}}};
+const stSaveP=o=>{try{localStorage.setItem("hansu-study",JSON.stringify(o))}catch(e){}};
+const stCat=o=>{const f=o.trunk.split(" ")[0];return f==="e4"?"e4":f==="d4"?"d4":(f==="c4"||f==="Nf3")?"fl":"etc"};
+const stFull=(o,l)=>l?(l.alt?l.alt.split(" "):o.trunk.split(" ").concat(l.moves?l.moves.split(" "):[])):o.trunk.split(" ");
+const stBase=(o,mv)=>{const t=o.trunk.split(" ");let k=0;while(k<t.length&&t[k]===mv[k])k++;return k};
+function stNotes(o,l){const mv=stFull(o,l),k=stBase(o,mv),n={};for(const [p,v] of Object.entries(o.notes))if(+p<=k)n[p]=v;return Object.assign(n,l?l.notes:{})}
+function stPos(mv,n){const g=new Chess();let last=null;for(let i=0;i<n;i++)last=g.move(mv[i]);return {fen:g.fen(),hl:last?[last.from,last.to]:null}}
+const stBadge=o=>(o.tags.includes("bee")?BEE("낮은 레이팅에서 승률 좋음"):"")+(o.tags.includes("chad")?CHAD("상남자 라인"):"");
+function study(){
+  const el=$("#tStudy"),S=window.STUDY||[];if(ST.open){stDetail();return}
+  const chips=(k,arr)=>`<div class="chips">${arr.map(([v,t])=>`<button class="chip" data-${k}="${v}" aria-pressed="${ST[k==="stc"?"cat":k==="sts"?"side":"f"]===v}">${t}</button>`).join("")}</div>`;
+  const L=S.filter(o=>(ST.cat==="all"||stCat(o)===ST.cat)&&(ST.side==="all"||o.side===ST.side)&&(!ST.f||o.tags.includes(ST.f))),P=stProg();
+  el.innerHTML=`<div class="stf">${chips("stc",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}${chips("sts",[["all","백·흑"],["w","백으로"],["b","흑으로"]])}${chips("stf",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
+    (L.length?`<div class="scards">${L.map(o=>{const t=o.trunk.split(" "),ps=stPos(t,o.thumb||t.length),done=o.lines.filter(l=>(P[o.id+"/"+l.id]||{}).ok).length;
+      return `<button class="scard" data-st="${o.id}">${miniBoard(ps.fen,o.side,ps.hl)}<span class="sct"><b>${esc(o.ko)}${stBadge(o)}</b><small>${esc(o.eco)} · ${o.side==="w"?"백":"흑"}</small><em>${esc(o.one)}</em><small>변화 ${o.lines.length}개${done?` · 외움 ${done}`:""}</small></span></button>`}).join("")}</div>`:'<p class="cnt">아직 없어요</p>');
+}
+function stDetail(){
+  const o=(window.STUDY||[]).find(x=>x.id===ST.open),el=$("#tStudy"),P=stProg();if(!o){ST.open=null;study();return}
+  const t=o.trunk.split(" "),row=(l)=>{const mv=stFull(o,l),ps=stPos(mv,mv.length),key=o.id+"/"+(l?l.id:"_"),pr=P[key],on=ST.cur&&ST.cur.key===key;
+    const st=l?(pr?(pr.ok?"외움":`연습 ${pr.n}번`):"아직"):"";
+    return `<div class="ritem${on?" on":""}" data-sv="${l?l.id:"_"}">${miniBoard(ps.fen,o.side,ps.hl)}<div class="rt1">${l?esc(l.ko):"공통 수순"}${l&&l.trap?'<span class="bkt">함정</span>':""}</div><div class="rt2">${l?esc(l.sub):`${Math.ceil(t.length/2)}.${t[t.length-1]}까지`}</div><div class="rt3">${st}</div>${l?`<button class="chip rgo" data-sd="${l.id}">연습</button>`:""}</div>`};
+  el.innerHTML=`<button class="chip" data-stback="1">← 목록</button><div class="sth"><h3>${esc(o.ko)}${stBadge(o)}</h3><small>${esc(o.en)} · ${esc(o.eco)} · ${o.side==="w"?"백":"흑"}으로</small><p>${esc(o.one)}</p></div>`+
+    `<div class="stlist">${row(null)}${o.lines.map(row).join("")}</div><p class="cnt" style="margin-top:10px">줄을 누르면 보드에서 한 수씩 볼 수 있어요. ← → 키로 넘겨요.</p>`;
+}
+function stView(o,l){const mv=stFull(o,l);ST.cur={key:o.id+"/"+(l?l.id:"_"),o,l,mv,notes:stNotes(o,l),name:l?l.ko:o.ko};
+  DR.on=false;if(QZ)QZ.on=false;orient=o.side;line=mv.slice();idx=l?Math.max(0,stBase(o,mv)):0;sel=null;marks.clear();circ.clear();refresh();stDetail();
+  if(innerWidth<=980){const hh=parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hh"))||64;scrollTo({top:$("#ob8").getBoundingClientRect().top+scrollY-hh-8,behavior:"smooth"})}}
+function stDrill(o,l){const mv=stFull(o,l);ST.cur={key:o.id+"/"+l.id,o,l,mv,notes:stNotes(o,l),name:l.ko};if(QZ)QZ.on=false;
+  DR={on:true,color:o.side,hits:0,miss:0,busy:false,msg:"내 차례예요.",rep:null,prefix:mv,study:ST.cur.key};line=[];idx=0;orient=o.side;showTab("drill");refresh();dStep()}
+function stDone(){const P=stProg(),k=DR.study,p=P[k]||{n:0,ok:false};p.n++;if(!DR.miss)p.ok=true;p.t=Date.now();P[k]=p;stSaveP(P);DR.on=false;
+  $("#tDrill").innerHTML=`<div class="pr"><div class="prm ${DR.miss?"":"good"}">${DR.miss?`끝까지 왔어요. 틀림 ${DR.miss}번`:"한 번도 안 틀렸어요. 외움으로 표시했어요."}</div><div class="racts"><button class="bgo" data-stre="1">다시</button><button class="chip" data-stbk="1">공부로</button></div></div>`;refresh()}
+$("#tDrill").addEventListener("click",e=>{if(e.target.closest("[data-stre]")&&ST.cur&&ST.cur.l)stDrill(ST.cur.o,ST.cur.l);else if(e.target.closest("[data-stbk]")){ST.open=ST.cur?ST.cur.o.id:ST.open;showTab("study")}});
+$("#tStudy").onclick=e=>{const b=e.target.closest("[data-stc],[data-sts],[data-stf],[data-st],[data-stback],[data-sd],[data-sv]");if(!b)return;const d=b.dataset;
+  if(d.stc!=null)ST.cat=d.stc;else if(d.sts!=null)ST.side=d.sts;else if(d.stf!=null)ST.f=d.stf;
+  else if(d.st){ST.open=d.st;stDetail();$("#tStudy").scrollIntoView({block:"nearest"});return}
+  else if(d.stback){ST.open=null}
+  else{const o=(window.STUDY||[]).find(x=>x.id===ST.open);if(!o)return;
+    if(d.sd){stDrill(o,o.lines.find(l=>l.id===d.sd));return}
+    if(d.sv){stView(o,d.sv==="_"?null:o.lines.find(l=>l.id===d.sv));return}}
+  study()};
+function stNote(){const el=$("#oNote"),c=ST.cur;if(!el)return;
+  if(!c||(DR.on)||(QZ&&QZ.on)){el.hidden=true;return}
+  const ok=line.length>=idx&&line.slice(0,idx).every((s,i)=>s===c.mv[i]);
+  if(!ok){el.hidden=false;el.innerHTML=`<b>${esc(c.name)}</b><span>수순에서 벗어났어요.</span><button class="lnk" data-onb="1">돌아가기</button>`;return}
+  const n=c.notes[idx];el.hidden=false;
+  el.innerHTML=`<b>${esc(c.name)} <em>${idx} / ${c.mv.length}</em></b><span>${n?esc(n):idx<c.mv.length?"→ 다음 수":"끝"}</span><button class="lnk" data-onx="1">닫기</button>`}
+$("#oNote").onclick=e=>{if(e.target.closest("[data-onx]")){ST.cur=null;stNote();if(tab==="study")study()}else if(e.target.closest("[data-onb]")&&ST.cur){let k=0;while(k<idx&&line[k]===ST.cur.mv[k])k++;line=ST.cur.mv.slice();idx=k;sel=null;refresh()}};
 /* 검색 */
 let hits=[];
 /* 이름(영어·한국어), ECO, 수순(e4 c5 / 1.e4 c5)으로 찾기 */
@@ -228,11 +277,12 @@ function showHint(){if(!DR.hintMv)return;const g=new Chess(fenAt()),m=g.move(DR.
 const repCands=n=>{const k=line.slice(0,n);return DR.rep.filter(r=>r.length>n&&k.every((x,i)=>r[i]===x))};
 async function dStep(){
   if(!DR.on)return;const fen=fenAt(),g=new Chess(fen);
+  if(DR.study&&idx>=DR.prefix.length){stDone();return}
   if(g.game_over()){DR.on=false;dMsg("");drill();return}
   if(DR.rep&&!repCands(idx).length){DR.on=false;DR.msg=`저장한 수순 끝까지 왔어요. 맞힘 ${DR.hits} · 틀림 ${DR.miss}`;render();el2();return}
   if(g.turn()===DR.color){if(!DR.msg)dMsg("내 차례예요.");render();return}
   if(DR.prefix&&idx<DR.prefix.length){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
-    const m=g.move(DR.prefix[idx]);DR.busy=false;if(!m){DR.prefix=null;dStep();return}play(snd(m,g));pushMove(m.san);refresh();dMsg(`상대: ${m.san} · 내 차례예요.`);return}
+    const m=g.move(DR.prefix[idx]);DR.busy=false;if(!m){DR.prefix=null;dStep();return}play(snd(m,g));pushMove(m.san);refresh();if(DR.study&&idx>=DR.prefix.length){stDone();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
   if(DR.rep){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
     const C=repCands(idx),pk=C[Math.floor(Math.random()*C.length)][idx],m=g.move(pk);DR.busy=false;if(!m){DR.on=false;drill();return}
     play(snd(m,g));pushMove(m.san);refresh();if(!repCands(idx).length){dStep();return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
@@ -280,8 +330,8 @@ $("#tDrill").addEventListener("click",e=>{if(!QZ)return;const id=e.target.id;
   else if(id==="qzStop"){QZ.on=false;marks.clear();drill();refresh()}});
 /* 탭 */
 function showTab(t){tab=t;document.querySelectorAll(".otabs .tab").forEach(x=>x.setAttribute("aria-selected",x.dataset.t===t));
-  $("#tEx").hidden=tab!=="ex";$("#tGames").hidden=tab!=="games";$("#tList").hidden=tab!=="list";$("#tDrill").hidden=tab!=="drill";$("#tSaved").hidden=tab!=="saved";
-  if(tab==="games")games();if(tab==="list")list();if(tab==="drill")(QZ&&QZ.on?qzDraw():drill());if(tab==="saved")saved()}
+  $("#tEx").hidden=tab!=="ex";$("#tGames").hidden=tab!=="games";$("#tList").hidden=tab!=="list";$("#tDrill").hidden=tab!=="drill";$("#tSaved").hidden=tab!=="saved";$("#tStudy").hidden=tab!=="study";
+  if(tab==="games")games();if(tab==="list")list();if(tab==="drill")(QZ&&QZ.on?qzDraw():drill());if(tab==="saved")saved();if(tab==="study")study()}
 document.querySelectorAll(".otabs .tab").forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 /* 보드 조작 */
 function userMove(from,to,pr){
@@ -344,6 +394,7 @@ Promise.all([Openings.load(),LI.ready]).then(()=>{if(LI.tok&&SRC==="m"&&LI.fresh
   const q=new URL(location.href).searchParams.get("line");
   const sp=new URL(location.href).searchParams,dr=sp.get("drill");
   if(q){const g=new Chess(),ok=[];for(const s of q.split(",")){if(!s)continue;const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}else refresh();
+  if(sp.get("study")){ST.open=sp.get("study");showTab("study")}
   if(sp.get("oquiz")){let L=[];try{L=JSON.parse(localStorage.getItem("hansu-oquiz")||"[]")}catch(e){}
     try{history.replaceState(null,"",location.pathname)}catch(e){}
     if(L.length){QZ={on:true,list:L,i:0,hits:0,miss:0,done:false};qzLoad();return}}
