@@ -33,15 +33,17 @@
     }catch(e){}
   })();
   /* 머리글의 계정 버튼: 체스닷컴 닉네임 연결 + 리체스 로그인 */
+  window.LIIC='<img class="sico" src="https://lichess1.org/assets/logo/lichess-favicon-64.png" alt="리체스" width="22" height="22">';
+  var IC={cc:'<img class="sico" src="https://www.chess.com/bundles/web/favicons/favicon-32x32.png" onerror="this.src=\'https://www.chess.com/favicon.ico\'" alt="체스닷컴" width="22" height="22">',li:window.LIIC};
   function acct(nav){
     var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
     var b=document.createElement("button");b.id="acb";b.className="acb";b.type="button";b.setAttribute("aria-expanded","false");nav.parentNode.appendChild(b);
     var p=document.createElement("div");p.className="setp acp";p.hidden=true;document.querySelector("header").appendChild(p);
     function lab(){var m=ME.get();b.textContent=m||LI.name||(LI.tok?"리체스 연결됨":"")?(m||LI.name||"내 계정"):"로그인"}
     function draw(){var m=ME.get(),ln=LI.name,lt=LI.tok;
-      p.innerHTML='<p>체스닷컴</p>'+(m?'<div class="acr"><b>'+esc(m)+'</b><a href="stats.html?user='+encodeURIComponent(m)+'">내 전적</a><button type="button" class="lnk" data-x="cc-out">연결 해제</button></div>'
-        :'<form class="acf" data-x="cc-form"><input name="u" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button class="bgo">연결</button></form><small class="acs">체스닷컴은 다른 사이트 로그인을 열어두지 않아서 닉네임으로 연결해요. 비밀번호는 안 받아요.</small>')
-        +'<p style="margin-top:14px">리체스</p>'+(lt?'<div class="acr"><b>'+esc(ln||"로그인됨")+'</b><button type="button" class="lnk" data-x="li-out">로그아웃</button></div>':'<button type="button" class="bgo" data-x="li-in">리체스로 로그인</button><small class="acs">로그인하면 오프닝에서 레이팅별 통계를 볼 수 있어요.</small>');
+      p.innerHTML='<div class="acr">'+IC.cc+(m?'<b>'+esc(m)+'</b><a href="stats.html?user='+encodeURIComponent(m)+'">내 전적</a><button type="button" class="lnk" data-x="cc-out">해제</button>'
+        :'<form class="acf" data-x="cc-form"><input name="u" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button class="bgo">연결</button></form>')+'</div>'
+        +'<div class="acr">'+IC.li+(lt?'<b>'+esc(ln||"리체스")+'</b><button type="button" class="lnk" data-x="li-out">해제</button>':'<button type="button" class="libtn" data-x="li-in">리체스</button>')+'</div>';
       lab()}
     lab();
     b.onclick=function(e){e.stopPropagation();draw();p.hidden=!p.hidden;b.setAttribute("aria-expanded",!p.hidden);var sp=document.querySelector(".setp:not(.acp)");if(sp)sp.hidden=true};

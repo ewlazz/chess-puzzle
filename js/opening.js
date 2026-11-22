@@ -102,14 +102,14 @@ function explore(){
   if(!cache.has(key))el.innerHTML=srcBar()+'<p class="cnt">불러오는 중…</p>';
   xTimer=setTimeout(async()=>{
     let x=null;try{x=await fetchX(fen)}catch(e){if(fen!==fenAt())return;
-      if(e.code==="login"){el.innerHTML=srcBar()+`<div class="xlogin"><p>레이팅별 통계는 리체스 게임 데이터라서 리체스 로그인이 필요해요. 무료 계정이면 돼요.</p><button class="bgo" id="liGo">리체스로 로그인</button></div>`;topArrows=[];drawArrows();return}
+      if(e.code==="login"){el.innerHTML=srcBar()+`<div class="xlogin"><button class="libtn" id="liGo">${window.LIIC||""}리체스 연결</button></div>`;topArrows=[];drawArrows();return}
       el.innerHTML=srcBar()+`<p class="cnt">${e.code===429?"요청이 많아요. 잠시 후 다시 해 보세요.":"수 통계를 불러오지 못했어요."}</p>`+bookMoves(fen);topArrows=[];drawArrows();return}
     if(fen!==fenAt())return;
     info();
     const tot=x.white+x.draws+x.black;
     if(!x.moves||!x.moves.length){el.innerHTML=srcBar()+`<p class="cnt">${srcLabel()} 게임에 이 포지션이 없어요.</p>`+bookMoves(fen);topArrows=[];drawArrows();return}
     const g=new Chess(fen),stm=g.turn(),minN=SRC==="m"?20:100;
-    el.innerHTML=srcBar()+`<p class="cnt">${srcLabel()} 게임 ${tot.toLocaleString()}판${SRC!=="m"?` · <button class="lnk" id="liOut">리체스 로그아웃</button>`:""}</p><div class="scroll"><table class="xt"><thead><tr><th>수</th><th>판</th><th>백 승 · 무 · 흑 승</th><th>평균</th><th>오프닝</th></tr></thead><tbody>`+
+    el.innerHTML=srcBar()+`<p class="cnt">${srcLabel()} 게임 ${tot.toLocaleString()}판${SRC!=="m"?``:""}</p><div class="scroll"><table class="xt"><thead><tr><th>수</th><th>판</th><th>백 승 · 무 · 흑 승</th><th>평균</th><th>오프닝</th></tr></thead><tbody>`+
       x.moves.map(m=>{const n=m.white+m.draws+m.black,t=new Chess(fen);t.move(m.san);const a=Openings.at(t.fen());const nm0=a&&a.name?a.name:m.opening?m.opening.name:"",nm=Openings.ko(nm0)||nm0;
         const sc=n?((stm==="w"?m.white:m.black)+m.draws/2)/n:0,bee=n>=minN&&sc>=.6;
         return `<tr data-san="${esc(m.san)}"><td class="sn">${esc(m.san)}${bee?BEE(`${stm==="w"?"백":"흑"} 승률 ${Math.round(sc*100)}%`):""}${a?'<span class="bkt">정석</span>':""}</td><td>${n.toLocaleString()} <span class="cnt">${Math.round(n/tot*100)}%</span></td><td>${wdb(m.white,m.draws,m.black)}</td><td>${m.averageRating||""}</td><td class="nm">${esc(nm)}</td></tr>`}).join("")+`</tbody></table></div>`;
