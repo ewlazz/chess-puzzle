@@ -15,12 +15,13 @@ const order=()=>{const a=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++)a.push(F[ori
 const disp=sq=>{const f=F.indexOf(sq[0]),r=+sq[1];return orient==="w"?[f,8-r]:[7-f,r-1]};
 const bEl=$("#ob8"),sqEl=sq=>bEl.querySelector(`[data-sq="${sq}"]`);
 function sqAt(x,y){const b=bEl.getBoundingClientRect(),c=Math.floor((x-b.left)/b.width*8),r=Math.floor((y-b.top)/b.height*8);if(c<0||c>7||r<0||r>7)return null;return F[orient==="w"?c:7-c]+(orient==="w"?8-r:r+1)}
-function arrow(from,to,color,w){
+/* 화살표: 두께·화살촉 크기 고정, 진하기(op)만 다르게 */
+function arrow(from,to,color,op){
   const [c1,r1]=disp(from),[c2,r2]=disp(to),dc=Math.abs(c2-c1),dr=Math.abs(r2-r1),pts=[[c1+.5,r1+.5]];
   if(dc===1&&dr===2)pts.push([c1+.5,r2+.5]);else if(dc===2&&dr===1)pts.push([c2+.5,r1+.5]);
   pts.push([c2+.5,r2+.5]);const [px,py]=pts[pts.length-2],[tx,ty]=pts[pts.length-1],len=Math.hypot(tx-px,ty-py),ux=(tx-px)/len,uy=(ty-py)/len;
-  const sw=w||.2,H=.44,W=.29,bx=tx-ux*H,by=ty-uy*H,j=p=>p.map(v=>+v.toFixed(3)).join(",");
-  return `<g opacity=".8"><polyline points="${pts.slice(0,-1).concat([[bx+ux*.02,by+uy*.02]]).map(j).join(" ")}" fill="none" stroke="${color}" stroke-width="${sw}"/><polygon points="${[[tx,ty],[bx-uy*W,by+ux*W],[bx+uy*W,by-ux*W]].map(j).join(" ")}" fill="${color}"/></g>`;
+  const sw=.2,H=.46,W=.3,bx=tx-ux*H,by=ty-uy*H,j=p=>p.map(v=>+v.toFixed(3)).join(",");
+  return `<g opacity="${op||.8}"><polyline points="${pts.slice(0,-1).concat([[bx+ux*.02,by+uy*.02]]).map(j).join(" ")}" fill="none" stroke="${color}" stroke-width="${sw}"/><polygon points="${[[tx,ty],[bx-uy*W,by+ux*W],[bx+uy*W,by-ux*W]].map(j).join(" ")}" fill="${color}"/></g>`;
 }
 let QZ=null;
 const canMove=g=>QZ&&QZ.on?(!QZ.busy&&g.turn()===QZ.list[QZ.i].c&&idx===line.length):(!DR.on||(!DR.busy&&g.turn()===DR.color&&idx===line.length));
@@ -38,7 +39,10 @@ function render(){
   drawArrows();
 }
 let topArrows=[];
-function drawArrows(){let s="";(DR.on||(QZ&&QZ.on)?[]:topArrows).forEach(a=>{s+=arrow(a.from,a.to,"#5C54D6",a.w)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
+function drawArrows(){let s="";
+  if(DR.on||(QZ&&QZ.on));
+  else if(MODE==="study"){const A=ST.cur?stArrows():[];A.slice().reverse().forEach(a=>{s+=a.main?arrow(a.from,a.to,"#5C54D6",.85):arrow(a.from,a.to,"#242942",.6)})}
+  else topArrows.slice().reverse().forEach((a,i,arr)=>{s+=arrow(a.from,a.to,"#5C54D6",i===arr.length-1?.85:.4)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
 /* 저장 (내 오프닝) */
 const mvText=a=>a.map((x,i)=>i%2===0?`${i/2+1}. ${x}`:x).join(" ");
 function reps(){try{return JSON.parse(localStorage.getItem("hansu-rep")||"[]")}catch(e){return []}}
@@ -74,11 +78,11 @@ function info(){
   const nmH=(n,e,extra)=>{const k=Openings.ko(n);return `<span class="ont">${esc(k||n)}${star}</span><small>${k?esc(n)+" · ":""}${esc(e)}${extra||""}</small>`};
   $("#oName").innerHTML=idx===0?"시작 위치<small>수를 두거나 오프닝을 검색하세요</small>":nm?nmH(nm.name,nm.eco,inBook?"":" · 정석 밖"):xn?nmH(xn.name,xn.eco):`<span class="ont">정석 밖${star}</span><small>이름 붙은 수순을 벗어났어요</small>`;
   $("#oLine").innerHTML=line.length?line.map((s,i)=>`${i%2===0?`<em>${i/2+1}.</em>`:""}<button data-i="${i+1}" class="${i+1===idx?"on":""}">${esc(s)}</button>`).join(""):"";
-  try{const u=new URL(location.href);if(line.length)u.searchParams.set("line",line.slice(0,idx).join(","));else u.searchParams.delete("line");history.replaceState(null,"",u)}catch(e){}
+  if(MODE==="ex")try{const u=new URL(location.href);if(line.length)u.searchParams.set("line",line.slice(0,idx).join(","));else u.searchParams.delete("line");history.replaceState(null,"",u)}catch(e){}
 }
 $("#oLine").onclick=e=>{const b=e.target.closest("[data-i]");if(b)go(+b.dataset.i)};
 function go(i){idx=Math.max(0,Math.min(line.length,i));sel=null;marks.clear();circ.clear();refresh()}
-function refresh(){render();info();explore();engine();if(tab==="games")games();stNote()}
+function refresh(){render();info();if(MODE==="ex")explore();engine();if(tab==="games")games();stNote()}
 function setLine(sans){line=sans.slice();idx=line.length;sel=null;marks.clear();circ.clear();refresh()}
 function pushMove(san){if(line[idx]===san){idx++}else{line=line.slice(0,idx);line.push(san);idx++}}
 /* 수 통계 */
@@ -116,7 +120,7 @@ function explore(){
         const sc=n?((stm==="w"?m.white:m.black)+m.draws/2)/n:0,bee=n>=minN&&sc>=.6;
         return `<tr data-san="${esc(m.san)}"><td class="sn">${esc(m.san)}${bee?BEE(`${stm==="w"?"백":"흑"} 승률 ${Math.round(sc*100)}%`):""}${a?'<span class="bkt">정석</span>':""}</td><td>${n.toLocaleString()} <span class="cnt">${Math.round(n/tot*100)}%</span></td><td>${wdb(m.white,m.draws,m.black)}</td><td>${m.averageRating||""}</td><td class="nm">${esc(nm)}</td></tr>`}).join("")+`</tbody></table></div>`;
     const mx=Math.max(...x.moves.map(m=>m.white+m.draws+m.black));
-    topArrows=x.moves.slice(0,3).map(m=>{const n=m.white+m.draws+m.black;return {from:m.uci.slice(0,2),to:m.uci.slice(2,4),w:.08+.14*n/mx}}).filter(a=>n0(a));drawArrows();
+    topArrows=x.moves.slice(0,3).map(m=>{const t=new Chess(fen).move(m.san);return t?{from:t.from,to:t.to}:null}).filter(Boolean);drawArrows();
   },cache.has(key)?0:180);
 }
 const n0=a=>a.from&&a.to;
@@ -155,8 +159,12 @@ $("#tList").onclick=e=>{const t=e.target.closest("[data-f],[data-back],[data-pgn
   if(t.dataset.f){famSel=t.dataset.f;list();$("#tList").scrollIntoView({block:"nearest"});return}
   loadPgn(t.dataset.pgn);window.scrollTo({top:0,behavior:"smooth"})};
 function loadPgn(p){const sans=(p||"").replace(/\d+\.(\.\.)?/g," ").trim().split(/\s+/).filter(Boolean);const g=new Chess(),ok=[];for(const s of sans){const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}
-/* 공부: 오프닝 카드 목록 → 상세(변화별 보기·연습). 데이터는 js/study-data.js */
-const ST={cat:"all",side:"all",f:"",open:null,cur:null};
+/* 공부: 오프닝 목록(첫 화면) → 오프닝별 공부 화면. 데이터는 js/study-data.js
+   MODE: gal(목록) · study(공부) · ex(자유 탐색: 수 통계·대표 게임·연습·저장) */
+const SP0=new URL(location.href).searchParams;
+const MODE=SP0.get("study")?"study":(SP0.get("explore")||SP0.get("line")||SP0.get("drill")||SP0.get("oquiz"))?"ex":"gal";
+document.body.classList.add("m-"+MODE);
+const ST={cat:"all",side:"all",f:"",open:SP0.get("study"),cur:null};
 const stProg=()=>{try{return JSON.parse(localStorage.getItem("hansu-study")||"{}")}catch(e){return {}}};
 const stSaveP=o=>{try{localStorage.setItem("hansu-study",JSON.stringify(o))}catch(e){}};
 const stCat=o=>{const f=o.trunk.split(" ")[0];return f==="e4"?"e4":f==="d4"?"d4":(f==="c4"||f==="Nf3")?"fl":"etc"};
@@ -165,45 +173,66 @@ const stBase=(o,mv)=>{const t=o.trunk.split(" ");let k=0;while(k<t.length&&t[k]=
 function stNotes(o,l){const mv=stFull(o,l),k=stBase(o,mv),n={};for(const [p,v] of Object.entries(o.notes))if(+p<=k)n[p]=v;return Object.assign(n,l?l.notes:{})}
 function stPos(mv,n){const g=new Chess();let last=null;for(let i=0;i<n;i++)last=g.move(mv[i]);return {fen:g.fen(),hl:last?[last.from,last.to]:null}}
 const stBadge=o=>(o.tags.includes("bee")?BEE("낮은 레이팅에서 승률 좋음"):"")+(o.tags.includes("chad")?CHAD("상남자 라인"):"");
-function study(){
-  const el=$("#tStudy"),S=window.STUDY||[];if(ST.open){stDetail();return}
-  const chips=(k,arr)=>`<div class="chips">${arr.map(([v,t])=>`<button class="chip" data-${k}="${v}" aria-pressed="${ST[k==="stc"?"cat":k==="sts"?"side":"f"]===v}">${t}</button>`).join("")}</div>`;
+const stObj=()=>(window.STUDY||[]).find(x=>x.id===ST.open);
+const mvNo=(i,san)=>`${Math.floor(i/2)+1}${i%2?"...":"."}${san}`;
+/* 목록 화면 */
+function gal(){
+  const el=$("#gal"),S=window.STUDY||[];
+  const chips=(k,key,arr)=>`<div class="chips">${arr.map(([v,t])=>`<button class="chip" data-${k}="${v}" aria-pressed="${ST[key]===v}">${t}</button>`).join("")}</div>`;
   const L=S.filter(o=>(ST.cat==="all"||stCat(o)===ST.cat)&&(ST.side==="all"||o.side===ST.side)&&(!ST.f||o.tags.includes(ST.f))),P=stProg();
-  el.innerHTML=`<div class="stf">${chips("stc",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}${chips("sts",[["all","백·흑"],["w","백으로"],["b","흑으로"]])}${chips("stf",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
+  el.innerHTML=`<div class="stf">${chips("stc","cat",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}${chips("sts","side",[["all","백·흑"],["w","백으로"],["b","흑으로"]])}${chips("stf","f",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
     (L.length?`<div class="scards">${L.map(o=>{const t=o.trunk.split(" "),ps=stPos(t,o.thumb||t.length),done=o.lines.filter(l=>(P[o.id+"/"+l.id]||{}).ok).length;
-      return `<button class="scard" data-st="${o.id}">${miniBoard(ps.fen,o.side,ps.hl)}<span class="sct"><b>${esc(o.ko)}${stBadge(o)}</b><small>${esc(o.eco)} · ${o.side==="w"?"백":"흑"}</small><em>${esc(o.one)}</em><small>변화 ${o.lines.length}개${done?` · 외움 ${done}`:""}</small></span></button>`}).join("")}</div>`:'<p class="cnt">아직 없어요</p>');
+      return `<a class="scard" href="opening.html?study=${o.id}">${miniBoard(ps.fen,o.side,ps.hl)}<span class="sct"><b>${esc(o.ko)}${stBadge(o)}</b><small>${esc(o.eco)} · ${o.side==="w"?"백":"흑"}</small><em>${esc(o.one)}</em><small>변화 ${o.lines.length}개${done?` · 외움 ${done}`:""}</small></span></a>`}).join("")}</div>`:'<p class="cnt">아직 없어요</p>');
 }
-function stDetail(){
-  const o=(window.STUDY||[]).find(x=>x.id===ST.open),el=$("#tStudy"),P=stProg();if(!o){ST.open=null;study();return}
+$("#gal").onclick=e=>{const b=e.target.closest("[data-stc],[data-sts],[data-stf]");if(!b)return;const d=b.dataset;
+  if(d.stc!=null)ST.cat=d.stc;else if(d.sts!=null)ST.side=d.sts;else ST.f=d.stf;gal()};
+/* 공부 화면 */
+function stTop(){const el=$("#stTop");
+  if(MODE==="ex"){el.innerHTML='<a class="lnk" href="opening.html">← 오프닝 목록</a>';return}
+  const o=stObj();if(!o){el.innerHTML="";return}
+  el.innerHTML=`<a class="lnk" href="opening.html">← 오프닝 목록</a><div class="sth"><small>${esc(o.en)} · ${esc(o.eco)} · ${o.side==="w"?"백":"흑"}으로</small><p>${esc(o.one)}</p></div>`}
+function study(){
+  const o=stObj(),el=$("#tStudy"),P=stProg();if(!o){el.innerHTML='<p class="cnt">없는 오프닝이에요.</p>';return}
   const t=o.trunk.split(" "),row=(l)=>{const mv=stFull(o,l),ps=stPos(mv,mv.length),key=o.id+"/"+(l?l.id:"_"),pr=P[key],on=ST.cur&&ST.cur.key===key;
     const st=l?(pr?(pr.ok?"외움":`연습 ${pr.n}번`):"아직"):"";
-    return `<div class="ritem${on?" on":""}" data-sv="${l?l.id:"_"}">${miniBoard(ps.fen,o.side,ps.hl)}<div class="rt1">${l?esc(l.ko):"공통 수순"}${l&&l.trap?'<span class="bkt">함정</span>':""}</div><div class="rt2">${l?esc(l.sub):`${Math.ceil(t.length/2)}.${t[t.length-1]}까지`}</div><div class="rt3">${st}</div>${l?`<button class="chip rgo" data-sd="${l.id}">연습</button>`:""}</div>`};
-  el.innerHTML=`<button class="chip" data-stback="1">← 목록</button><div class="sth"><h3>${esc(o.ko)}${stBadge(o)}</h3><small>${esc(o.en)} · ${esc(o.eco)} · ${o.side==="w"?"백":"흑"}으로</small><p>${esc(o.one)}</p></div>`+
-    `<div class="stlist">${row(null)}${o.lines.map(row).join("")}</div><p class="cnt" style="margin-top:10px">줄을 누르면 보드에서 한 수씩 볼 수 있어요. ← → 키로 넘겨요.</p>`;
+    return `<div class="ritem${on?" on":""}" data-sv="${l?l.id:"_"}">${miniBoard(ps.fen,o.side,ps.hl)}<div class="rt1">${l?esc(l.ko):"공통 수순"}${l&&l===o.lines[0]?'<span class="bkt">메인</span>':""}${l&&l.trap?'<span class="bkt">함정</span>':""}</div><div class="rt2">${l?esc(l.sub):`${Math.ceil(t.length/2)}.${t[t.length-1]}까지`}</div><div class="rt3">${st}</div>${l?`<button class="chip rgo" data-sd="${l.id}">연습</button>`:""}</div>`};
+  el.innerHTML=`<div class="stlist">${row(null)}${o.lines.map(row).join("")}</div><p class="cnt" style="margin-top:10px">줄을 누르면 보드에서 한 수씩 볼 수 있어요. ← → 키로 넘겨요.</p>`;
 }
-function stView(o,l){const mv=stFull(o,l);ST.cur={key:o.id+"/"+(l?l.id:"_"),o,l,mv,notes:stNotes(o,l),name:l?l.ko:o.ko};
-  DR.on=false;if(QZ)QZ.on=false;orient=o.side;line=mv.slice();idx=l?Math.max(0,stBase(o,mv)):0;sel=null;marks.clear();circ.clear();refresh();stDetail();
-  if(innerWidth<=980){const hh=parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hh"))||64;scrollTo({top:$("#ob8").getBoundingClientRect().top+scrollY-hh-8,behavior:"smooth"})}}
-function stDrill(o,l){const mv=stFull(o,l);ST.cur={key:o.id+"/"+l.id,o,l,mv,notes:stNotes(o,l),name:l.ko};if(QZ)QZ.on=false;
-  DR={on:true,color:o.side,hits:0,miss:0,busy:false,msg:"내 차례예요.",rep:null,prefix:mv,study:ST.cur.key};line=[];idx=0;orient=o.side;showTab("drill");refresh();dStep()}
+function stSet(o,l){const mv=stFull(o,l);ST.cur={key:o.id+"/"+(l?l.id:"_"),o,l,mv,notes:stNotes(o,l),name:l?l.ko:"공통 수순"}}
+function stView(o,l,at,noScroll){stSet(o,l);DR.on=false;if(QZ)QZ.on=false;orient=o.side;line=ST.cur.mv.slice();idx=at!=null?at:l?Math.max(0,stBase(o,ST.cur.mv)):0;sel=null;marks.clear();circ.clear();
+  if(tab!=="study")showTab("study");else study();refresh();
+  if(!noScroll&&innerWidth<=980){const hh=parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hh"))||64;scrollTo({top:$("#ob8").getBoundingClientRect().top+scrollY-hh-8,behavior:"smooth"})}}
+function stDrill(o,l){stSet(o,l);if(QZ)QZ.on=false;
+  DR={on:true,color:o.side,hits:0,miss:0,busy:false,msg:"내 차례예요.",rep:null,prefix:ST.cur.mv,study:ST.cur.key};line=[];idx=0;orient=o.side;showTab("drill");refresh();dStep()}
 function stDone(){const P=stProg(),k=DR.study,p=P[k]||{n:0,ok:false};p.n++;if(!DR.miss)p.ok=true;p.t=Date.now();P[k]=p;stSaveP(P);DR.on=false;
-  $("#tDrill").innerHTML=`<div class="pr"><div class="prm ${DR.miss?"":"good"}">${DR.miss?`끝까지 왔어요. 틀림 ${DR.miss}번`:"한 번도 안 틀렸어요. 외움으로 표시했어요."}</div><div class="racts"><button class="bgo" data-stre="1">다시</button><button class="chip" data-stbk="1">공부로</button></div></div>`;refresh()}
-$("#tDrill").addEventListener("click",e=>{if(e.target.closest("[data-stre]")&&ST.cur&&ST.cur.l)stDrill(ST.cur.o,ST.cur.l);else if(e.target.closest("[data-stbk]")){ST.open=ST.cur?ST.cur.o.id:ST.open;showTab("study")}});
-$("#tStudy").onclick=e=>{const b=e.target.closest("[data-stc],[data-sts],[data-stf],[data-st],[data-stback],[data-sd],[data-sv]");if(!b)return;const d=b.dataset;
-  if(d.stc!=null)ST.cat=d.stc;else if(d.sts!=null)ST.side=d.sts;else if(d.stf!=null)ST.f=d.stf;
-  else if(d.st){ST.open=d.st;stDetail();$("#tStudy").scrollIntoView({block:"nearest"});return}
-  else if(d.stback){ST.open=null}
-  else{const o=(window.STUDY||[]).find(x=>x.id===ST.open);if(!o)return;
-    if(d.sd){stDrill(o,o.lines.find(l=>l.id===d.sd));return}
-    if(d.sv){stView(o,d.sv==="_"?null:o.lines.find(l=>l.id===d.sv));return}}
-  study()};
+  $("#tDrill").innerHTML=`<div class="pr"><div class="prm ${DR.miss?"":"good"}">${DR.miss?`끝까지 왔어요. 틀림 ${DR.miss}번`:"한 번도 안 틀렸어요. 외움으로 표시했어요."}</div><div class="racts"><button class="bgo" data-stre="1">다시</button><button class="chip" data-stbk="1">${MODE==="study"?"변화 목록":"공부로"}</button></div></div>`;refresh()}
+$("#tDrill").addEventListener("click",e=>{if(e.target.closest("[data-stre]")&&ST.cur&&ST.cur.l)stDrill(ST.cur.o,ST.cur.l);else if(e.target.closest("[data-stbk]")){DR.on=false;showTab("study");refresh()}});
+$("#tStudy").onclick=e=>{const b=e.target.closest("[data-sd],[data-sv]");if(!b)return;const o=stObj();if(!o)return;
+  if(b.dataset.sd){stDrill(o,o.lines.find(l=>l.id===b.dataset.sd));return}
+  stView(o,b.dataset.sv==="_"?null:o.lines.find(l=>l.id===b.dataset.sv))};
+/* 지금 자리에서 이 오프닝 변화들이 어디로 갈라지는지 */
+function stForks(){const c=ST.cur;if(!c)return [];const o=c.o,cur=line.slice(0,idx),out=new Map();
+  const cands=[{l:c.l,mv:c.mv}].concat(o.lines.filter(l=>l!==c.l).map(l=>({l,mv:stFull(o,l)})));
+  if(c.l)cands.push({l:null,mv:stFull(o,null)});
+  for(const x of cands){if(x.mv.length<=idx||!cur.every((s,i)=>s===x.mv[i]))continue;const san=x.mv[idx];if(!out.has(san))out.set(san,{san,l:x.l,names:[]});const e=out.get(san);if(x.l)e.names.push(x.l.ko)}
+  return [...out.values()]}
+function stArrows(){const F=stForks();if(!F.length)return [];const g=new Chess(fenAt()),res=[];
+  F.forEach((f,i)=>{const m=g.moves({verbose:true}).find(z=>z.san===f.san);if(m)res.push({from:m.from,to:m.to,main:i===0})});return res}
 function stNote(){const el=$("#oNote"),c=ST.cur;if(!el)return;
-  if(!c||(DR.on)||(QZ&&QZ.on)){el.hidden=true;return}
-  const ok=line.length>=idx&&line.slice(0,idx).every((s,i)=>s===c.mv[i]);
+  if(MODE!=="study"||!c||DR.on||(QZ&&QZ.on)){el.hidden=true;return}
+  let ok=line.slice(0,idx).every((s,i)=>s===c.mv[i]);
+  if(!ok){/* 다른 변화 수순을 두면 그 변화로 옮겨 감 */
+    const o=c.o,cur=line.slice(0,idx),hit=[null].concat(o.lines).find(l=>{const mv=stFull(o,l);return mv.length>=idx&&cur.every((s,i)=>s===mv[i])});
+    if(hit!==undefined){stSet(o,hit);line=ST.cur.mv.slice();study();drawArrows();ok=true}}
   if(!ok){el.hidden=false;el.innerHTML=`<b>${esc(c.name)}</b><span>수순에서 벗어났어요.</span><button class="lnk" data-onb="1">돌아가기</button>`;return}
-  const n=c.notes[idx];el.hidden=false;
-  el.innerHTML=`<b>${esc(c.name)} <em>${idx} / ${c.mv.length}</em></b><span>${n?esc(n):idx<c.mv.length?"→ 다음 수":"끝"}</span><button class="lnk" data-onx="1">닫기</button>`}
-$("#oNote").onclick=e=>{if(e.target.closest("[data-onx]")){ST.cur=null;stNote();if(tab==="study")study()}else if(e.target.closest("[data-onb]")&&ST.cur){let k=0;while(k<idx&&line[k]===ST.cur.mv[k])k++;line=ST.cur.mv.slice();idx=k;sel=null;refresh()}};
+  const C=ST.cur,n=C.notes[idx],F=stForks();el.hidden=false;
+  const nx=!F.length?'<span>끝</span>':F.length===1?`<span>다음</span><b>${esc(mvNo(idx,F[0].san))}</b>`:
+    `<span>갈림길</span>${F.map((f,i)=>`<button class="${i===0?"mn":""}" data-br="${f.l?f.l.id:"_"}" data-san="${esc(f.san)}"><i class="${i===0?"":"br"}"></i><b>${esc(mvNo(idx,f.san))}</b>${f.names.length?esc(f.names[0])+(f.names.length>1?` 외 ${f.names.length-1}`:""):""}</button>`).join("")}`;
+  el.innerHTML=`<b>${esc(C.name)} <em>${idx} / ${C.mv.length}</em></b>${n?`<span>${esc(n)}</span>`:""}<div class="onx">${nx}</div>`}
+$("#oNote").onclick=e=>{const br=e.target.closest("[data-br]");
+  if(br&&ST.cur){const o=ST.cur.o,l=br.dataset.br==="_"?null:o.lines.find(x=>x.id===br.dataset.br),at=idx;stSet(o,l);line=ST.cur.mv.slice();idx=Math.min(at+1,line.length);sel=null;
+    const g=game(),h=g.history({verbose:true}),m=h[h.length-1];if(m)play(snd(m,g));study();refresh();return}
+  if(e.target.closest("[data-onb]")&&ST.cur){let k=0;while(k<idx&&line[k]===ST.cur.mv[k])k++;line=ST.cur.mv.slice();idx=k;sel=null;refresh()}};
 /* 검색 */
 let hits=[];
 /* 이름(영어·한국어), ECO, 수순(e4 c5 / 1.e4 c5)으로 찾기 */
@@ -220,7 +249,7 @@ $("#oq").addEventListener("input",()=>{
 });
 $("#oq").addEventListener("keydown",e=>{if(e.key==="Enter"&&hits[0]){pick(0);e.preventDefault()}else if(e.key==="Escape")$("#ores").hidden=true});
 $("#ores").onclick=e=>{const b=e.target.closest("[data-i]");if(b)pick(+b.dataset.i)};
-function pick(i){const n=hits[i];if(!n)return;$("#ores").hidden=true;$("#oq").value="";loadPgn(n[2]);if(tab==="list"){famSel=Openings.family(n[1]);list()}}
+function pick(i){const n=hits[i];if(!n)return;$("#ores").hidden=true;$("#oq").value="";loadPgn(n[2]);}
 document.addEventListener("click",e=>{if(!e.target.closest(".osearch"))$("#ores").hidden=true});
 /* 엔진 */
 const E={w:null,ready:null,fen:null,pending:0,searching:false,lines:[],
@@ -388,16 +417,19 @@ $("#bFlip").onclick=()=>{orient=orient==="w"?"b":"w";render()};
 document.addEventListener("keydown",e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
   const step=i=>{if(DR.on){if(DR.busy)return;idx=Math.max(0,Math.min(line.length,i));sel=null;render();info();drill();return}go(i)};
   if(e.key==="ArrowLeft"){step(idx-1);e.preventDefault()}else if(e.key==="ArrowRight"){step(idx+1);e.preventDefault()}else if(e.key==="Home"){step(0);e.preventDefault()}else if(e.key==="End"){step(line.length);e.preventDefault()}});
-/* 시작: ?line=e4,c5 */
-render();
-Promise.all([Openings.load(),LI.ready]).then(()=>{if(LI.tok&&SRC==="m"&&LI.fresh){SRC="1600";try{localStorage.setItem("hansu-src",SRC)}catch(e){}}
+/* 시작: 목록 화면 / ?study=id 공부 화면 / ?line=e4,c5 자유 탐색 */
+stTop();
+if(MODE==="gal"){$("#galSec").hidden=false;gal()}
+else{render();
+if(MODE==="study"){const o=stObj();if(o){$("#oH1").innerHTML=esc(o.ko)+stBadge(o);document.title=o.ko+" - 한 수"}Openings.load().then(()=>{if(o)stView(o,null,0,true);else{showTab("study")}})}
+else Promise.all([Openings.load(),LI.ready]).then(()=>{if(LI.tok&&SRC==="m"&&LI.fresh){SRC="1600";try{localStorage.setItem("hansu-src",SRC)}catch(e){}}
   const q=new URL(location.href).searchParams.get("line");
   const sp=new URL(location.href).searchParams,dr=sp.get("drill");
   if(q){const g=new Chess(),ok=[];for(const s of q.split(",")){if(!s)continue;const m=g.move(s);if(!m)break;ok.push(m.san)}setLine(ok)}else refresh();
-  if(sp.get("study")){ST.open=sp.get("study");showTab("study")}
   if(sp.get("oquiz")){let L=[];try{L=JSON.parse(localStorage.getItem("hansu-oquiz")||"[]")}catch(e){}
     try{history.replaceState(null,"",location.pathname)}catch(e){}
     if(L.length){QZ={on:true,list:L,i:0,hits:0,miss:0,done:false};qzLoad();return}}
   if(dr==="w"||dr==="b"){const pre=line.slice();DR={on:true,color:dr,hits:0,miss:0,busy:false,msg:"내 차례예요.",rep:null,prefix:pre};line=[];idx=0;orient=dr;showTab("drill");refresh();dStep()}
 });
+}
 }
