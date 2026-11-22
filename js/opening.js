@@ -157,31 +157,37 @@ $("#ores").onclick=e=>{const b=e.target.closest("[data-i]");if(b)pick(+b.dataset
 function pick(i){const n=hits[i];if(!n)return;$("#ores").hidden=true;$("#oq").value="";loadPgn(n[2]);if(tab==="list"){famSel=Openings.family(n[1]);list()}}
 document.addEventListener("click",e=>{if(!e.target.closest(".osearch"))$("#ores").hidden=true});
 /* 엔진 */
-const E={w:null,ready:null,fen:null,pending:0,searching:false,
+const E={w:null,ready:null,fen:null,pending:0,searching:false,lines:[],
   init(){if(this.ready)return this.ready;this.ready=new Promise((res,rej)=>{try{this.w=new Worker(ENG)}catch(e){rej(e);return}this.w.onerror=rej;let ok=false;
-    this.w.onmessage=e=>{const l=String(e.data);if(l==="uciok"){this.w.postMessage("setoption name Hash value 16");this.w.postMessage("isready")}else if(l==="readyok"){if(!ok){ok=true;res()}}
+    this.w.onmessage=e=>{const l=String(e.data);if(l==="uciok"){this.w.postMessage("setoption name Hash value 32");this.w.postMessage("setoption name MultiPV value 3");this.w.postMessage("isready")}else if(l==="readyok"){if(!ok){ok=true;res()}}
       else if(l.startsWith("bestmove")){if(this.pending>0){this.pending--;return}this.searching=false}
       else if(l.startsWith("info")&&this.pending===0&&l.includes(" pv ")&&!/bound/.test(l))show(l)};
     this.w.postMessage("uci")});return this.ready},
-  go(fen){this.fen=fen;if(this.searching){this.pending++;this.w.postMessage("stop")}this.w.postMessage("position fen "+fen);this.w.postMessage("go depth 20");this.searching=true}
+  go(fen){this.fen=fen;this.lines=[];if(this.searching){this.pending++;this.w.postMessage("stop")}this.w.postMessage("position fen "+fen);this.w.postMessage("go depth 22");this.searching=true}
 };
+const wp=cp=>50+50*(2/(1+Math.exp(-0.00368208*cp))-1);
+const evT=(t,v)=>t==="mate"?(v>0?"M":"-M")+Math.abs(v):(v>0?"+":"")+(v/100).toFixed(2);
 function show(l){
-  const fen=E.fen,g=new Chess(fen),m=/score (cp|mate) (-?\d+)/.exec(l),d=/ depth (\d+)/.exec(l),pv=/ pv (\S+)/.exec(l);if(!m||fen!==fenAt())return;
-  let v=+m[2];if(g.turn()==="b")v=-v;
-  const t=m[1]==="mate"?(v>0?"M":"-M")+Math.abs(+m[2]):(v>0?"+":"")+(v/100).toFixed(2);
-  let bs="";if(pv){const x=g.move({from:pv[1].slice(0,2),to:pv[1].slice(2,4),promotion:pv[1][4]||"q"});if(x)bs=x.san}
-  $("#oEng").innerHTML=`엔진 <b>${t}</b>${bs?` · 최선 <b>${esc(bs)}</b>`:""} <span class="cnt">깊이 ${d?d[1]:""}</span>`;
+  const fen=E.fen;if(fen!==fenAt())return;
+  const m=/score (cp|mate) (-?\d+)/.exec(l),d=/ depth (\d+)/.exec(l),k=/ multipv (\d+)/.exec(l),pv=l.split(" pv ")[1];if(!m||!pv)return;
+  const g=new Chess(fen),sgn=g.turn()==="b"?-1:1,raw=+m[2]*sgn,san=[];
+  for(const u of pv.trim().split(" ").slice(0,12)){const x=g.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});if(!x)break;san.push(x.san)}
+  E.lines[(k?+k[1]:1)-1]={t:m[1],v:raw,san,d:d?+d[1]:0};
+  draw();
+  function draw(){
+    const L=E.lines.filter(Boolean),top=L[0];if(!top)return;
+    const cp=top.t==="mate"?(top.v>0?1e4:-1e4):top.v,w=wp(cp);
+    const st=new Chess(fen),n0=+fen.split(" ")[5],side=st.turn();
+    const mv=(a,j)=>a.map((s,i)=>{const ply=(side==="w"?0:1)+i,no=n0+Math.floor(ply/2);return `${ply%2===0?`<em>${no}.</em>`:i===0?`<em>${no}...</em>`:""}<button data-pv="${j}" data-k="${i}">${esc(s)}</button>`}).join(" ");
+    $("#oEng").innerHTML=`<div class="oeh"><b>${evT(top.t,top.v)}</b><span class="cnt">깊이 ${top.d}</span></div><div class="oevb" title="백 기준"><i style="width:${w.toFixed(1)}%"></i></div>`
+      +L.map((x,j)=>`<div class="opv"><span class="pvs">${evT(x.t,x.v)}</span><span class="pvm">${mv(x.san,j)}</span></div>`).join("");
+  }
 }
-let eT=0;function engine(){clearTimeout(eT);const fen=fenAt(),g=new Chess(fen);if(g.game_over()){$("#oEng").textContent=g.in_checkmate()?"체크메이트":"무승부";return}
-  $("#oEng").textContent="엔진 계산 중…";eT=setTimeout(()=>E.init().then(()=>{if(fenAt()===fen)E.go(fen)}).catch(()=>{$("#oEng").textContent=""}),150)}
-/* 연습: 마스터 게임에서 많이 둔 수로 상대가 두고, 내 수가 정석(마스터 5% 이상 또는 이름 붙은 수순)인지 확인 */
-function drill(){
-  const el=$("#tDrill");
-  if(!DR.on){el.innerHTML=`<div class="pr"><p class="cnt" style="margin:0">지금 보드 위치부터 시작해요. 상대는 마스터 게임에서 많이 둔 수로 두고, 내가 정석을 벗어나면 알려 줘요.</p>
-    <div class="seg" id="drC"><button class="chip" data-c="w" aria-pressed="${DR.color==="w"}">백으로</button><button class="chip" data-c="b" aria-pressed="${DR.color==="b"}">흑으로</button></div>
-    <button class="bgo" id="drGo">연습 시작</button></div>`;return}
-  el.innerHTML=`<div class="pr">${DR.rep?'<p class="cnt" style="margin:0">저장한 수순 연습</p>':""}<div class="prm ${DR.cls||""}" id="drM">${DR.msg||""}</div><p class="cnt" style="margin:0">맞힘 ${DR.hits} · ${DR.rep?"틀림":"벗어남"} ${DR.miss}</p><button class="chip" id="drStop">그만하기</button></div>`;
-}
+$("#oEng").onclick=e=>{const b=e.target.closest("[data-pv]");if(!b)return;const x=E.lines[+b.dataset.pv];if(!x)return;setLine(line.slice(0,idx).concat(x.san.slice(0,+b.dataset.k+1)))};
+let eT=0;function engine(){clearTimeout(eT);const fen=fenAt(),g=new Chess(fen);
+  if(DR&&DR.on){$("#oEng").innerHTML='<p class="cnt">연습 중에는 엔진을 꺼 둬요.</p>';if(E.searching){E.pending++;E.w.postMessage("stop");E.searching=false}return}
+  if(g.game_over()){$("#oEng").textContent=g.in_checkmate()?"체크메이트":"무승부";return}
+  $("#oEng").innerHTML='<p class="cnt">엔진 계산 중…</p>';eT=setTimeout(()=>E.init().then(()=>{if(fenAt()===fen)E.go(fen)}).catch(()=>{$("#oEng").textContent=""}),150)}
 $("#tDrill").onclick=e=>{
   const c=e.target.closest("[data-c]");if(c){DR.color=c.dataset.c;drill();return}
   if(e.target.id==="drGo"){DR={on:true,color:DR.color,hits:0,miss:0,busy:false,msg:"",start:idx,rep:null};line=line.slice(0,idx);orient=DR.color;drill();render();dStep();return}

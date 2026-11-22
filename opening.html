@@ -70,6 +70,17 @@
 .rl small{color:var(--muted);font-size:13px}
 .rm{min-height:38px;border-radius:8px;border:1px solid var(--line);padding:0 10px;font-size:14px;background:var(--card);color:var(--ink)}
 .ra{display:flex;flex-wrap:wrap;gap:6px}.ra .chip{min-height:32px;font-size:13px}
+.oeng{border:1px solid #C4C9DC;border-radius:4px;padding:12px 14px;margin:6px 0 4px}
+.oeh{display:flex;align-items:baseline;gap:10px}
+.oeh b{font-family:"Inter","Pretendard",sans-serif;font-variation-settings:"opsz" 32;font-size:28px;font-weight:800;letter-spacing:-.02em}
+.oevb{height:8px;background:#242942;border-radius:2px;overflow:hidden;margin:8px 0 10px}
+.oevb i{display:block;height:100%;background:#EFF0F6;box-shadow:inset 0 0 0 1px #C4C9DC;transition:width .3s}
+.opv{display:grid;grid-template-columns:58px minmax(0,1fr);gap:8px;align-items:start;padding:6px 0;border-top:1px solid #D5D9E8;font-size:14px;line-height:1.7}
+.pvs{font-family:"Inter","Pretendard",sans-serif;font-weight:800;font-feature-settings:"tnum"}
+.pvm em{font-style:normal;color:#6A80B4;margin-right:2px}
+.pvm button{border:0;background:none;padding:0 2px;font:inherit;color:#242942;cursor:pointer;border-radius:2px}
+.pvm button:hover{background:#D5D9E8}
+.oeng .cnt{margin:0}
 </style>
 <link rel="stylesheet" href="css/paper.css">
 </head>
@@ -92,7 +103,7 @@
       <div class="osearch"><input id="oq" placeholder="오프닝 이름이나 ECO 코드 (예: Sicilian, B90)" autocomplete="off" spellcheck="false" aria-label="오프닝 검색"><div class="ores" id="ores" hidden></div></div>
       <div class="oname2" id="oName"></div>
       <div class="oline" id="oLine"></div>
-      <p class="eng2" id="oEng"></p>
+      <div class="oeng" id="oEng"></div>
       <div class="otabs" role="tablist"><button class="tab" data-t="ex" aria-selected="true">수 통계</button><button class="tab" data-t="games" aria-selected="false">대표 게임</button><button class="tab" data-t="list" aria-selected="false">목록</button><button class="tab" data-t="drill" aria-selected="false">연습</button><button class="tab" data-t="saved" aria-selected="false">저장</button></div>
       <div id="tEx"></div>
       <div id="tGames" hidden></div>

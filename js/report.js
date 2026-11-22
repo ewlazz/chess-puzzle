@@ -45,6 +45,49 @@ function openSec(L){
   return `<section class="rsec"><h3 class="rh">오프닝</h3><div class="rcols">${col("w")}${col("b")}</div></section>`;
 }
 function pick(c,v){const o=OTHER[c+"|"+v];return o?LIST.filter(g=>o.has(g.id)):LIST.filter(g=>g.me===c&&varOf(g)===v)}
+/* 1-2. 오프닝 공부: 자주 두는 오프닝마다 정석에서 벗어나는 곳, 이어서 볼 정석, 약한 변화 */
+const MC=new Map();let MQ=Promise.resolve();
+function masters(path){const c=new Chess();for(const m of path)c.move(m);const fen=c.fen();if(MC.has(fen))return MC.get(fen);
+  const p=MQ.then(()=>fetch("https://explorer.lichess.ovh/masters?fen="+encodeURIComponent(fen)+"&moves=6&topGames=0").then(r=>r.ok?r.json():null).catch(()=>null));
+  MQ=p.then(()=>new Promise(r=>setTimeout(r,250)));MC.set(fen,p);return p}
+const lineTxt=(a,from)=>a.map((x,i)=>i<from?null:(i%2===0?`${i/2+1}. `:i===from?`${(i-1)/2+1}... `:"")+x).filter(Boolean).join(" ");
+function devPoint(G,c){const m=new Map();G.forEach(g=>{const o=g._o;if(!o||o.dev!==c||o.book>=o.san.length)return;const k=o.san.slice(0,o.book+1).join(" ");if(!m.has(k))m.set(k,[]);m.get(k).push(g)});
+  const top=[...m.entries()].sort((a,b)=>b[1].length-a[1].length)[0];if(!top||top[1].length<3)return null;const s=top[0].split(" ");return {path:s.slice(0,-1),mv:s[s.length-1],G:top[1]}}
+let STU=[];
+function studySec(L){
+  STU=[];
+  ["w","b"].forEach(c=>{const A=L.filter(g=>g.me===c),base=rec(A).s;
+    group(A,famOf).filter(([k,a])=>a.length>=5).slice(0,2).forEach(([f,G])=>{
+      const ln=commonLine(G),dev=devPoint(G,c),weak=group(G,varOf).filter(([v,b])=>v.includes(":")&&b.length>=4&&rec(b).s<=base-.1);
+      STU.push({c,f,G,ln,dev,weak,r:rec(G)})})});
+  if(!STU.length)return "";
+  return `<section class="rsec"><h3 class="rh">오프닝 공부</h3><p class="rsub">많이 두는 오프닝마다 정석에서 벗어나는 곳과 다음에 익힐 수순. 연습은 그 수순을 둔 다음 마스터 수로 이어서 해요.</p><div class="rcols">${STU.map((x,i)=>{
+    const href=`opening.html?line=${encodeURIComponent(x.ln.join(","))}&drill=${x.c}`;
+    return `<div class="stud"><div class="sth"><span class="rcol2">${CN[x.c]}</span><b>${esc(ko(x.f))}</b><em>${x.r.n}판 · ${P(x.r.s)}</em></div>
+      ${x.ln.length?`<p class="rline">내 주 수순 <b>${esc(mv(x.ln))}</b></p>`:""}
+      <div id="stdev${i}">${x.dev?`<p class="rline">불러오는 중…</p>`:""}</div>
+      <h5>이어서 익힐 수순</h5><div id="stn${i}"><p class="rline">불러오는 중…</p></div>
+      ${x.weak.length?`<h5>약한 변화</h5>${x.weak.map(([v,b])=>{const r=rec(b),l=commonLine(b);return `<div class="stl"><span class="stn">${esc(ko(v).split(":").slice(1).join(":").trim()||ko(v))} <em>${recTxt(r)} · ${P(r.s)}</em></span><a class="ract" href="opening.html?line=${encodeURIComponent(l.join(","))}&drill=${x.c}">연습</a></div>`}).join("")}`:""}
+      <div class="racts"><a class="ract" href="${href}">내 수순 연습</a><a class="ract" href="opening.html?line=${encodeURIComponent(x.ln.join(","))}">오프닝 페이지</a></div></div>`}).join("")}</div></section>`;
+}
+async function fillStudy(t){
+  for(let i=0;i<STU.length;i++){const x=STU[i];if(t!==RT)return;
+    if(x.dev){const M=await masters(x.dev.path);if(t!==RT)return;const el=$("#stdev"+i);if(el){const r=rec(x.dev.G),top=(M&&M.moves||[]).slice(0,3),tot=top.length?M.moves.reduce((s,m)=>s+m.white+m.draws+m.black,0):0;
+      const mvn=lineTxt(x.dev.path.concat(x.dev.mv),x.dev.path.length);
+      el.innerHTML=`<h5>자주 정석에서 벗어나는 곳</h5><p class="rline"><b>${esc(mvn)}</b> ${x.dev.G.length}판 · ${recTxt(r)}${top.length?` · 마스터는 ${top.map(m=>`<b>${esc(m.san)}</b> ${Math.round((m.white+m.draws+m.black)/tot*100)}%`).join(", ")}`:""}</p><div class="racts"><a class="ract" href="opening.html?line=${encodeURIComponent(x.dev.path.join(","))}">이 자리 보기</a>${top.length?`<a class="ract" href="opening.html?line=${encodeURIComponent(x.dev.path.concat(top[0].san).join(","))}&drill=${x.c}">${esc(top[0].san)}로 연습</a>`:""}</div>`}}
+    const M=await masters(x.ln);if(t!==RT)return;const el=$("#stn"+i);
+    const tot=M&&M.moves?M.moves.reduce((s,m)=>s+m.white+m.draws+m.black,0):0;
+    const opts=tot>=20?M.moves.filter(m=>(m.white+m.draws+m.black)/tot>=.1).slice(0,2):[];
+    if(!opts.length){if(el)el.innerHTML='<p class="rline">마스터 게임이 적은 자리예요. 오프닝 페이지에서 엔진 수를 따라가 보세요.</p>';continue}
+    const out=[];
+    for(const m of opts){const p=x.ln.concat(m.san);
+      for(let k=0;k<5;k++){const N=await masters(p);if(t!==RT)return;const nt=N&&N.moves?N.moves.reduce((s,q)=>s+q.white+q.draws+q.black,0):0;if(nt<20)break;p.push(N.moves[0].san)}
+      const c=new Chess(),fens=[c.fen()];p.forEach(q=>{c.move(q);fens.push(c.fen())});const on=window.Openings?Openings.line(fens).name:"";
+      out.push({p,sh:(m.white+m.draws+m.black)/tot,name:on});
+      if(el)el.innerHTML=out.map(z=>`<div class="stl"><span class="stn">${esc(ko(z.name)||"마스터 주요 수순")} <em>마스터 ${Math.round(z.sh*100)}%</em><small>${esc(lineTxt(z.p,x.ln.length))}</small></span><a class="ract" href="opening.html?line=${encodeURIComponent(z.p.join(","))}&drill=${x.c}">연습</a></div>`).join("");
+    }
+  }
+}
 function varPanel(c,v){
   const G=pick(c,v),ln=commonLine(G);
   const href=`opening.html?line=${encodeURIComponent(ln.join(","))}&drill=${c}`;
@@ -151,10 +194,11 @@ function draw(L){
   const rt=Object.keys(TC).map(k=>{const a=L.filter(g=>g.tclass===k&&g.rated).sort((x,y)=>x.end-y.end);if(a.length<5)return "";const d=a[a.length-1].my.rating-a[0].my.rating;return `<span>${window.tcIcon(k)}${a[a.length-1].my.rating} <em class="${d>=0?"up":"dn"}">${d>=0?"+":""}${d}</em></span>`}).join("");
   el.innerHTML=`<div class="rhead"><div><b>${esc(p.username||S.user)}</b><small>${L.length}판 · ${recTxt(R)} · 승률 ${P(R.s)}</small></div><div class="rrt">${rt}</div><button class="ract" id="rShare">링크 복사</button></div>
     ${openSec(L)}
+    ${studySec(L)}
     <section class="rsec"><h3 class="rh">자꾸 두는 안 좋은 수</h3><p class="rsub">세 번 이상 둔 내 수 중에서 엔진이 0.6 이상 손해라고 보는 수. 평가는 내 쪽 기준이에요.</p><div id="rScan">${scanBody()}</div></section>
     <div class="rcols">${timeSec(L)}${oppSec(L)}</div>
     <section class="rsec"><h3 class="rh">엔진 진단</h3><div id="rEngB">${engBody()}</div></section>`;
-  pressTxt();
+  pressTxt();fillStudy(RT);
   el.onclick=async e=>{
     const b=e.target.closest("[data-var],[data-morevar],[data-gid],[data-badg],[data-w],[data-save],[data-more],#rShare");if(!b)return;
     if(b.dataset.var){const [c,...v]=b.dataset.var.split("|"),id="rx-"+b.dataset.var.replace(/[^\w가-힣]/g,"_"),x=document.getElementById(id);if(!x)return;
