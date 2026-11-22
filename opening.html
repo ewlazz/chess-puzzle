@@ -135,9 +135,12 @@
 .gcard:hover{background:#D5D9E8}
 .gcard .mbd{width:128px;height:128px;border-color:#C4C9DC}.gcard .mbd div{background:#E9ECF5}.gcard .mbd div.d{background:#A9B4D3}
 .gcard span{display:grid;gap:2px;min-width:0}.gcard b{font-size:17px;display:flex;align-items:center}.gcard small{font-size:13px;color:#505A82;font-family:"Inter","Pretendard",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcard em{font-style:normal;font-size:12px;color:#6A80B4}
-/* 돋보기: 마우스를 올리면 작은 보드가 커짐 */
-.gcard{position:relative}.gcard .mbd{position:relative;transition:transform .26s cubic-bezier(.2,.8,.2,1) .08s,border-color .2s;transform-origin:center}
-@media(hover:hover){.gcard:hover{z-index:5}.gcard:hover .mbd{transform:scale(2.1);border-color:#242942;z-index:5}}
+/* 돋보기 패널: 작은 보드에 마우스를 올리면 옆 빈 공간에 큰 보드 + 이름 */
+.gcard .mbd{transition:border-color .2s}.gcard .mbd:hover{border-color:#242942}
+.gpop{position:fixed;z-index:50;width:272px;padding:14px;background:#EFF0F6;border:1px solid #242942;border-radius:4px;pointer-events:none;opacity:0;transform:scale(.55);transition:opacity .2s,transform .26s cubic-bezier(.2,.8,.2,1)}
+.gpop.on{opacity:1;transform:none}
+.gpop .mbd{width:242px;height:242px;border-color:#C4C9DC}.gpop .mbd div{background:#E9ECF5}.gpop .mbd div.d{background:#A9B4D3}
+.gpop b{display:flex;align-items:center;font-size:18px;margin-top:10px;color:#242942}.gpop small{display:block;font-size:13px;color:#505A82;font-family:"Inter","Pretendard",sans-serif;margin-top:2px;line-height:1.5}.gpop em{font-style:normal;font-size:12px;color:#6A80B4}
 @media(max-width:640px){.gcards{grid-template-columns:1fr}.gcard{grid-template-columns:88px minmax(0,1fr)}.gcard .mbd{width:88px;height:88px}}
 </style>
 <link rel="stylesheet" href="css/paper.css">

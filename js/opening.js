@@ -188,7 +188,7 @@ function gal(){
   const L=S.filter(o=>(ST.cat==="all"||stCat(o)===ST.cat)&&(ST.side==="all"||o.side===ST.side)&&(!ST.f||o.tags.includes(ST.f)));
   const RT=(window.OROOTS||[]).filter(r=>(ST.cat==="all"||catOf(r.moves)===ST.cat)&&(ST.side==="all"||r.side===ST.side)&&!ST.f);
   /* 카드: 작은 보드(백 기준, 차분한 색) + 이름 + 기보 */
-  const card=(href,t,ply,name,side,badge)=>{const ps=stPos(t,ply);return `<a class="gcard" href="${href}">${miniBoard(ps.fen,"w",null)}<span><b>${esc(name)}${badge||""}</b><small>${esc(mvSeq(0,t.slice(0,ply)))}</small><em>${side==="w"?"백":"흑"}</em></span></a>`};
+  const card=(href,t,ply,name,side,badge)=>{const ps=stPos(t,ply);return `<a class="gcard" href="${href}" data-pf="${esc(ps.fen)}">${miniBoard(ps.fen,"w",null)}<span><b>${esc(name)}${badge||""}</b><small>${esc(mvSeq(0,t.slice(0,ply)))}</small><em>${side==="w"?"백":"흑"}</em></span></a>`};
   const sec=(title,list)=>list.length?`<h2 class="gsec">${title}</h2><div class="gcards">${list.join("")}</div>`:"";
   const rc=c=>RT.filter(r=>catOf(r.moves)===c).map(r=>{const t=r.moves.split(" ");return card(`opening.html?tree=${r.id}`,t,t.length,r.ko,r.side)});
   el.innerHTML=`<div class="gfil">${chips("stc","cat",[["all","전체"],["e4","1.e4"],["d4","1.d4"],["fl","1.c4·Nf3"],["etc","기타"]])}<i></i>${chips("sts","side",[["all","백·흑"],["w","백"],["b","흑"]])}<i></i>${chips("stf","f",[["","전부"],["bee",BEE("꿀벌")+"꿀벌"],["chad",CHAD("상남자")+"상남자"]])}</div>`+
@@ -196,6 +196,19 @@ function gal(){
     sec("공부 자료",L.map(o=>{const t=o.trunk.split(" ");return card(`opening.html?study=${o.id}`,t,(o.gam!=null?o.gam:t.length-1)+1,o.ko,o.side,stBadge(o))}))+
     (!RT.length&&!L.length?'<p class="cnt">없어요</p>':"");
 }
+/* 돋보기 패널: 작은 보드 위에 0.25초 머무르면 옆 빈 공간에 큰 보드 + 이름 + 기보 */
+const GP={el:null,T:0,cur:null};
+function gpHide(){clearTimeout(GP.T);GP.cur=null;if(GP.el)GP.el.classList.remove("on")}
+$("#gal").addEventListener("mouseover",e=>{if(!matchMedia("(hover:hover)").matches)return;const bd=e.target.closest(".gcard .mbd");if(!bd||GP.cur===bd)return;
+  gpHide();GP.cur=bd;GP.T=setTimeout(()=>{const c=bd.closest(".gcard");if(!c||GP.cur!==bd)return;
+    if(!GP.el){GP.el=document.createElement("div");GP.el.className="gpop";document.body.appendChild(GP.el)}
+    const sp=c.querySelector("span");GP.el.innerHTML=miniBoard(c.dataset.pf,"w",null)+`<b>${sp.querySelector("b").innerHTML}</b><small>${sp.querySelector("small").textContent}</small><em>${sp.querySelector("em").textContent}</em>`;
+    const r=bd.getBoundingClientRect(),cr=c.getBoundingClientRect(),W=GP.el.offsetWidth,H=GP.el.offsetHeight;let x,o;
+    if(r.left-W-14>=8){x=r.left-W-14;o="right center"}else if(cr.right+14+W<=innerWidth-8){x=cr.right+14;o="left center"}else{x=Math.max(8,r.right+14);o="left center"}
+    const y=Math.max(8,Math.min(innerHeight-H-8,r.top+r.height/2-H/2));GP.el.style.left=x+"px";GP.el.style.top=y+"px";GP.el.style.transformOrigin=o;
+    GP.el.classList.remove("on");void GP.el.offsetWidth;GP.el.classList.add("on")},250)});
+$("#gal").addEventListener("mouseout",e=>{const bd=e.target.closest(".gcard .mbd");if(bd&&!bd.contains(e.relatedTarget))gpHide()});
+addEventListener("scroll",gpHide,{passive:true});
 $("#gal").onclick=e=>{const b=e.target.closest("[data-stc],[data-sts],[data-stf]");if(!b)return;const d=b.dataset;
   if(d.stc!=null)ST.cat=d.stc;else if(d.sts!=null)ST.side=d.sts;else ST.f=d.stf;gal()};
 /* 공부 화면 */
