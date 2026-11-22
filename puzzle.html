@@ -176,7 +176,7 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
 footer p{margin:0}
 @media(max-width:900px){.grid{grid-template-columns:minmax(0,560px);}}
 @media(max-width:600px){.nav nav{margin-left:0;width:100%}.nav nav a{padding:8px 10px}.card h3{font-size:26px}.plist{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pz{padding:8px}.pz b{font-size:15px}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
 .wbar{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.wtag{font-size:12px;font-weight:700;border:1px solid #C4C9DC;border-radius:2px;padding:2px 6px;color:#505A82}
 .stepb{width:100%;margin:8px 0 2px;background:#242942!important;color:#EFF0F6!important;border-color:#242942!important;font-weight:800}
 .pfil{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px}.pfil .chips{display:flex;gap:4px;flex-wrap:wrap}.pfil .chip{min-height:32px;padding:0 10px;font-size:13px}
@@ -283,7 +283,7 @@ const PUZ=[
  {fen:"5r1k/6pp/7N/3Q4/8/8/6PP/6K1 w - - 0 1",sol:["Qg8+","Rxg8","Nf7#"],title:"스머더드 메이트",theme:"메이트",kind:"mate",goal:"2수 메이트",lv:"어려움"}
 ];
 const F="abcdefgh",$=s=>document.querySelector(s),boardEl=$("#board"),marksEl=$("#marks"),N=PUZ.length;
-const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const RM=false;
 let g,cur=0,ply=0,orient="w",sel=null,last=null,hintSq=null,badSq=null,bdg=null,endBdg=null,phase="idle",shown=false,timer=0,filter="all";
 let drag=null,rdrag=null,premove=null,floatEl=null,hov=null;
 const arrows=new Map(),circles=new Map();

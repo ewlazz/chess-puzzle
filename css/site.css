@@ -185,7 +185,7 @@ header{background:var(--band);color:#242942;position:sticky;top:0;z-index:20;bor
 footer{background:var(--band);color:#505A82;font-size:14px}
 footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}footer p{margin:0}
 @media(max-width:600px){.nav nav{margin-left:0;width:100%}.search button{padding:0 16px}.prof{grid-template-columns:64px minmax(0,1fr)}.prof img{width:64px;height:64px}.prof .nm{font-size:22px}.prof a.ext{grid-column:2;justify-self:start}.rc{padding:14px}.rc b{font-size:28px}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
 .cur p.opn{color:var(--muted);font-size:13px}
 /* 오프닝 탭 */
 .oseg{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
