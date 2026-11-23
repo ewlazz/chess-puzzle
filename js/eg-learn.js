@@ -113,7 +113,7 @@ window.EGL={con:CON,list(){const P=lp(),nx=CON.find(c=>!P[c.id]),n=CON.filter(c=
 
 const CID=new URL(location.href).searchParams.get("c"),C=CON.find(c=>c.id===CID);
 if(!C)return;
-document.body.classList.add("m-learn");
+document.body.classList.add("m-learn");setTimeout(()=>document.body.classList.remove("m-list","m-play"),0);
 const F="abcdefgh",fi=s=>F.indexOf(s[0]),TB="https://tablebase.lichess.ovh/standard?fen=";
 const bEl=$("#lb8"),mk=$("#lmarks");
 let soundOn=true;try{soundOn=localStorage.getItem("hansu-sound")!=="off"}catch(e){}
