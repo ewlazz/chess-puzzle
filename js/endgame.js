@@ -72,8 +72,12 @@ function fits(x,j){if(!j||!j.moves)return false;const win=j.moves.filter(m=>m.ca
   const gd=x.want==="win"?win:j.moves.length-lose;if(x.maxGood&&gd>x.maxGood)return false;
   if(x.want==="win"){if(j.category!=="win")return false;if(x.needAlt&&win===j.moves.length)return false;if(x.exactWin&&win!==1)return false;if(x.maxWin&&win>x.maxWin)return false;return true}
   if(x.want==="draw")return j.category==="draw"&&(!x.needLose||lose>0);return false}
-async function makePos(x,tok){let calls=0;for(let t=0;t<400;t++){if(tok!==TOK)return null;const P=randPos(x);if(!P||kAdj(P))continue;const fen=fenOf(P);if(!legal(fen))continue;
-  if(++calls>70)break;const j=await tb(fen);if(fits(x,j))return fen}return null}
+async function makePos(x,tok){let calls=0;const seen=new Set();
+  for(let round=0;round<30&&calls<72;round++){const batch=[];for(let t=0;t<200&&batch.length<4;t++){const P=randPos(x);if(!P||kAdj(P))continue;const fen=fenOf(P);if(seen.has(fen)||!legal(fen))continue;seen.add(fen);batch.push(fen)}
+    if(!batch.length)break;if(tok!==TOK)return null;calls+=batch.length;
+    const js=await Promise.all(batch.map(f=>tb(f).catch(()=>null)));if(tok!==TOK)return null;
+    for(let i=0;i<batch.length;i++)if(fits(x,js[i]))return batch[i]}
+  return null}
 
 /* 상대: 스톡피시 19 (레벨 20, 수마다 약 1초) */
 const E={w:null,ready:null,cb:null,
