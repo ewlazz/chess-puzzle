@@ -9,7 +9,7 @@ const L=[
  {id:"kbb",grp:"mate",ko:"비숍 두 개 메이트",goal:"mate",w:"KBB",b:"K",minDtm:26,tl:60,sample:"8/8/8/4k3/8/8/8/2B1KB2 w - - 0 1"},
  {id:"kbn",grp:"mate",ko:"비숍+나이트 메이트",goal:"mate",w:"KBN",b:"K",minDtm:50,tl:60,sample:"8/8/8/4k3/8/8/8/1NB1K3 w - - 0 1"},
  {id:"kpk",grp:"pawn",ko:"킹+폰 이기기",goal:"promote",w:"KP",b:"K",want:"win",needAlt:1,sample:"8/8/8/8/4k3/8/4P3/4K3 w - - 0 1"},
- {id:"opp",grp:"pawn",ko:"오포지션",goal:"promote",w:"KP",b:"K",want:"win",exactWin:1,sample:"8/8/4k3/8/4K3/4P3/8/8 w - - 0 1"},
+ {id:"opp",grp:"pawn",ko:"오포지션",goal:"promote",w:"KP",b:"K",want:"win",exactWin:1,pool:["8/8/8/4k3/8/3K4/4P3/8","8/8/3k4/8/2K5/3P4/8/8","8/2k5/8/8/2PK4/8/8/8","8/4k3/8/8/2P1K3/8/8/8","8/8/4k3/8/2PK4/8/8/8","8/8/8/2k5/8/4K3/3P4/8","5k2/8/8/8/8/2P5/8/3K4"],sample:"8/8/4k3/8/4K3/4P3/8/8 w - - 0 1"},
  {id:"kpkd",grp:"pawn",ko:"킹+폰 막기",goal:"draw",w:"K",b:"KP",want:"draw",needLose:1,hold:12,sample:"8/8/8/4k3/4p3/8/8/4K3 w - - 0 1"},
  {id:"square",grp:"pawn",ko:"스퀘어 규칙",goal:"draw",w:"K",b:"KP",want:"draw",needLose:1,hold:8,square:1,sample:"7k/8/8/p7/8/8/8/5K2 w - - 0 1"},
  {id:"kppkp",grp:"pawn",ko:"폰 두 개 vs 하나",goal:"promote",w:"KPP",b:"KP",want:"win",maxWin:3,sample:"8/8/4k3/p7/8/1P6/P3K3/8 w - - 0 1"},
@@ -56,6 +56,7 @@ function fenOf(P){const B=[...Array(8)].map(()=>Array(8).fill(""));for(const [s,
   return B.map(r=>{let o="",e=0;for(const c of r){if(!c)e++;else{if(e)o+=e;e=0;o+=c}}return o+(e||"")}).join("/")+" w - - 0 1"}
 function legal(fen){try{const g=new Chess(fen);if(!g.validate_fen(fen).valid||g.in_check()||g.game_over())return false;const b=new Chess(fen.replace(" w "," b "));return !b.in_check()}catch(e){return false}}
 function randPos(x){
+  if(x.pool){const P={},rows=x.pool[rnd(x.pool.length)].split("/"),mir=Math.random()<.5;rows.forEach((r,i)=>{let f=0;for(const c of r){if(/\d/.test(c))f+=+c;else{P[sq(mir?7-f:f,7-i)]=c;f++}}});return P}
   if(x.tpl==="lucena"){const pf=1+rnd(6),s=pf<=3?1:-1,P={};P[sq(pf,6)]="P";P[sq(pf,7)]="K";P[sq(pf+s,rnd(4))]="R";
     P[sq(pf+2*s,5+rnd(3))]="k";P[sq(pf-s,rnd(3))]="r";return Object.keys(P).length===5?P:null}
   if(x.tpl==="philidor"){const pf=1+rnd(6),P={};P[sq(pf,0)]="K";P[sq(rnd(8),2)]="R";P[sq(pf,3)]="p";P[sq(pf+(Math.random()<.5?-1:1),4+rnd(2))]="k";P[sq(rnd(8),5+rnd(3))]="r";return Object.keys(P).length===5?P:null}
