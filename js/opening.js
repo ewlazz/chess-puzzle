@@ -42,7 +42,7 @@ function render(){
 }
 let topArrows=[];
 function drawArrows(){let s="";
-  if(DR.on||(QZ&&QZ.on)){const a=stGuideArrow();if(a)s+=arrow(a.from,a.to,"#5C54D6",.85)}
+  if(DR.on||(QZ&&QZ.on)){const a=stGuideArrow()||(DR.on&&DR.tree&&DR.learn&&DR.g&&!DR.busy&&idx===line.length?DR.g:null);if(a)s+=arrow(a.from,a.to,"#5C54D6",.85)}
   else if(MODE==="tree"){const A=trArrows();A.slice().reverse().forEach(a=>{s+=a.main?arrow(a.from,a.to,"#5C54D6",.85):arrow(a.from,a.to,"#242942",.5)})}
   else if(MODE==="study"){const A=ST.cur?stArrows():[];A.slice().reverse().forEach(a=>{s+=a.main?arrow(a.from,a.to,"#5C54D6",.85):arrow(a.from,a.to,"#242942",.6)})}
   else topArrows.slice().reverse().forEach((a,i,arr)=>{s+=arrow(a.from,a.to,"#5C54D6",i===arr.length-1?.85:.4)});marks.forEach((c,k)=>{const [a,b]=k.split("-");s+=arrow(a,b,c)});$("#omarks").innerHTML=s}
@@ -338,7 +338,7 @@ function treePanel(){if(!TR.trie)return;const path=line.slice(0,idx),r=TR.root,R
     const top=K.filter(x=>x.c>=Math.max(5,tot*.01)).slice(0,10),rest=K.filter(x=>!top.includes(x));
     const item=k=>{const sp=trPasses(path.concat(k.chain)),m=k.m,c=k.c;
       return `<div class="ritem" data-tc="${esc(k.chain.join(" "))}">${miniBoard(k.fen,r.side,k.last?[k.last.from,k.last.to]:null)}<div class="rt1">${esc(mvSeq(idx,k.chain.slice(0,3)))}${k.chain.length>3?` … <em>${k.chain.length}수</em>`:""}${sp&&sp.tags.includes("chad")?CHAD("상남자 라인"):""}${sp?'<span class="bkt">공부</span>':""}</div><div class="rt2">${k.nm&&k.nm!==(here&&here.name)?esc(shortName(k.nm)):`<span class="cnt">${esc(shortName(here?here.name:r.en))} 안</span>`}</div><div class="rt3">${myTag(myRec(path.concat(k.chain)),r.side)}${j?(c?`마스터 ${c.toLocaleString()}판 · 백 ${Math.round(m.white/c*100)}% 무 ${Math.round(m.draws/c*100)}% 흑 ${Math.round(m.black/c*100)}%`:"마스터 게임 없음"):"…"}</div><span class="rgo tsh">${j&&tot?Math.round(c/tot*100)+"%":""}</span></div>`};
-    const mr=myRec(path),drb=`<button class="bgo trdr" data-tdrill="1">이 자리부터 연습 · ${CK[r.side]}으로</button>`;
+    const mr=myRec(path),drb=`<div class="trdr"><button class="bgo" data-tdrill="L">따라 두며 배우기</button><button class="chip" data-tdrill="T">외워서 두기</button><span class="cnt">이 자리부터 ${CK[r.side]}으로</span></div>`;
     el.innerHTML=(here?`<div class="trh"><b>${esc(Openings.ko(here.name)||here.name)}</b><small>${esc(here.name)}${here.eco?" · "+esc(here.eco):""}</small></div>`:"")+
       (mr&&mr.n?`<div class="mybox"><small>${esc(MY.user)} · 최근 3달 이 자리까지 온 판</small>${(r.side==="b"?["b","w"]:["w","b"]).filter(c=>mr[c].n).map(c=>{const x=mr[c],v=myVerdict(x);return `<div class="myl${v==="강함"?" st":v==="공부 필요"?" wk":""}"><b>${CK[c]}으로 ${x.n}판</b><span>${x.w}승 ${x.d}무 ${x.l}패 · 점수 ${Math.round(x.sc*100)}%</span><em>${v||(x.n<5?"판수 적음":"")}</em></div>`}).join("")}</div>`:"")+
       drb+(st?`<a class="stgo" href="opening.html?study=${st.id}">${st.tags.includes("chad")?CHAD("상남자 라인"):""}<b>${esc(st.ko)} 공부하기</b><span>변화 ${st.lines.length}개 · 수마다 설명 · 연습</span></a>`:"")+
@@ -346,13 +346,19 @@ function treePanel(){if(!TR.trie)return;const path=line.slice(0,idx),r=TR.root,R
   if(TR.lastKey!==key){TR.lastKey=key;draw(trStats&&trStats.fen===fen?trStats.j:null)}
   clearTimeout(TR.T);TR.T=setTimeout(()=>trMasters(fen).then(j=>{if(game().fen()!==fen)return;trStats={fen,j};draw(j);TR.lastKey=key;drawArrows()}),200);
 }
-$("#tStudy").addEventListener("click",e=>{if(MODE!=="tree")return;const t=e.target.closest("[data-tc],[data-tmore],[data-tk],[data-tdrill]");if(t&&t.dataset.tk){TR.more=false;go(+t.dataset.tk);return}if(t&&t.dataset.tdrill){trDrill(idx);return}if(!t)return;
+$("#tStudy").addEventListener("click",e=>{if(MODE!=="tree")return;const t=e.target.closest("[data-tc],[data-tmore],[data-tk],[data-tdrill]");if(t&&t.dataset.tk){TR.more=false;go(+t.dataset.tk);return}if(t&&t.dataset.tdrill){trDrill(idx,t.dataset.tdrill==="L");return}if(!t)return;
   if(t.dataset.tmore){TR.more=!TR.more;TR.lastKey="";treePanel();return}
   const ch=t.dataset.tc.split(" "),was=idx;line=line.slice(0,idx).concat(ch);idx=line.length;sel=null;marks.clear();circ.clear();
   if(ch.length===1){const g=game(idx-1),m=g.move(ch[0]);if(m){play(snd(m,g));animNext={m}}}else play("move-self");TR.more=false;refresh()});
 /* 갈래 연습: 지금 자리부터 내 색으로, 상대는 마스터가 많이 둔 수로 */
-function trDrill(at){const r=TR.root;DR={on:true,color:r.side,hits:0,miss:0,busy:false,msg:"",start:at,rep:null,tree:true};line=line.slice(0,at);idx=at;orient=r.side;sel=null;marks.clear();circ.clear();showTab("drill");refresh();dStep()}
-$("#tDrill").addEventListener("click",e=>{if(e.target.closest("[data-trre]")&&DR.tree)trDrill(DR.start)});
+function trDrill(at,learn){const r=TR.root;DR={on:true,color:r.side,hits:0,miss:0,busy:false,msg:"",start:at,rep:null,tree:true,learn:!!learn,g:null};line=line.slice(0,at);idx=at;orient=r.side;sel=null;marks.clear();circ.clear();showTab("drill");refresh();dStep()}
+$("#tDrill").addEventListener("click",e=>{const b=e.target.closest("[data-trre]");if(b&&DR.tree)trDrill(DR.start,b.dataset.trre==="L")});
+/* 배우기: 내 차례마다 마스터가 제일 많이 둔 수를 화살표로 + 지금 자리 이름 */
+async function trGuide(op){const fen=fenAt(),pre=op?`상대: ${op} · `:"";DR.g=null;let x;try{x=await fetchX(fen,true)}catch(e){dMsg(pre+"수 통계를 못 불러왔어요.","bad");return}
+  if(!DR.on||fenAt()!==fen)return;const ms=(x.moves||[]),tot=ms.reduce((s,y)=>s+y.white+y.draws+y.black,0),top=ms.slice().sort((a,b)=>(b.white+b.draws+b.black)-(a.white+a.draws+a.black))[0];
+  if(!top){dMsg(pre+"여기서 마스터 게임이 끝났어요.");return}const g=new Chess(fen),m=g.moves({verbose:true}).find(z=>z.san===top.san);DR.g=m?{san:top.san,from:m.from,to:m.to}:null;
+  const nm=Openings.at(fen),nk=nm&&nm.name?(Openings.ko(nm.name)||nm.name):"";
+  dMsg(`${pre}${nk?nk+" · ":""}마스터가 제일 많이 둔 수 ${top.san} (${Math.round((top.white+top.draws+top.black)/tot*100)}%). 화살표대로 두세요.`);drawArrows()}
 $("#stTop").addEventListener("click",e=>{const b=e.target.closest("[data-tk]");if(b){TR.more=false;go(+b.dataset.tk)}});
 /* 지금 자리에서 이 오프닝 변화들이 어디로 갈라지는지 */
 function stForks(){const c=ST.cur;if(!c)return [];const o=c.o,cur=line.slice(0,idx),out=new Map();
@@ -453,7 +459,7 @@ async function dStep(){
   if(DR.study&&idx>=DR.prefix.length){stDone();return}
   if(g.game_over()){DR.on=false;dMsg("");drill();return}
   if(DR.rep&&!repCands(idx).length){DR.on=false;DR.msg=`저장한 수순 끝까지 왔어요. 맞힘 ${DR.hits} · 틀림 ${DR.miss}`;render();el2();return}
-  if(g.turn()===DR.color){if(DR.study){stGuide();render();return}if(!DR.msg)dMsg("내 차례예요.");render();return}
+  if(g.turn()===DR.color){if(DR.study){stGuide();render();return}if(DR.tree&&DR.learn){render();trGuide();return}if(!DR.msg)dMsg("내 차례예요.");render();return}
   if(DR.prefix&&idx<DR.prefix.length){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
     const m=g.move(DR.prefix[idx]);DR.busy=false;if(!m){DR.prefix=null;dStep();return}play(snd(m,g));animNext={m};pushMove(m.san);refresh();if(DR.study&&idx>=DR.prefix.length){stDone();return}if(DR.study){stGuide(m.san);return}dMsg(`상대: ${m.san} · 내 차례예요.`);return}
   if(DR.rep){DR.busy=true;render();await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
@@ -465,9 +471,9 @@ async function dStep(){
   if(!ms.length||tot<10){DR.busy=false;DR.on=false;DR.msg=`여기서 마스터 게임이 끝났어요. 맞힘 ${DR.hits} · 벗어남 ${DR.miss}`;DR.cls="good";render();el2();return}
   let r=Math.random()*tot,pick=ms[0];for(const m of ms){r-=m.white+m.draws+m.black;if(r<=0){pick=m;break}}
   await new Promise(r=>setTimeout(r,450));if(!DR.on)return;
-  const m=g.move(pick.san);if(!m){DR.busy=false;DR.on=false;dMsg("");drill();return}play(snd(m,g));animNext={m};pushMove(m.san);DR.busy=false;refresh();dMsg(`상대: ${pick.san} · 내 차례예요.`);
+  const m=g.move(pick.san);if(!m){DR.busy=false;DR.on=false;dMsg("");drill();return}play(snd(m,g));animNext={m};pushMove(m.san);DR.busy=false;refresh();if(DR.tree&&DR.learn){trGuide(pick.san);return}const nm=Openings.at(fenAt());dMsg(`상대: ${pick.san}${nm&&nm.name?" · "+(Openings.ko(nm.name)||nm.name):""} · 내 차례예요.`);
 }
-function el2(){$("#tDrill").innerHTML=`<div class="pr"><div class="prm good">${esc(DR.msg)}</div>${DR.tree?'<div class="racts"><button class="bgo" data-trre="1">다시</button><button class="chip" data-stbk="1">갈래로</button></div>':DR.rep?`<button class="bgo" data-redo="${DR.color}">다시 연습</button>`:'<button class="bgo" id="drGo">다시 연습</button>'}</div>`}
+function el2(){$("#tDrill").innerHTML=`<div class="pr"><div class="prm good">${esc(DR.msg)}</div>${DR.tree?`<div class="racts">${DR.learn?'<button class="bgo" data-trre="T">이제 외워서 두기</button><button class="chip" data-trre="L">다시 배우기</button>':'<button class="bgo" data-trre="T">다시</button><button class="chip" data-trre="L">배우기로</button>'}<button class="chip" data-stbk="1">갈래로</button></div>`:DR.rep?`<button class="bgo" data-redo="${DR.color}">다시 연습</button>`:'<button class="bgo" id="drGo">다시 연습</button>'}</div>`}
 $("#tDrill").addEventListener("click",e=>{const r=e.target.closest("[data-redo]");if(!r)return;const R=reps().filter(x=>x.color===r.dataset.redo&&x.moves.length).map(x=>x.moves);if(!R.length)return;DR={on:true,color:r.dataset.redo,hits:0,miss:0,busy:false,msg:"",rep:R};line=[];idx=0;orient=DR.color;refresh();drill();dStep()});
 async function dCheck(m,fenBefore){
   if(DR.rep){const exp=[...new Set(repCands(idx-1).map(r=>r[idx-1]))];
@@ -483,6 +489,8 @@ async function dCheck(m,fenBefore){
   try{const x=await fetchX(fenBefore,true),tot=(x.moves||[]).reduce((s,y)=>s+y.white+y.draws+y.black,0);pop=(x.moves||[]).slice(0,3).map(y=>y.san);
     const me=(x.moves||[]).find(y=>y.san===m.san);if(me&&tot&&(me.white+me.draws+me.black)/tot>=.05)ok=true}catch(e){}
   if(ok&&DR.prefix&&line[idx-1]!==DR.prefix[idx-1])DR.prefix=null;
+  if(DR.tree&&DR.learn){const want=DR.g&&DR.g.san;if(ok||m.san===want){DR.hits++;dMsg(m.san===want?`좋아요, ${m.san}.`:`좋아요, ${m.san}도 많이 둬요.`,"good");setTimeout(dStep,300)}
+    else{dMsg(`화살표 수는 ${want||pop[0]||""}예요.`,"bad");DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill();trGuide()},1100)}return}
   if(ok){DR.hits++;dMsg(`좋아요, ${m.san}.`,"good");setTimeout(dStep,300)}
   else{DR.miss++;dMsg(`${m.san}은 정석 밖이에요.${pop.length?" 많이 두는 수: "+pop.join(", "):""}`,"bad");DR.busy=true;setTimeout(()=>{idx--;line=line.slice(0,idx);DR.busy=false;refresh();drill()},1200)}
 }
