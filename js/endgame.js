@@ -13,7 +13,7 @@ const L=[
  {id:"kpkd",grp:"pawn",ko:"킹+폰 막기",goal:"draw",w:"K",b:"KP",want:"draw",needLose:1,maxGood:2,hold:12,sample:"8/8/8/4k3/4p3/8/8/4K3 w - - 0 1"},
  {id:"square",grp:"pawn",ko:"스퀘어 규칙",goal:"draw",w:"K",b:"KP",want:"draw",needLose:1,maxGood:3,hold:8,square:1,sample:"7k/8/8/p7/8/8/8/5K2 w - - 0 1"},
  {id:"kppkp",grp:"pawn",ko:"폰 두 개 vs 하나",goal:"promote",w:"KPP",b:"KP",want:"win",maxGood:2,sample:"8/8/4k3/p7/8/1P6/P3K3/8 w - - 0 1"},
- {id:"lucena",grp:"rook",ko:"루세나",goal:"promote",tpl:"lucena",want:"win",maxGood:3,sample:"8/4k3/8/6P1/6K1/8/7r/5R2 w - - 0 1"},
+ {id:"lucena",grp:"rook",ko:"루세나",goal:"promote",tpl:"lucena",want:"win",maxGood:5,sample:"8/4k3/8/6P1/6K1/8/7r/5R2 w - - 0 1"},
  {id:"pup",grp:"real",ko:"폰 엔드게임 · 폰 하나 유리",goal:"win",eng:"pawn",up:1,sample:"8/5pk1/6p1/7p/P6P/6P1/5PK1/8 w - - 0 1"},
  {id:"peq",grp:"real",ko:"폰 엔드게임 · 폰 같음",goal:"hold",eng:"pawn",up:0,hold:30,sample:"8/pp3pk1/6p1/8/8/6P1/PP3PK1/8 w - - 0 1"},
  {id:"rup",grp:"real",ko:"룩 엔드게임 · 폰 하나 유리",goal:"win",eng:"rook",up:1,sample:"6k1/5pp1/7p/8/8/6P1/r4PPP/3R2K1 w - - 0 1"},
@@ -56,7 +56,7 @@ function randPos(x){
     put(pf,pr,"P");put(pf+rnd(3)-1,Math.min(7,pr+1+rnd(2)),"K");put(pf+s,rnd(4),"R");put(pf+s*(2+rnd(2)),Math.min(7,pr+rnd(4)),"k");put(pf-s*(1+rnd(3)),rnd(8),"r");return Object.keys(P).length===5?P:null}
   /* 필리도르: 상대 폰이 아직 4~5단, 내 킹은 폰 앞, 룩 자리는 아직 안 잡힌 단계부터 */
   if(x.tpl==="philidor"){const pf=1+rnd(6),pr=3+rnd(2),P={},put=(f,r,c)=>{if(f<0||f>7||r<0||r>7)return;const k=sq(f,r);if(!P[k])P[k]=c};
-    put(pf,pr,"p");put(pf+rnd(3)-1,pr-1+rnd(2)+(rnd(2)?0:1),"k");put(pf+rnd(3)-1,rnd(Math.max(1,pr-2)),"K");put(rnd(8),rnd(6),"R");put(rnd(8),2+rnd(6),"r");return Object.keys(P).length===5?P:null}
+    put(pf,pr,"p");put(pf+rnd(3)-1,pr+rnd(2),"k");put(pf+rnd(3)-1,rnd(2),"K");put(rnd(8),rnd(6),"R");put(rnd(8),2+rnd(6),"r");return Object.keys(P).length===5?P:null}
   const P={},used=new Set(),put=(c,r)=>{let s,t=0;do{s=sq(rnd(8),r!=null?r:rnd(8));t++}while(used.has(s)&&t<50);used.add(s);P[s]=c;return s};
   const pr=(c)=>c==="P"?1+rnd(5):c==="p"?(x.square?3+rnd(2):2+rnd(5)):null;
   for(const c of x.w)put(c,c==="P"?pr("P"):null);for(const c of x.b)put(c.toLowerCase(),c==="P"?pr("p"):null);
