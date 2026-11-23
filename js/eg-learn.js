@@ -99,9 +99,56 @@ const CON=[
   {m:"Kf6 Rf1+",t:"백 킹은 체크를 피할 곳이 없어요. 비겨요."}],
  qz:[
   {fen:"1r2k3/R7/8/4PK2/8/8/8/8 b - - 0 1",q:"흑이에요. 비기는 수는?",why:"Rb6로 6단을 막는 게 필리도르예요. b줄에 남아 있으면 버틸 수 있어요."},
-  {fen:"4k3/R7/1r2P3/5K2/8/8/8/8 b - - 0 1",q:"폰이 6단에 왔어요. 비기는 수는?",why:"Rb1처럼 룩을 멀리 빼서 뒤에서 체크할 준비를 해요."}]}
+  {fen:"4k3/R7/1r2P3/5K2/8/8/8/8 b - - 0 1",q:"폰이 6단에 왔어요. 비기는 수는?",why:"Rb1처럼 룩을 멀리 빼서 뒤에서 체크할 준비를 해요."}]},
+ {id:"stale",grp:"pawn",ko:"스테일메이트 함정",prac:"kq",steps:[
+  {fen:"7k/4K3/6P1/8/8/8/8/8 w - - 0 1",hl:["f7"],ar:[["e7","f6"]],t:"Kf7은 자연스러워 보이지만 흑이 둘 곳이 없는 스테일메이트예요. 이기던 판이 비겨요. Kf6로 g7을 비워 둬요."},
+  {m:"Kf6 Kg8 g7 Kh7 Kf7",t:"킹이 f7에 오면 g8 승진을 막을 수 없어요."},
+  {fen:"k7/8/1K1Q4/8/8/8/8/8 w - - 0 1",hl:["c7"],ar:[["d6","d8"]],t:"퀸 메이트 마지막에도 조심해요. Qc7은 스테일메이트, Qd8은 메이트예요. 상대 킹에게 한 칸은 남겨 두고 몰아요."}],
+ qz:[
+  {fen:"7k/4K3/6P1/8/8/8/8/8 w - - 0 1",q:"이기는 유일한 수는?",why:"Kf6. Kf7은 스테일메이트예요."},
+  {fen:"k7/8/1K1Q4/8/8/8/8/8 w - - 0 1",q:"한 수에 메이트하세요.",mate:1,why:"Qd8이나 Qf8. Qc7은 스테일메이트예요."},
+  {fen:"7k/8/6K1/8/8/8/8/5Q2 w - - 0 1",q:"한 수에 메이트하세요.",mate:1,why:"Qf8. Qf7은 스테일메이트예요."}]},
+ {id:"wrongb",grp:"minor",ko:"잘못된 색 비숍",steps:[
+  {fen:"k7/8/1K6/P7/8/8/3B4/8 w - - 0 1",hl:["a8"],t:"a8은 흰 칸인데 비숍은 검은 칸 비숍이에요. 흑 킹이 a8에 들어가면 쫓아낼 방법이 없어서 비겨요. 비숍이 하나 더 있어도 마찬가지예요."},
+  {fen:"k7/8/1K6/P7/8/8/4B3/8 w - - 0 1",hl:["a8"],t:"흰 칸 비숍이면 a8을 체크로 쫓아낼 수 있어서 이겨요. a줄, h줄 폰은 승진 칸 색을 먼저 봐요."}],
+ qz:[
+  {fen:"4k3/8/8/P7/5K2/4B3/8/8 w - - 0 1",q:"이기는 유일한 수는?",why:"a6. 흑 킹이 a8에 오기 전에 폰부터 밀어요. 비숍으로는 a8을 지킬 수 없어요."},
+  {fen:"8/8/8/P6K/2k4B/8/8/8 w - - 0 1",q:"이기는 유일한 수는?",why:"a6. 흑 킹이 b6로 오기 전에 밀어야 해요."},
+  {fen:"8/4K3/8/P2k4/8/B7/8/8 b - - 0 1",q:"흑이에요. 비기는 유일한 수는?",why:"Kc6로 b7, a8 쪽 구석을 향해요. 구석에만 들어가면 비겨요."}]},
+ {id:"qvp",grp:"minor",ko:"퀸 대 7단 폰",o:"w",steps:[
+  {fen:"K7/8/8/8/8/8/3pk3/7Q w - - 0 1",t:"d폰이 7단까지 왔어요. 퀸은 체크를 이어서 흑 킹을 폰 앞으로 몰아넣어요."},
+  {m:"Qe4+ Kf1 Qd3+ Ke1 Qe3+ Kd1",hl:["d1"],t:"흑 킹이 d1에서 폰 앞을 막았어요. 이번 한 수는 승진을 못 해요."},
+  {m:"Kb7",t:"그 틈에 백 킹이 한 칸 다가와요. 이걸 되풀이하면 킹이 도착해서 이겨요."},
+  {fen:"K7/8/8/8/1Q6/8/1kp5/8 b - - 0 1",t:"c폰과 a폰은 달라요. 흑 킹이 a1 구석으로 가면 퀸이 폰을 잡는 순간 스테일메이트예요."},
+  {m:"Ka1",hl:["a1"],t:"Ka1. 이제 Qxc2는 스테일메이트예요."},
+  {m:"Qa3+ Kb1 Qb3+ Ka1",t:"체크해도 다시 a1로 가요. 백 킹이 멀면 비겨요."}],
+ qz:[
+  {fen:"K7/8/8/8/8/8/3pk3/7Q w - - 0 1",q:"이기려면 어떤 수부터?",why:"체크예요. Qe4+, Qh2+처럼 체크를 이어서 흑 킹을 d1으로 몰아요. 체크가 아니면 바로 승진해요."},
+  {fen:"8/8/3K4/6Q1/8/8/2pk4/8 b - - 0 1",q:"흑이에요. 비기는 유일한 수는?",why:"Kd1. 폰 옆을 지켜야 해요. 멀어지면 퀸이 폰을 잡아요."}]},
+ {id:"longside",grp:"rook",ko:"긴 쪽 방어",o:"w",steps:[
+  {fen:"r7/3RK1k1/4P3/8/8/8/8/8 b - - 0 1",ar:[["a8","a1"]],t:"흑 킹은 폰의 짧은 쪽(f~h줄)으로, 룩은 긴 쪽(a줄)으로 가요. 룩이 멀리 있어야 옆에서 체크할 때 백 킹이 룩에 다가가지 못해요."},
+  {m:"Ra1 Rd2 Ra7+",t:"멀리서 옆으로 체크해요."},
+  {m:"Kd6 Ra6+ Kc5 Rxe6",t:"백 킹이 체크를 피해 내려오면 폰이 떨어져요."}],
+ qz:[
+  {fen:"r7/3RK1k1/4P3/8/8/8/8/8 b - - 0 1",q:"흑이에요. 비기는 수는?",why:"Ra1처럼 룩을 a줄에 둔 채로 멀리 내려요. 다음에 옆에서 체크해요."},
+  {fen:"8/4K1k1/4P3/8/8/8/3R4/r7 b - - 0 1",q:"흑이에요. 비기는 유일한 수는?",why:"Ra7+. 멀리서 옆으로 체크하면 백 킹이 숨을 곳이 없어요."}]},
+ {id:"frontal",grp:"rook",ko:"정면 방어",o:"w",steps:[
+  {fen:"2r5/8/4k3/8/1P6/1K1R4/8/8 b - - 0 1",ar:[["c8","b8"]],t:"흑 킹이 폰에서 멀 때는 룩으로 폰 앞을 막아요. 정면 방어예요."},
+  {m:"Rb8 Ka4 Ra8+",t:"폰 앞을 막고, 백 킹이 옆으로 나오면 체크해요."},
+  {m:"Kb5 Rb8+ Kc5 Rc8+ Kb6 Rb8+",t:"백 킹은 체크를 피할 곳이 없고 폰도 못 나가요."},
+  {fen:"2r5/8/5k2/8/2P5/2K5/8/4R3 w - - 0 1",t:"흑 킹이 너무 멀리 밀려 있으면 정면 방어가 안 통해요. 백 룩이 흑 킹을 막는 동안 백 킹과 폰이 같이 나가요."}],
+ qz:[
+  {fen:"2r5/8/4k3/8/1P6/1K1R4/8/8 b - - 0 1",q:"흑이에요. 비기는 유일한 수는?",why:"Rb8로 폰 앞을 막아요."},
+  {fen:"2r5/8/5k2/8/2P5/2K5/8/4R3 w - - 0 1",q:"이기는 수는?",why:"Kb4, Kd4처럼 킹이 폰을 데리고 나가거나 Re2처럼 흑 킹을 계속 막아요."}]},
+ {id:"behind",grp:"rook",ko:"룩은 통과폰 뒤에",prac:"rup",steps:[
+  {fen:"r5k1/8/8/P7/8/8/5PK1/1R6 w - - 0 1",ar:[["b1","a1"]],t:"룩은 통과폰 뒤에 둬요. 폰이 나갈수록 내 룩이 다닐 길은 길어지고, 폰 앞의 상대 룩은 갇혀요."},
+  {m:"Ra1",t:"Ra1. 흑 룩은 a8에 묶이고 백 킹은 자유롭게 움직여요."},
+  {fen:"8/7k/P7/8/8/6K1/4r3/1R6 b - - 0 1",ar:[["e2","a2"]],t:"막는 쪽도 같아요. 흑 룩이 폰 뒤로 가면 폰을 계속 노려서 백 룩이 지키기만 해야 해요."}],
+ qz:[
+  {fen:"r5k1/8/8/P7/8/8/5PK1/1R6 w - - 0 1",q:"이기는 수는?",why:"Ra1로 폰 뒤에 붙거나 Rb5로 폰을 옆에서 지켜요."},
+  {fen:"8/7k/P7/8/8/6K1/4r3/1R6 b - - 0 1",q:"흑이에요. 비기는 수는?",why:"Ra2로 폰 뒤에 붙어요."}]}
 ];
-const GRP={pawn:"킹과 폰",rook:"룩"};
+const GRP={pawn:"킹과 폰",rook:"룩",minor:"비숍과 퀸"};
 const lp=()=>{try{return JSON.parse(localStorage.getItem("hansu-egl")||"{}")}catch(e){return {}}};
 const lsave=o=>{try{localStorage.setItem("hansu-egl",JSON.stringify(o))}catch(e){}};
 const nextOf=id=>{const P=lp(),i=CON.findIndex(c=>c.id===id);return CON.slice(i+1).concat(CON.slice(0,i)).find(c=>!P[c.id])||null};
@@ -159,11 +206,11 @@ function finish(){S.done=true;const P=lp();P[C.id]=1;lsave(P);const nx=nextOf(C.
   msg(`다 풀었어요. <div class="eacts" style="margin-top:10px">${C.prac?`<a class="btn pri" href="endgame.html?l=${C.prac}">실전에서 해보기</a>`:""}${nx?`<a class="btn" href="learn.html?c=${nx.id}">다음: ${esc(nx.ko)}</a>`:""}<button id="lRe">처음부터</button></div>`,"good");
   $("#lRe").onclick=()=>{S.done=false;see(0)}}
 async function judge(m){const q=C.qz[S.qi];S.busy=true;msg("확인 중...");let j;try{j=await tb(q.fen)}catch(e){S.busy=false;msg("테이블베이스 연결이 안 돼요. 잠시 뒤 다시 해 주세요.","bad");return}
-  const gd=goodOf(j),ok=gd.some(x=>x.san===m.san);
+  const gd=q.mate?j.moves.filter(x=>x.checkmate):goodOf(j),ok=q.mate?S.g.in_checkmate():gd.some(x=>x.san===m.san);
   if(ok){S.hl=[];const last=S.qi===C.qz.length-1;msg(`맞아요. ${esc(q.why)}${last?"":`<div class="eacts" style="margin-top:10px"><button class="pri" id="lGo">다음 문제 (Enter)</button></div>`}`,"good");
     if(last){S.busy=false;setTimeout(finish,900);return}$("#lGo").onclick=()=>quiz(S.qi+1);S.busy=true;$("#lNext").disabled=false;return}
   S.miss++;const mv=j.moves.find(x=>x.san===m.san),c=mv?mv.category:"";
-  const why=j.category==="win"?(c==="win"?"이 수면 오히려 져요.":"이 수면 이기던 자리가 비겨요."):"이 수면 져요.";
+  const why=S.g.in_stalemate()?"스테일메이트예요. 비겨요.":q.mate?"메이트가 아니에요.":j.category==="win"?(c==="win"?"이 수면 오히려 져요.":"이 수면 이기던 자리가 비겨요."):"이 수면 져요.";
   msg(`${why} <div class="eacts" style="margin-top:10px"><button class="pri" id="lRetry">다시 (Enter)</button>${S.miss>=1?'<button id="lShow">정답 보기</button>':""}</div>`,"bad");
   $("#lRetry").onclick=retry;const sb=$("#lShow");if(sb)sb.onclick=()=>{retry();const a=gd[0];if(a){S.ar=[[a.uci.slice(0,2),a.uci.slice(2,4)]];render()}msg(esc(q.why))}}
 function retry(){const q=C.qz[S.qi];S.g=new Chess(q.fen);S.last=null;S.sel=null;S.busy=false;msg("다시 둬 보세요.");render()}
