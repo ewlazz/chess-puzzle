@@ -27,11 +27,15 @@ const prog=()=>{try{return JSON.parse(localStorage.getItem("hansu-eg")||"{}")}ca
 const saveProg=o=>{try{localStorage.setItem("hansu-eg",JSON.stringify(o))}catch(e){}};
 const stars=n=>"★".repeat(n)+`<s>${"★".repeat(3-n)}</s>`;
 const qs=new URL(location.href).searchParams,LID=qs.get("l"),LS=L.find(x=>x.id===LID);
-document.body.classList.add(LS?"m-play":"m-list");
+const CID=document.body.classList.contains("m-learn");if(!CID)document.body.classList.add(LS?"m-play":"m-list");
 let TL=LS&&LS.goal==="mate"&&TLS.includes(+qs.get("t"))?+qs.get("t"):0;
 
 /* 목록 */
+let TAB="learn";try{TAB=localStorage.getItem("hansu-egtab")==="prac"?"prac":"learn"}catch(e){}
 function list(){const P=prog();
+  $("#eTabs").innerHTML=[["learn","배우기"],["prac","연습"]].map(([k,t])=>`<button class="chip" data-tab="${k}" aria-pressed="${TAB===k}">${t}</button>`).join("");
+  $("#eTabs").onclick=e=>{const b=e.target.closest("[data-tab]");if(!b)return;TAB=b.dataset.tab;try{localStorage.setItem("hansu-egtab",TAB)}catch(_){}list()};
+  if(TAB==="learn"&&window.EGL){$("#eList").innerHTML=EGL.list();return}
   $("#eList").innerHTML=GRP.map(([g,t])=>`<h2 class="gsec">${t}</h2><div class="gcards">${L.filter(x=>x.grp===g).map(x=>{const p=P[x.id];
     return `<a class="gcard" href="endgame.html?l=${x.id}">${miniBoard(x.sample,"w",null)}<span><b>${esc(x.ko)}</b><small>${GOAL[x.goal]}</small>${p?`<em>${stars(p.s)}</em>`:""}</span></a>`}).join("")}</div>`).join("")+
   `<h2 class="gsec">불렛 메이트 <span class="cnt">시간 안에 메이트</span></h2><div class="gcards">${L.filter(x=>x.goal==="mate").map(x=>{const rec=TLS.filter(t=>P[x.id+"@"+t]).map(t=>`${t}초 ${(P[x.id+"@"+t].best/1000).toFixed(1)}초 남김`).join(" · ");
@@ -220,5 +224,5 @@ function tlChips(){const el=$("#eTL");if(!el)return;if(LS.goal!=="mate"){el.hidd
   el.onclick=e=>{const b=e.target.closest("[data-tl]");if(!b)return;TL=+b.dataset.tl;try{const u=new URL(location.href);if(TL)u.searchParams.set("t",TL);else u.searchParams.delete("t");history.replaceState(null,"",u)}catch(_){}tlChips();newGame()}}
 $("#eReadyBtn")&&($("#eReadyBtn").onclick=goTimed);
 if(LS){tlChips();$("#eH1").textContent=LS.ko;document.title=LS.ko+" - 한 수";$("#eName").textContent=LS.ko;$("#eGoal").innerHTML=`<i class="w"></i>백으로 ${GOAL[LS.goal]}${LS.goal==="draw"||LS.goal==="hold"?` (${LS.hold}수 버티기)`:""}`;newGame()}
-else list();
+else if(!CID)list();
 }

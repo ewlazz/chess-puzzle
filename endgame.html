@@ -51,6 +51,14 @@ header .nav,footer .wrap{max-width:1440px}
 .eready{position:absolute;inset:0;display:grid;place-items:center;background:#D5D9E8;z-index:20}.eready[hidden]{display:none}
 .eready button{min-height:60px;padding:0 34px;border-radius:4px;border:0;background:#242942;color:#EFF0F6;font-size:20px;font-weight:800}
 .m-list #boardSec{display:none}.m-play #listSec{display:none}
+.m-learn #listSec,.m-learn #boardSec,.m-list #learnSec,.m-play #learnSec{display:none}
+.etabs{display:flex;gap:6px;margin:14px 0 0}.etabs .chip{min-height:44px;padding:0 20px;font-size:16px}
+.lnext{display:flex;align-items:baseline;gap:10px;font-size:17px;margin:22px 0 0}.lnext a{font-weight:800;color:#5C54D6}.lnext span{margin-left:auto;font-family:"Inter","Pretendard",sans-serif;font-size:14px;color:#505A82}
+.lbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ltext{font-size:18px;line-height:1.7;margin:0}
+.s8.hl::after{content:"";position:absolute;inset:0;background:#6A80B466}
+.eacts a.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:3px;border:1px solid #C4C9DC;color:#242942;font-weight:700;font-size:15px;text-decoration:none}
+.eacts a.btn.pri{background:#242942;border-color:#242942;color:#EFF0F6}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#EFF0F6">
@@ -67,7 +75,7 @@ header .nav,footer .wrap{max-width:1440px}
 </header>
 <main>
 <section class="band eb" id="listSec">
-  <div class="ewrap"><h1>엔드게임</h1><div id="eList"></div></div>
+  <div class="ewrap"><h1>엔드게임</h1><div class="etabs" id="eTabs"></div><div id="eList"></div></div>
 </section>
 <section class="band eb" id="boardSec">
   <div class="egrid">
@@ -87,6 +95,23 @@ header .nav,footer .wrap{max-width:1440px}
     </div>
   </div>
 </section>
+<section class="band eb" id="learnSec">
+  <div class="egrid">
+    <div>
+      <h1 id="lH1">엔드게임</h1>
+      <div class="wood"><div class="aboard"><div class="ab8" id="lb8" aria-label="배우기 보드"></div><svg class="amarks" id="lmarks" viewBox="0 0 8 8" aria-hidden="true"></svg></div></div>
+      <div class="ebar lbar"><button id="lPrev">← 이전</button><button id="lNext">다음 →</button></div>
+    </div>
+    <div class="epanel">
+      <div class="etop"><a class="lnk" href="endgame.html">← 엔드게임 목록</a><p class="estat" id="lGrp"></p><p class="ename" id="lName"></p></div>
+      <p class="estat" id="lStep"></p>
+      <p class="ltext" id="lText"></p>
+      <p class="egoal" id="lQ" hidden></p>
+      <div class="emsg" id="lMsg" hidden></div>
+      <div class="eacts"><button id="lQuiz">문제로 바로</button></div>
+    </div>
+  </div>
+</section>
 </main>
 <footer class="band">
   <div class="wrap">
@@ -96,6 +121,7 @@ header .nav,footer .wrap{max-width:1440px}
 </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script src="js/common.js"></script>
+<script src="js/eg-learn.js"></script>
 <script src="js/endgame.js"></script>
 </body>
 </html>
