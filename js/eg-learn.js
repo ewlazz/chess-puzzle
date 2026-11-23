@@ -107,13 +107,13 @@ const lsave=o=>{try{localStorage.setItem("hansu-egl",JSON.stringify(o))}catch(e)
 const nextOf=id=>{const P=lp(),i=CON.findIndex(c=>c.id===id);return CON.slice(i+1).concat(CON.slice(0,i)).find(c=>!P[c.id])||null};
 /* 목록 (endgame.js가 부름) */
 window.EGL={con:CON,list(){const P=lp(),nx=CON.find(c=>!P[c.id]),n=CON.filter(c=>P[c.id]).length;
-  return `<p class="lnext">${nx?`다음 배울 것 <a href="endgame.html?c=${nx.id}">${esc(nx.ko)}</a>`:"다 배웠어요"}<span>${n} / ${CON.length}</span></p>`+
-    Object.entries(GRP).map(([g,t])=>`<h2 class="gsec">${t}</h2><div class="gcards">${CON.filter(c=>c.grp===g).map(c=>{const s=c.steps[0];
-      return `<a class="gcard" href="endgame.html?c=${c.id}">${miniBoard(s.fen,c.o||s.fen.split(" ")[1],null)}<span><b>${esc(c.ko)}</b>${P[c.id]?"<small>배움</small>":""}</span></a>`}).join("")}</div>`).join("")}};
+  return `<p class="lnext">${nx?`다음 배울 것 <a href="learn.html?c=${nx.id}">${esc(nx.ko)}</a>`:"다 배웠어요"}<span>${n} / ${CON.length}</span></p>`+
+    Object.entries(GRP).map(([g,t])=>`<h2 class="gsec">엔드게임 · ${t}</h2><div class="gcards">${CON.filter(c=>c.grp===g).map(c=>{const s=c.steps[0];
+      return `<a class="gcard" href="learn.html?c=${c.id}">${miniBoard(s.fen,c.o||s.fen.split(" ")[1],null)}<span><b>${esc(c.ko)}</b>${P[c.id]?"<small>배움</small>":""}</span></a>`}).join("")}</div>`).join("")}};
 
 const CID=new URL(location.href).searchParams.get("c"),C=CON.find(c=>c.id===CID);
-if(!C)return;
-document.body.classList.add("m-learn");setTimeout(()=>document.body.classList.remove("m-list","m-play"),0);
+if(!C){document.body.classList.add("m-list");const el=$("#cList");if(el)el.innerHTML=window.EGL.list();return}
+document.body.classList.add("m-learn");
 const F="abcdefgh",fi=s=>F.indexOf(s[0]),TB="https://tablebase.lichess.ovh/standard?fen=";
 const bEl=$("#lb8"),mk=$("#lmarks");
 let soundOn=true;try{soundOn=localStorage.getItem("hansu-sound")!=="off"}catch(e){}
@@ -156,7 +156,7 @@ function quiz(qi){S.ph="quiz";S.qi=qi;S.miss=0;S.busy=false;const q=C.qz[qi];S.g
   $("#lStep").textContent=`문제 ${qi+1} / ${C.qz.length}`;$("#lText").hidden=true;$("#lQ").hidden=false;$("#lQ").innerHTML=`<i class="${S.g.turn()}"></i>${side(S.g.turn())} 차례 · ${esc(q.q)}`;
   $("#lPrev").disabled=false;$("#lNext").textContent="다음 →";$("#lNext").disabled=true;$("#lMsg").hidden=false;msg("수를 두세요.");render()}
 function finish(){S.done=true;const P=lp();P[C.id]=1;lsave(P);const nx=nextOf(C.id);$("#lNext").disabled=true;
-  msg(`다 풀었어요. <div class="eacts" style="margin-top:10px">${C.prac?`<a class="btn pri" href="endgame.html?l=${C.prac}">실전에서 해보기</a>`:""}${nx?`<a class="btn" href="endgame.html?c=${nx.id}">다음: ${esc(nx.ko)}</a>`:""}<button id="lRe">처음부터</button></div>`,"good");
+  msg(`다 풀었어요. <div class="eacts" style="margin-top:10px">${C.prac?`<a class="btn pri" href="endgame.html?l=${C.prac}">실전에서 해보기</a>`:""}${nx?`<a class="btn" href="learn.html?c=${nx.id}">다음: ${esc(nx.ko)}</a>`:""}<button id="lRe">처음부터</button></div>`,"good");
   $("#lRe").onclick=()=>{S.done=false;see(0)}}
 async function judge(m){const q=C.qz[S.qi];S.busy=true;msg("확인 중...");let j;try{j=await tb(q.fen)}catch(e){S.busy=false;msg("테이블베이스 연결이 안 돼요. 잠시 뒤 다시 해 주세요.","bad");return}
   const gd=goodOf(j),ok=gd.some(x=>x.san===m.san);
@@ -190,6 +190,6 @@ addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest("input,text
   if(e.key==="ArrowRight"&&S.ph==="see"){e.preventDefault();$("#lNext").click()}
   else if(e.key==="ArrowLeft"&&S.ph==="see"){e.preventDefault();if(S.i>0)see(S.i-1)}
   else if(e.key==="Enter"){const b=$("#lGo")||$("#lRetry");if(b){e.preventDefault();b.click()}}});
-$("#lH1").textContent=C.ko;document.title=C.ko+" - 한 수";$("#lName").textContent=C.ko;$("#lGrp").textContent=GRP[C.grp]+" · 배우기";
+$("#lH1").textContent=C.ko;document.title=C.ko+" - 한 수";$("#lName").textContent=C.ko;$("#lGrp").textContent="엔드게임 · "+GRP[C.grp];
 see(0);
 })();

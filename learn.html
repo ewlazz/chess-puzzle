@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개념 - 한 수</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,500..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="pieces.css">
+<link rel="stylesheet" href="css/site.css">
+<style>
+.eb{background:var(--band);color:#242942}
+.ewrap{max-width:1440px;margin:0 auto}
+header .nav,footer .wrap{max-width:1440px}
+.eb h1{font-size:clamp(32px,4.6vw,48px);margin:0 0 6px}
+.egrid{display:grid;grid-template-columns:minmax(0,640px) minmax(0,1fr);gap:clamp(18px,3vw,40px);align-items:start;max-width:1440px;margin:0 auto}
+@media(max-width:980px){.egrid{grid-template-columns:minmax(0,640px);justify-content:center}}
+.wood{padding:clamp(6px,1.2vw,12px);background:linear-gradient(160deg,#6b4428,#4a2c18);border-radius:14px}
+.ebar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.ebar button{min-height:46px;border-radius:3px;border:1px solid #C4C9DC;background:transparent;color:#242942;font-weight:700;font-size:15px}
+.ebar button:hover{background:#D5D9E8}.ebar button:disabled{opacity:.4}
+.epanel{background:var(--card);color:var(--ink);border-radius:4px;padding:20px;display:grid;gap:14px;font-size:16px}
+.etop .lnk{font-size:14px}
+.ename{font-size:24px;font-weight:800;margin:4px 0 0}
+.egoal{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700}
+.egoal i{width:14px;height:14px;border-radius:50%;border:1px solid #242942;flex:none}.egoal i.w{background:#fff}.egoal i.b{background:#242942}
+.emsg{border:1px solid #C4C9DC;border-radius:4px;padding:12px 14px;min-height:50px;line-height:1.55}
+.emsg.good{border-color:#5C54D6;color:#5C54D6;font-weight:700}.emsg.bad{border:2px solid #242942;font-weight:700}
+.estat{font-size:14px;color:#505A82}
+.estars{font-size:22px;letter-spacing:2px;color:#5C54D6}.estars s{text-decoration:none;color:#C4C9DC}
+.eacts{display:flex;flex-wrap:wrap;gap:8px}
+.eacts button{min-height:44px;padding:0 18px;border-radius:3px;border:1px solid #C4C9DC;background:transparent;color:#242942;font-weight:700;font-size:15px}
+.eacts button.pri{background:#242942;border-color:#242942;color:#EFF0F6}
+.emv{font-size:14px;color:#505A82;font-family:"Inter","Pretendard",sans-serif;line-height:1.7}
+.emv b{color:#242942}
+/* 목록 */
+.efil{margin:18px 0 0}
+.gsec{font-size:20px;margin:30px 0 8px;padding-bottom:8px;border-bottom:1px solid #C4C9DC}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:6px 24px}
+.gcard{display:grid;grid-template-columns:128px minmax(0,1fr);gap:16px;align-items:center;padding:10px 8px;margin:0 -8px;border-radius:3px;text-decoration:none;color:#242942}
+.gcard:hover{background:#D5D9E8}
+.gcard .mbd{width:128px;height:128px;border-color:#C4C9DC}.gcard .mbd div{background:#E9ECF5}.gcard .mbd div.d{background:#A9B4D3}
+.gcard span{display:grid;gap:3px;min-width:0}.gcard b{font-size:17px}.gcard small{font-size:13px;color:#505A82}
+.gcard em{font-style:normal;font-size:16px;letter-spacing:2px;color:#5C54D6}.gcard em s{text-decoration:none;color:#C4C9DC}
+@media(max-width:640px){.gcards{grid-template-columns:1fr}.gcard{grid-template-columns:88px minmax(0,1fr)}.gcard .mbd{width:88px;height:88px}}
+.s8.pre::after{content:"";position:absolute;inset:0;background:#24294270}
+.etl{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.etl span{font-size:14px;color:#505A82;margin-right:4px}.etl .chip{min-height:34px;padding:0 12px;font-size:14px}
+.eclk{font-family:"Inter","Pretendard",sans-serif;font-size:44px;font-weight:800;line-height:1;padding:10px 14px;border-radius:4px;background:#D5D9E8;color:#505A82;text-align:right;font-variant-numeric:tabular-nums}
+.eclk.run{background:#242942;color:#EFF0F6}.eclk.low{background:#5C54D6;color:#EFF0F6}
+.eready{position:absolute;inset:0;display:grid;place-items:center;background:#D5D9E8;z-index:20}.eready[hidden]{display:none}
+.eready button{min-height:60px;padding:0 34px;border-radius:4px;border:0;background:#242942;color:#EFF0F6;font-size:20px;font-weight:800}
+.m-list #boardSec{display:none}.m-play #listSec{display:none}
+.m-learn #listSec,.m-list #learnSec{display:none}
+.etabs{display:flex;gap:6px;margin:14px 0 0}.etabs .chip{min-height:44px;padding:0 20px;font-size:16px}
+.lnext{display:flex;align-items:baseline;gap:10px;font-size:17px;margin:22px 0 0}.lnext a{font-weight:800;color:#5C54D6}.lnext span{margin-left:auto;font-family:"Inter","Pretendard",sans-serif;font-size:14px;color:#505A82}
+.lbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ltext{font-size:18px;line-height:1.7;margin:0}
+.s8.hl::after{content:"";position:absolute;inset:0;background:#6A80B466}
+.eacts a.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:3px;border:1px solid #C4C9DC;color:#242942;font-weight:700;font-size:15px;text-decoration:none}
+.eacts a.btn.pri{background:#242942;border-color:#242942;color:#EFF0F6}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#EFF0F6">
+<link rel="apple-touch-icon" href="icons/app/apple-180.png">
+<script src="js/theme.js"></script>
+<link rel="stylesheet" href="css/paper.css">
+</head>
+<body>
+<header>
+  <div class="nav">
+    <a class="logo" href="index.html">한 수</a>
+    <nav aria-label="메뉴"><a href="puzzle.html">퍼즐</a><a href="stats.html">전적</a><a href="analysis.html">분석</a><a href="opening.html">오프닝</a><a href="endgame.html">엔드게임</a><a href="learn.html" aria-current="page">개념</a><a href="play.html">대국</a></nav>
+  </div>
+</header>
+<main>
+<section class="band eb" id="listSec">
+  <div class="ewrap"><h1>개념</h1><div id="cList"></div></div>
+</section>
+<section class="band eb" id="learnSec">
+  <div class="egrid">
+    <div>
+      <h1 id="lH1">엔드게임</h1>
+      <div class="wood"><div class="aboard"><div class="ab8" id="lb8" aria-label="배우기 보드"></div><svg class="amarks" id="lmarks" viewBox="0 0 8 8" aria-hidden="true"></svg></div></div>
+      <div class="ebar lbar"><button id="lPrev">← 이전</button><button id="lNext">다음 →</button></div>
+    </div>
+    <div class="epanel">
+      <div class="etop"><a class="lnk" href="learn.html">← 개념 목록</a><p class="estat" id="lGrp"></p><p class="ename" id="lName"></p></div>
+      <p class="estat" id="lStep"></p>
+      <p class="ltext" id="lText"></p>
+      <p class="egoal" id="lQ" hidden></p>
+      <div class="emsg" id="lMsg" hidden></div>
+      <div class="eacts"><button id="lQuiz">문제로 바로</button></div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="band">
+  <div class="wrap">
+    <p><b>한 수</b></p>
+    <p>정답 판정 Lichess 테이블베이스 · 기물 cburnett (CC BY-SA 3.0)</p>
+  </div>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/eg-learn.js?v=44"></script>
+</body>
+</html>
