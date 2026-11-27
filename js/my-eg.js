@@ -19,10 +19,14 @@ const pieces=(fen,c)=>{const o=[];fen.split(" ")[0].split("/").forEach((r,i)=>{l
 function concept(fen,me,san,stale){if(stale)return {c:"stale"};
   const op=me==="w"?"b":"w",A=pieces(fen,me),B=pieces(fen,op),a=A.filter(p=>p.t!=="k").map(p=>p.t).sort().join(""),b=B.filter(p=>p.t!=="k").map(p=>p.t).sort().join("");
   const pawnOnly=/^p*$/.test(a)&&/^p*$/.test(b);
-  if(pawnOnly){if(!a.includes("p")&&b.includes("p"))return {c:"square"};
-    if(a.includes("p")&&!b.includes("p")){const rp=A.filter(p=>p.t==="p").every(p=>p.sq[0]==="a"||p.sq[0]==="h");if(rp)return {c:"rookp"};
-      return {c:/^K/.test(san)?"opp":"act"}}
-    return {c:/^K/.test(san)?"opp":"act"}}
+  if(pawnOnly){const g=new Chess(fen),bm=g.move(san);
+    const passed=(P,Q,c)=>P.filter(p=>p.t==="p").some(p=>{const f=F.indexOf(p.sq[0]),r=+p.sq[1];return !Q.some(q=>q.t==="p"&&Math.abs(F.indexOf(q.sq[0])-f)<=1&&(c==="w"?+q.sq[1]>r:+q.sq[1]<r))});
+    if(passed(B,A,op)&&(!a.includes("p")||(bm&&(bm.captured||bm.piece==="k"))&&bm.captured))return {c:"square"};
+    if(bm&&bm.piece==="k"&&!bm.captured){const K=pieces(g.fen(),me).find(p=>p.t==="k"),O=pieces(g.fen(),op).find(p=>p.t==="k"),df=Math.abs(F.indexOf(K.sq[0])-F.indexOf(O.sq[0])),dr=Math.abs(+K.sq[1]-+O.sq[1]);
+      if((df===0&&dr%2===0)||(dr===0&&df%2===0)||(df===dr&&df%2===0))return {c:"opp"}}
+    if(!b.includes("p")){const rp=A.filter(p=>p.t==="p").every(p=>p.sq[0]==="a"||p.sq[0]==="h");return {c:rp?"rookp":"key"}}
+    if(passed(B,A,op))return {c:"square"};
+    return {c:"act"}}
   if(a==="pr"&&b==="r"){const p=A.find(x=>x.t==="p"),rk=me==="w"?+p.sq[1]:9-+p.sq[1];if(p.sq[0]==="a"||p.sq[0]==="h")return {c:"rookpawnr"};return {c:rk>=6?"lucena":"cutoff"}}
   if(a==="r"&&b==="pr"){const p=B.find(x=>x.t==="p");if(p.sq[0]==="a"||p.sq[0]==="h")return {c:"vancura"};const rk=op==="w"?+p.sq[1]:9-+p.sq[1];return {c:rk>=6?"longside":"philidor"}}
   if(/^r$/.test(a)&&/^p+$/.test(b))return {c:"rvp"};
@@ -61,7 +65,7 @@ function card(x){const no=Math.floor(x.ply/2)+1,dots=x.me==="w"?".":"...",d=new 
 function draw(state){const me=window.ME&&ME.get(),C=load();
   if(!me){box.innerHTML=`<h2 class="gsec">내 판의 엔드게임</h2><p class="myeg-n">체스닷컴 닉네임을 연결하면 최근 판에서 엔드게임 실수를 찾아 줘요.</p><form class="mcf" id="myegF"><input name="u" placeholder="체스닷컴 닉네임" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="체스닷컴 닉네임"><button>연결</button></form>`;
     $("#myegF").onsubmit=async e=>{e.preventDefault();const u=e.target.u.value.trim();if(!u)return;try{const r=await fetch("https://api.chess.com/pub/player/"+encodeURIComponent(u.toLowerCase()));if(!r.ok)throw 0;const j=await r.json();ME.set(j.username||u);draw()}catch(_){e.target.u.setCustomValidity("없는 닉네임이에요");e.target.u.reportValidity();e.target.u.oninput=()=>e.target.u.setCustomValidity("")}};return}
-  const mine=C.user===me.toLowerCase()?C:{user:me.toLowerCase(),g:{}};const L=Object.values(mine.g).filter(x=>x&&x.fen).sort((a,b)=>b.end-a.end);
+  const mine=C.user===me.toLowerCase()?C:{user:me.toLowerCase(),g:{}};const L=Object.values(mine.g).filter(x=>x&&x.fen).sort((a,b)=>b.end-a.end);L.forEach(x=>{if(!(x.k&&x.k.c==="stale"))try{x.k=concept(x.fen,x.me,x.good[0]||x.san,false)}catch(_){}});
   const n=Object.keys(mine.g).length;
   box.innerHTML=`<h2 class="gsec">내 판의 엔드게임</h2><p class="myeg-n">${state||(n?`최근 판 ${n}개를 봤어요. 기물이 7개 이하로 줄어든 뒤 결과가 바뀐 수만 보여 줘요.`:"최근 판에서 기물이 7개 이하로 줄어든 엔드게임을 찾아 테이블베이스로 확인해요.")}</p>
     ${L.length?`<div class="myegs">${L.slice(0,12).map(card).join("")}</div>`:n&&!state?`<p class="myeg-n">찾은 실수가 없어요.</p>`:""}
