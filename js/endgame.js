@@ -26,7 +26,15 @@ const GOAL={mate:"메이트하기",promote:"승진해서 이기기",draw:"무승
 const prog=()=>{try{return JSON.parse(localStorage.getItem("hansu-eg")||"{}")}catch(e){return {}}};
 const saveProg=o=>{try{localStorage.setItem("hansu-eg",JSON.stringify(o))}catch(e){}};
 const stars=n=>"★".repeat(n)+`<s>${"★".repeat(3-n)}</s>`;
-const qs=new URL(location.href).searchParams,LID=qs.get("l"),LS=L.find(x=>x.id===LID);
+const qs=new URL(location.href).searchParams,LID=qs.get("l"),LS=L.find(x=>x.id===LID)||customLesson();
+/* 내 판에서 가져온 자리 연습: ?fen=…&want=win|draw. 늘 백으로 두게 흑 차례면 판을 뒤집음 */
+function flipFen(f){const p=f.split(" ");const b=p[0].split("/").reverse().map(r=>r.replace(/[a-z]/gi,c=>c===c.toUpperCase()?c.toLowerCase():c.toUpperCase())).join("/");return `${b} ${p[1]==="w"?"b":"w"} - - 0 1`}
+function customLesson(){const f=qs.get("fen");if(!f)return null;let fen=f.trim();try{if(!new Chess().validate_fen(fen).valid)return null}catch(e){return null}
+  if(fen.split(" ")[1]==="b")fen=flipFen(fen);else fen=fen.split(" ").slice(0,2).join(" ")+" - - 0 1";
+  const n=fen.split(" ")[0].replace(/[^a-z]/gi,"").length,want=qs.get("want")==="draw"?"draw":"win",myP=/P/.test(fen.split(" ")[0]);
+  const base={id:"custom",grp:"custom",ko:"내 판 연습",fixed:fen,sample:fen};
+  if(n<=7)return Object.assign(base,want==="win"?{goal:myP?"promote":"mate",want:"win",minDtm:0}:{goal:"draw",want:"draw",hold:20});
+  return Object.assign(base,{eng:"x",goal:want==="win"?"win":"hold",up:want==="win",hold:30})}
 document.body.classList.add(LS?"m-play":"m-list");
 let TL=LS&&LS.goal==="mate"&&TLS.includes(+qs.get("t"))?+qs.get("t"):0;
 
@@ -163,7 +171,8 @@ function goTimed(){if(phase!=="ready")return;$("#eReady").hidden=true;phase="pla
 addEventListener("keydown",e=>{if(!LS||e.target.closest&&e.target.closest("input,textarea"))return;if(e.key==="Enter"||e.key===" "){if(phase==="ready"){e.preventDefault();goTimed()}else if(TL&&(phase==="done"||phase==="slip")){e.preventDefault();newGame()}}});
 async function newGame(){CL.on=false;$("#eReady").hidden=true;const x=LS,tok=++TOK;phase="busy";g=null;pq=[];hist=[];evh=[];usedHelp=0;myMoves=0;sel=null;hint=null;lastM=null;
   $("#bUndo").disabled=$("#bHint").disabled=true;msg("자리 만드는 중…");bEl.innerHTML="";
-  let fen=null;if(x.eng){msg("자리 만드는 중… 엔진이 고르고 있어요");try{fen=await engPos(x,tok)}catch(e){fen=null}if(tok!==TOK)return;if(!fen){msg('알맞은 자리를 못 찾았어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame;return}}
+  let fen=null;if(x.fixed){fen=x.fixed;if(x.eng){try{EV=(await E.go(fen,"depth 12")).ev}catch(e){EV=0}if(tok!==TOK)return}}
+  else if(x.eng){msg("자리 만드는 중… 엔진이 고르고 있어요");try{fen=await engPos(x,tok)}catch(e){fen=null}if(tok!==TOK)return;if(!fen){msg('알맞은 자리를 못 찾았어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame;return}}
   else try{fen=await makePos(x,tok)}catch(e){if(tok===TOK){msg('테이블베이스에 연결하지 못했어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame}return}
   if(tok!==TOK)return;if(!fen){msg('알맞은 자리를 못 찾았어요. <button class="lnk" id="eRetry">다시</button>',"bad");$("#eRetry").onclick=newGame;return}
   start=fen;g=new Chess(fen);if(TL){phase="ready";CL.left=TL*1000;render();$("#eReady").hidden=false;msg(`${TL}초 안에 메이트하세요. 시작을 누르면 시계가 가요.`);return}phase="play";msg("백 차례예요.");render()}
@@ -204,9 +213,9 @@ function slip(t){pq=[];phase="slip";CL.on=false;render();if(TL){msg(`${t} <div c
 function finish(ok){pq=[];phase="done";CL.on=false;
   if(TL){const P=prog(),k=LS.id+"@"+TL,v=Math.max(0,CL.left),nb=!P[k]||v>P[k].best;if(nb)P[k]={best:v,t:Date.now()};saveProg(P);render();
     msg(`메이트! ${(v/1000).toFixed(1)}초 남김${nb?" · 최고 기록":` · 최고 ${(P[k].best/1000).toFixed(1)}초`}<div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">다음 (Enter)</button><a class="lnk" href="endgame.html">목록</a></div>`,"good");$("#eNext").onclick=newGame;return}
-  const s=Math.max(1,3-usedHelp),P=prog(),x=LS;if(!P[x.id]||P[x.id].s<s)P[x.id]={s,t:Date.now()};else P[x.id].t=Date.now();saveProg(P);
+  const s=Math.max(1,3-usedHelp),P=prog(),x=LS;if(x.id!=="custom"){if(!P[x.id]||P[x.id].s<s)P[x.id]={s,t:Date.now()};else P[x.id].t=Date.now();saveProg(P)}
   render();
-  msg(`${x.goal==="mate"?"메이트!":x.goal==="promote"?"승진! 이겼어요.":x.eng?(g.in_checkmate()||EV>=5?`이겼어요! 평가 ${fmtEv(EV)}`:g.in_draw()?"무승부로 지켜 냈어요.":`${x.hold}수 버텼어요. 평가 ${fmtEv(EV)}`):"지켜 냈어요. 무승부예요."} <span class="estars">${stars(s)}</span><div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">다른 자리</button><a class="lnk" href="endgame.html">목록</a></div>`,"good");
+  msg(`${x.goal==="mate"?"메이트!":x.goal==="promote"?"승진! 이겼어요.":x.eng?(g.in_checkmate()||EV>=5?`이겼어요! 평가 ${fmtEv(EV)}`:g.in_draw()?"무승부로 지켜 냈어요.":`${x.hold}수 버텼어요. 평가 ${fmtEv(EV)}`):"지켜 냈어요. 무승부예요."} <span class="estars">${stars(s)}</span><div class="eacts" style="margin-top:10px"><button class="pri" id="eNext">${x.fixed?"처음부터":"다른 자리"}</button><a class="lnk" href="endgame.html">목록</a></div>`,"good");
   $("#eNext").onclick=newGame}
 function undo(){if(!hist.length||phase==="busy")return;pq=[];const h=hist.pop();if(evh.length)EV=evh.pop();g=new Chess(h);lastM=null;sel=null;hint=null;myMoves=Math.max(0,myMoves-1);usedHelp++;phase="play";msg("다시 둬 보세요.");render()}
 async function giveHint(){if(!myTurn())return;

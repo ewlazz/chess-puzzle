@@ -58,6 +58,13 @@ header .nav,footer .wrap{max-width:1440px}
 .s8.hl::after{content:"";position:absolute;inset:0;background:#6A80B466}
 .eacts a.btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:3px;border:1px solid #C4C9DC;color:#242942;font-weight:700;font-size:15px;text-decoration:none}
 .eacts a.btn.pri{background:#242942;border-color:#242942;color:#EFF0F6}
+.myegs{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px;margin-top:12px}
+.myeg{display:grid;grid-template-columns:132px 1fr;gap:16px;align-items:start;padding:14px;border:1px solid #D5D9E8;border-radius:3px}
+.myeg .mbd{width:132px;height:132px}.myeg a.btn.pri{background:#242942;border-color:#242942;color:#EFF0F6}.myeg .eacts{align-items:center}#myEg>.eacts{margin:14px 0 6px}.myeg .mt{margin:0;font-size:15px;color:#505A82}.myeg .mt b{color:#242942;font-size:16px}
+.myeg .mm{margin:6px 0 10px;font-family:"Inter","Pretendard",sans-serif;font-weight:700;font-size:17px}.myeg .mm span{font-weight:500;font-size:14px;color:#505A82;margin-left:8px}
+.myeg .eacts{gap:6px;flex-wrap:wrap}.myeg .btn{min-height:38px;font-size:14px;padding:0 12px}
+.myeg-n{color:#505A82;margin:8px 0 12px}
+#myEg .mcf{display:flex;gap:8px}#myEg .mcf input{min-height:44px;padding:0 12px;border:1px solid #C4C9DC;border-radius:3px;font-size:16px}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#EFF0F6">
@@ -74,7 +81,7 @@ header .nav,footer .wrap{max-width:1440px}
 </header>
 <main>
 <section class="band eb" id="listSec">
-  <div class="ewrap"><h1>엔드게임</h1><div id="eList"></div></div>
+  <div class="ewrap"><h1>엔드게임</h1><div id="myEg"></div><div id="eList"></div></div>
 </section>
 <section class="band eb" id="boardSec">
   <div class="egrid">
@@ -103,6 +110,7 @@ header .nav,footer .wrap{max-width:1440px}
 </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script src="js/common.js"></script>
-<script src="js/endgame.js?v=46"></script>
+<script src="js/endgame.js?v=50"></script>
+<script src="js/my-eg.js?v=50"></script>
 </body>
 </html>

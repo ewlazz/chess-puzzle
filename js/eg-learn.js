@@ -251,7 +251,7 @@ function quiz(qi){S.ph="quiz";S.qi=qi;S.miss=0;S.lp=0;S.busy=false;const q=C.qz[
   $("#lStep").textContent=`문제 ${qi+1} / ${C.qz.length}`;$("#lText").hidden=true;$("#lQ").hidden=false;$("#lQ").innerHTML=`<i class="${S.g.turn()}"></i>${side(S.g.turn())} 차례 · ${esc(q.q)}`;
   $("#lPrev").disabled=false;$("#lNext").textContent="다음 →";$("#lNext").disabled=true;$("#lMsg").hidden=false;msg("수를 두세요.");render()}
 function finish(){S.done=true;const P=lp();P[C.id]=1;lsave(P);const nx=nextOf(C.id);$("#lNext").disabled=true;
-  msg(`다 풀었어요. <div class="eacts" style="margin-top:10px">${C.prac?`<a class="btn pri" href="${C.prac.includes(".html")?C.prac:"endgame.html?l="+C.prac}">${C.prac.includes("puzzle")?"퍼즐로 더 풀기":"실전에서 해보기"}</a>`:""}${nx?`<a class="btn" href="learn.html?c=${nx.id}">다음: ${esc(nx.ko)}</a>`:""}<button id="lRe">처음부터</button></div>`,"good");
+  msg(`다 풀었어요. <div class="eacts" style="margin-top:10px">${C.prac?`<a class="btn main" href="${C.prac.includes(".html")?C.prac:"endgame.html?l="+C.prac}">${C.prac.includes("puzzle")?"퍼즐로 더 풀기":"실전에서 해보기"}</a>`:""}${nx?`<a class="btn" href="learn.html?c=${nx.id}">다음: ${esc(nx.ko)}</a>`:""}<button id="lRe">처음부터</button></div>`,"good");
   $("#lRe").onclick=()=>{S.done=false;see(0)}}
 function lineJudge(m){const q=C.qz[S.qi],want=q.line[S.lp];
   if(m.san===want||S.g.in_checkmate()){S.lp++;
